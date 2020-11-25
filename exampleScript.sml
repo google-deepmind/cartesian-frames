@@ -1,4 +1,4 @@
-open HolKernel boolLib bossLib boolSimps pred_setTheory Parse stringTheory cf0Theory
+open HolKernel boolLib bossLib boolSimps pred_setTheory Parse stringTheory stringLib cf0Theory
 
 val _ = new_theory"example";
 
@@ -54,10 +54,10 @@ Proof
   \\ rw[SUBSET_DEF]
   \\ rw[Once EXTENSION]
   \\ EQ_TAC \\ rw[] \\ fsrw_tac[DNF_ss][]
-  \\ spose_not_then strip_assume_tac
-  \\ fsrw_tac[DNF_ss][EXTENSION]
-  >- PROVE_TAC[]
-  \\ metis_tac[]
+  \\ Cases_on`x = {}` \\ fs[]
+  \\ Cases_on`x` \\ fsrw_tac[DNF_ss][] \\ rw[INSERT_EQ_SING]
+  \\ Cases_on`t` \\ fsrw_tac[DNF_ss][] \\ rw[INSERT_EQ_SING]
+  \\ fs[EXTENSION] \\ metis_tac[]
 QED
 
 
@@ -119,13 +119,19 @@ Proof
     \\ fsrw_tac[DNF_ss][SUBSET_DEF]
     \\ spose_not_then strip_assume_tac \\ fsrw_tac[DNF_ss][Once EXTENSION, Abbr`w`]
     \\ metis_tac[] )
-  \\ rw[] \\ fsrw_tac[DNF_ss][Abbr`w`, SUBSET_DEF]
-  \\ Cases_on`"m" ∈ x` \\ fs[]
-  \\ Cases_on`"ur" ∈ x` \\ fs[] \\ res_tac \\ fs[]
-  \\ Cases_on`"nr" ∈ x` \\ fs[] \\ res_tac \\ fs[]
-  \\ Cases_on`"ns" ∈ x` \\ fs[] \\ res_tac \\ fs[]
-  \\ Cases_on`"us" ∈ x` \\ fs[] \\ res_tac \\ fs[]
+  \\ strip_tac \\ rpt BasicProvers.var_eq_tac
+  THENL (map (exists_tac o fromMLstring) ["n", "u", "sun", "run"])
+  \\ rw[] \\ CCONTR_TAC \\ fs[SUBSET_DEF] \\ res_tac \\ fs[]
 QED
+
+fun tails [] = []
+  | tails (x::y) = (x,y) :: tails y
+
+val envs = ["m","us","ur","ns","nr"]
+val ineqs =
+  map (fn (x, r) =>
+         map (fn y => EVAL(mk_eq(fromMLstring x, fromMLstring y))) r)
+      (tails envs) |> List.concat
 
 Theorem runs3_ctrl:
   ctrl runs_cf3 = ∅
@@ -137,7 +143,7 @@ Proof
   \\ qmatch_goalsub_abbrev_tac`x ⊆ w`
   \\ Cases_on`x ⊆ w` \\ fs[]
   \\ CCONTR_TAC \\ fs[] \\ rw[] \\ fs[Abbr`w`] \\ fs[SUBSET_DEF]
-  \\ res_tac \\ fs[]
+  \\ metis_tac ineqs
 QED
 
 val _ = export_theory();

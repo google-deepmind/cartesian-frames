@@ -146,4 +146,166 @@ Proof
   \\ metis_tac ineqs
 QED
 
+Theorem runs1_obs:
+  obs runs_cf1 = union_closure {runs_cf1.world}
+Proof
+  rw[union_closure_sing, obs_def, EXTENSION, SUBSET_DEF, runs_cf1_def, ifs_def]
+  \\ rw[Once EQ_IMP_THM]
+  \\ fsrw_tac[DNF_ss][]
+  \\ metis_tac[]
+QED
+
+
+Theorem wf_runs2[simp]:
+  wf runs_cf2
+Proof
+  rw[wf_def, runs_cf2_def, runs_cf1_def]
+QED
+
+Theorem runs2_obs:
+  obs runs_cf2 = union_closure {{"ur";"nr"}; {"us";"ns"}}
+Proof
+  qmatch_goalsub_abbrev_tac`union_closure s`
+  \\ `union_closure s = {{}; runs_cf1.world} ∪ s`
+  by (
+    rw[Abbr`s`, union_closure_def, runs_cf1_def]
+    \\ rw[Once EXTENSION]
+    \\ Cases_on`x = {}` \\ fsrw_tac[DNF_ss][]
+    \\ Cases_on`x = {"us";"ns"}` \\ fsrw_tac[DNF_ss][]
+    >- (qexists_tac`{{"us";"ns"}}` \\ simp[])
+    \\ Cases_on`x = {"ur";"nr"}` \\ fsrw_tac[DNF_ss][]
+    >- (qexists_tac`{{"ur";"nr"}}` \\ simp[])
+    \\ Cases_on`x = {"ur";"us";"nr";"ns"}` \\ fsrw_tac[DNF_ss][]
+    >- (qexists_tac`{{"ur";"nr"};{"us";"ns"}}` \\ simp[] \\ simp[EXTENSION] \\ metis_tac[])
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ Cases_on`s` \\ fs[] \\ rw[] \\ fs[]
+    \\ Cases_on`t` \\ fs[] \\ rw[] \\ fs[] \\ rw[] \\ fs[] \\ rw[]
+    \\ fs[EXTENSION] \\ metis_tac[] )
+  \\ pop_assum SUBST1_TAC
+  \\ once_rewrite_tac[SET_EQ_SUBSET]
+  \\ reverse conj_asm2_tac >- (
+    simp[SUBSET_DEF, GSYM CONJ_ASSOC]
+    \\ conj_asm1_tac >- simp[obs_empty]
+    \\ conj_tac >- (
+      first_assum(mp_then Any mp_tac obs_compl)
+      \\ simp[runs_cf2_def] )
+    \\ pop_assum kall_tac
+    \\ simp[Abbr`s`]
+    \\ rw[obs_def] \\ TRY (rw[runs_cf2_def, runs_cf1_def, SUBSET_DEF] \\ NO_TAC)
+    \\ rw[ifs_def]
+    \\ fs[runs_cf2_def, runs_cf1_def] \\ rw[]
+    \\ TRY(qexists_tac`"u"` \\ rw[] \\ fs[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"n"` \\ rw[] \\ fs[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"run"` \\ rw[] \\ fs[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"sun"` \\ rw[] \\ fs[] \\ NO_TAC))
+  \\ rw[SUBSET_DEF]
+  \\ CCONTR_TAC \\ fs[]
+  \\ qpat_x_assum`x ∈ _`mp_tac
+  \\ rw[obs_def, runs_cf2_def]
+  \\ Cases_on`x ⊆ runs_cf1.world` \\ fs[]
+  \\ fs[Abbr`s`]
+  \\ Cases_on`x = {"ur"}`
+  >- (
+    qexists_tac`"n"` \\ qexists_tac`"run"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"nr"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"sun"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"us"}`
+  >- (
+    qexists_tac`"n"` \\ qexists_tac`"u"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"ns"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"n"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"ns";"nr"}`
+  >- (
+    qexists_tac`"run"` \\ qexists_tac`"sun"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"us";"ur"}`
+  >- (
+    qexists_tac`"run"` \\ qexists_tac`"sun"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"ur";"ns"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"n"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"us";"nr"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"n"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"us";"ur";"ns"}`
+  >- (
+    qexists_tac`"n"` \\ qexists_tac`"run"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"us";"ur";"nr"}`
+  >- (
+    qexists_tac`"n"` \\ qexists_tac`"sun"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"ns";"ur";"nr"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"run"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ Cases_on`x = {"ns";"us";"nr"}`
+  >- (
+    qexists_tac`"u"` \\ qexists_tac`"sun"`
+    \\ simp[ifs_def] \\ rw[]
+    \\ CCONTR_TAC \\ fs[] \\ rw[]
+    \\ pop_assum mp_tac \\ simp[] \\ fs[]
+    \\ TRY(qexists_tac`"s"` \\ simp[] \\ NO_TAC)
+    \\ TRY(qexists_tac`"r"` \\ simp[] \\ NO_TAC))
+  \\ `F` suffices_by rw[]
+  \\ qpat_x_assum`x ⊆ _`mp_tac
+  \\ fs[runs_cf1_def]
+  \\ simp[GSYM IN_POW]
+  \\ simp[POW_EQNS]
+  \\ fs[INSERT_COMM]
+QED
+
 val _ = export_theory();

@@ -64,6 +64,23 @@ Definition sub_closure_def:
   sub_closure u sos = { s | s ⊆ u ∧ ∃t. t ∈ sos ∧ s ⊆ t }
 End
 
+Definition union_closure_def:
+  union_closure sos = { BIGUNION s | s ⊆ sos }
+End
+
+Theorem union_closure_sing:
+  union_closure {s} = {{}; s}
+Proof
+  rw[union_closure_def]
+  \\ rw[Once EXTENSION]
+  \\ Cases_on`x = {}` \\ fs[] >- (qexists_tac`{}` \\ simp[])
+  \\ Cases_on`x = s` \\ fs[] >- (qexists_tac`{s}` \\ fs[])
+  \\ qx_gen_tac`b`
+  \\ Cases_on`b = {s}` \\ fs[]
+  \\ reverse(Cases_on` b PSUBSET {s}`) >- fs[PSUBSET_DEF]
+  \\ fs[PSUBSET_SING]
+QED
+
 (* Initial definition of observables *)
 
 Definition ifs_def:
@@ -128,6 +145,13 @@ Proof
   \\ rw[]
   \\ fs[ifs_def]
   \\ metis_tac[]
+QED
+
+Theorem obs_empty:
+  {} ∈ obs c
+Proof
+  rw[obs_def, ifs_def]
+  \\ qexists_tac`a1` \\ rw[]
 QED
 
 val _ = export_theory();

@@ -1,4 +1,6 @@
-open HolKernel boolLib bossLib boolSimps pred_setTheory Parse stringTheory stringLib cf0Theory
+open HolKernel boolLib bossLib boolSimps Parse
+  pred_setTheory stringTheory stringLib
+  cf0Theory cf1Theory
 
 val _ = new_theory"example";
 
@@ -154,7 +156,6 @@ Proof
   \\ fsrw_tac[DNF_ss][]
   \\ metis_tac[]
 QED
-
 
 Theorem wf_runs2[simp]:
   wf runs_cf2
@@ -636,5 +637,73 @@ Definition runs_cf5_def:
 End
 
 (* TODO: facts about runs_cf4, runs_cf5 *)
+
+
+Definition test_world_def:
+  test_world = "F" INSERT BIGUNION (IMAGE (λg. {g;g++"+";g++"-"}) {"A";"B";"C";"D"})
+End
+
+Theorem test_world_eq = EVAL ``test_world``
+
+Definition test_today_def:
+  test_today = <| world := test_world;
+                  env := {"t";"d";"o"};
+                  agent := {"s";"i"};
+                  eval := λa e. if a = "i" then "C+" else
+                                if e = "t" then "A-" else
+                                if e = "d" then "B+" else "D-" |>
+End
+
+Definition test_yesterday_def:
+  test_yesterday = <| world := test_world;
+                      env := test_today.env;
+                      agent := "c" INSERT test_today.agent;
+                      eval := λa e. if a = "c" then "A+" else test_today.eval a e |>
+End
+
+Definition test_demanding_def:
+  test_demanding = <| world := test_world;
+                      env := test_today.env DELETE "t";
+                      agent := test_today.agent;
+                      eval := test_today.eval |>
+End
+
+Theorem morphism_today_yesterday:
+  is_chu_morphism test_today test_yesterday <| map_env := I; map_agent := I |>
+Proof
+  simp[is_chu_morphism_def]
+  \\ rw[test_today_def, test_yesterday_def]
+QED
+
+Theorem morphism_today_demanding:
+  is_chu_morphism test_today test_demanding <| map_env := I; map_agent := I |>
+Proof
+  simp[is_chu_morphism_def]
+  \\ rw[test_today_def, test_demanding_def]
+QED
+
+Theorem no_morphisms_yesterday_demanding:
+  ¬is_chu_morphism test_yesterday test_demanding m ∧
+  ¬is_chu_morphism test_demanding test_yesterday m
+Proof
+  Cases_on`m`
+  \\ qmatch_goalsub_rename_tac`chu_morphism_map f g`
+  \\ simp[is_chu_morphism_def]
+  \\ conj_tac
+  \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`]
+      >- metis_tac[] \\ disj2_tac)
+  \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`]
+      >- metis_tac[] \\ disj2_tac)
+  \\ fs[GSYM IMP_DISJ_THM]
+  \\ fs[test_yesterday_def, test_demanding_def, test_today_def]
+  >- (
+    qexists_tac`"c"` \\ simp[]
+    \\ qexists_tac`"d"` \\ rw[] )
+  \\ qexists_tac`if f "i" = "i" then "s" else "i"`
+  \\ qexists_tac`"t"`
+  \\ simp[]
+  \\ IF_CASES_TAC \\ simp[]
+  \\ rw[]
+QED
 
 val _ = export_theory();

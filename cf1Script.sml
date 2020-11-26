@@ -314,6 +314,28 @@ Proof
   \\ simp[]
 QED
 
+Theorem iso_pair_between_cats_chu_op =
+  iso_pair_between_cats_def
+  |> CONV_RULE SWAP_FORALL_CONV
+  |> Q.ISPECL[`swap_functor w`, `chu w`]
+  |> Q.ISPEC`op_swap_functor w`
+  |> Q.ISPEC `op_cat (chu w)`
+  |> REWRITE_RULE[cat_iso_pair_swap_functor, maps_to_def]
+  |> CONV_RULE(RAND_CONV(SIMP_CONV(srw_ss())[swap_functor_def]))
+  |> EQT_ELIM
+
+val tm = iso_pair_between_cats_chu_op |> concl
+val (func, args) = strip_comb tm
+val [ctm, ftm, gtm, cotm] = args
+val varf = mk_var("f", type_of ftm)
+val varg = mk_var("g", type_of gtm)
+val tm' = list_mk_exists([varf, varg],
+  list_mk_comb(func, [ctm, varf, varg, cotm]))
+
+Theorem iso_cats_chu_op =
+  iso_cats_def |> ISPECL[ctm, cotm]
+  |> REWRITE_RULE[prove(tm', metis_tac[iso_pair_between_cats_chu_op])]
+
 (*
 can't get this to work - maybe it's not true
 Theorem op_mor_swap_functor_mk_functor:
@@ -332,5 +354,24 @@ Proof
     simp[morphism_component_equality]
     swap_def
 *)
+
+Theorem swap_functor_objf[simp]:
+  c ∈ chu_objects w ⇒ (swap_functor w) @@ c = swap c
+Proof
+  rw[swap_functor_def]
+  \\ rw[objf_def, morf_def]
+  \\ SELECT_ELIM_TAC
+  \\ conj_tac >- metis_tac[swap_morphism_id, swap_in_chu_objects]
+  \\ simp[swap_morphism_id]
+  \\ rw[]
+  \\ qspec_then`chu w`match_mp_tac id_inj
+  \\ simp[]
+QED
+
+Theorem swap_functor_idem[simp]:
+  c ∈ chu_objects w ⇒ (swap_functor w) @@ ((swap_functor w) @@ c) = c
+Proof
+  rw[]
+QED
 
 val _ = export_theory();

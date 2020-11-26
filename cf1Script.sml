@@ -1,4 +1,4 @@
-open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory
+open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory dep_rewrite
 
 val _ = new_theory"cf1";
 
@@ -25,6 +25,9 @@ QED
 Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
+
+val _ = type_abbrev_pp("chu_morphism",
+  ``:(('a, 'e, 'w) cf, ('b, 'f, 'w) cf, ('a, 'b, 'e, 'f) chu_morphism_map) morphism``);
 
 Definition pre_chu_def:
   pre_chu w =
@@ -103,7 +106,7 @@ Proof
 QED
 
 Theorem swap_in_chu_objects[simp]:
-  c ∈ chu_objects w ⇒ swap c ∈ chu_objects w
+  swap c ∈ chu_objects w ⇔ c ∈ chu_objects w
 Proof
   rw[chu_objects_def, wf_def]
   \\ metis_tac[]
@@ -128,10 +131,10 @@ Proof
 QED
 
 Theorem is_chu_morphism_swap[simp]:
-  is_chu_morphism c1 c2 m ⇒
-  is_chu_morphism (swap c2) (swap c1) (swap_morphism_map m)
+  is_chu_morphism (swap c2) (swap c1) (swap_morphism_map m) ⇔
+  is_chu_morphism c1 c2 m
 Proof
-  rw[is_chu_morphism_def]
+  rw[is_chu_morphism_def] \\ metis_tac[]
 QED
 
 Definition swap_morphism_def:
@@ -147,6 +150,13 @@ Theorem swap_morphism_components[simp]:
   (swap_morphism m).map = swap_morphism_map m.map
 Proof
   rw[swap_morphism_def]
+QED
+
+Theorem swap_morphism_idem[simp]:
+  swap_morphism (swap_morphism m) = m
+Proof
+  rw[swap_morphism_def, morphism_component_equality]
+  \\ rw[swap_morphism_map_def, chu_morphism_map_component_equality]
 QED
 
 Theorem swap_morphism_id:
@@ -169,6 +179,31 @@ Proof
   \\ simp[morphism_component_equality]
   \\ simp[chu_def, mk_cat_def, restrict_def, composable_in_def]
   \\ simp[pre_chu_def, chu_morphism_map_component_equality]
+QED
+
+Theorem swap_morphism_composable:
+  (swap_morphism f ≈> swap_morphism g) ⇔ f ≈> g
+Proof
+  rw[composable_def]
+  \\ rw[cf_component_equality]
+  \\ rw[swap_def, FUN_EQ_THM]
+  \\ metis_tac[]
+QED
+
+Theorem swap_morphism_composable_in:
+  (swap_morphism f ≈> swap_morphism g -: chu w) ⇔ (f ≈> g -: op_cat (chu w))
+Proof
+  rw[composable_in_def]
+  \\ simp[pre_chu_def]
+  \\ simp[cf_component_equality]
+  \\ rw[EQ_IMP_THM] \\ fs[]
+  \\ fs[FUN_EQ_THM]
+QED
+
+Theorem op_mor_swap_morphism:
+  op_mor (swap_morphism m) = swap_morphism (op_mor m)
+Proof
+  rw[swap_morphism_def, op_mor_def]
 QED
 
 Definition swap_functor_def:
@@ -211,9 +246,91 @@ Proof
   \\ simp[swap_morphism_comp]
 QED
 
-(*
+Definition op_swap_functor_def:
+  op_swap_functor w =
+    mk_functor <| dom := (chu w)°; cod := chu w; map := swap_morphism|>
+End
+
+(* essentially the same proof as is_functor_swap *)
+Theorem is_functor_op_swap[simp]:
+  is_functor (op_swap_functor w)
+Proof
+  simp[functor_axioms_def, op_swap_functor_def]
+  \\ conj_tac
+  >- (
+    simp[maps_to_in_def]
+    \\ simp[pre_chu_def]
+    \\ simp[morf_def]
+    \\ gen_tac \\ strip_tac
+    \\ simp[objf_def]
+    \\ simp[morf_def]
+    \\ simp[swap_morphism_id]
+    \\ simp[id_inj]
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- metis_tac[swap_in_chu_objects]
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- metis_tac[swap_in_chu_objects]
+    \\ gen_tac \\ strip_tac
+    \\ imp_res_tac id_inj \\ rfs[]
+    \\ gen_tac \\ strip_tac
+    \\ imp_res_tac id_inj \\ rfs[])
+  \\ conj_tac
+  >- (
+    simp[morf_def]
+    \\ simp[swap_morphism_id]
+    \\ metis_tac[swap_in_chu_objects])
+  \\ simp[morf_def]
+  \\ rpt strip_tac
+  \\ drule swap_morphism_comp
+  \\ simp[op_cat_compose_in]
+  \\ strip_tac
+  \\ simp[Once(GSYM op_mor_swap_morphism)]
+  \\ simp[GSYM op_mor_swap_morphism]
+  \\ DEP_REWRITE_TAC[GSYM op_cat_compose_in]
+  \\ simp[]
+  \\ simp[swap_morphism_composable_in]
+QED
+
 Theorem cat_iso_pair_swap_functor:
-  cat_iso_pair (swap_functor w) (swap_functor w)°
+  cat_iso_pair (swap_functor w) (op_swap_functor w)
+Proof
+  simp[cat_iso_pair_def]
+  \\ conj_asm1_tac >- rw[swap_functor_def, op_swap_functor_def]
+  \\ qmatch_goalsub_abbrev_tac`f ◎ g`
+  \\ `f ≈> g` by rw[]
+  \\ `g ≈> f` by rw[Abbr`g`, Abbr`f`, swap_functor_def, op_swap_functor_def]
+  \\ simp[morphism_component_equality] \\ fs[]
+  \\ simp[functor_comp_def, id_functor_def]
+  \\ simp[mk_functor_def]
+  \\ simp[restrict_def]
+  \\ simp[FUN_EQ_THM]
+  \\ rw[] \\ simp[Abbr`f`, Abbr`g`]
+  \\ fs[swap_functor_def, op_swap_functor_def]
+  \\ fs[mk_functor_def, restrict_def]
+  \\ fs[pre_chu_def] \\ rw[]
+  \\ `F` suffices_by rw[]
+  \\ pop_assum mp_tac \\ simp[]
+  \\ qexists_tac`op_mor (swap_morphism e)`
+  \\ simp[]
+QED
+
+(*
+can't get this to work - maybe it's not true
+Theorem op_mor_swap_functor_mk_functor:
+  op_mor (swap_functor w) = op_swap_functor w
+Proof
+  rw[morphism_component_equality]
+  \\ rw[swap_functor_def, op_swap_functor_def]
+  \\ rw[mk_functor_def]
+  \\ rw[restrict_def]
+  \\ rw[FUN_EQ_THM]
+  \\ qmatch_abbrev_tac`COND b1 _ _ = COND b2 _ _`
+  \\ `b1 = b2` suffices_by rw[]
+  \\ simp[Abbr`b1`, Abbr`b2`]
+  \\ `e = op_mor (swap_morphism e)`
+  by (
+    simp[morphism_component_equality]
+    swap_def
 *)
 
 val _ = export_theory();

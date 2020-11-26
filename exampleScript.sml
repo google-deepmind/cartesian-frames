@@ -706,4 +706,30 @@ Proof
   \\ rw[]
 QED
 
+Definition handshake_def:
+  handshake = <| world := {0; 1};
+                 agent := {0; 1};
+                 env := {0; 1};
+                 eval := arithmetic$* |>
+End
+
+Definition bothsing_def:
+  bothsing = <| world := {0};
+                agent := {0};
+                env := {0};
+                eval := K (K 0) |>
+End
+
+Theorem morphism_handshake_bothsing:
+  is_chu_morphism handshake bothsing <| map_agent := K 0; map_env := K 0 |>
+Proof
+  simp[is_chu_morphism_def, handshake_def, bothsing_def]
+QED
+
+Theorem morphism_bothsing_handshake:
+  is_chu_morphism bothsing handshake <| map_agent := K 0; map_env := K 0 |>
+Proof
+  simp[is_chu_morphism_def, handshake_def, bothsing_def]
+QED
+
 val _ = export_theory();

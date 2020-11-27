@@ -11,32 +11,54 @@ val chu_morphism_map_component_equality = theorem"chu_morphism_map_component_equ
 
 Definition is_chu_morphism_def:
   is_chu_morphism c1 c2 m ⇔
+    extensional m.map_agent c1.agent ∧
+    extensional m.map_env c2.env ∧
     (∀e. e ∈ c2.env ⇒ m.map_env e ∈ c1.env) ∧
     (∀a. a ∈ c1.agent ⇒ m.map_agent a ∈ c2.agent) ∧
     (∀a f. a ∈ c1.agent ∧ f ∈ c2.env ⇒
        c1.eval a (m.map_env f) = c2.eval (m.map_agent a) f)
 End
 
+Definition chu_id_morphism_map_def:
+  chu_id_morphism_map c =
+    <| map_agent := restrict I c.agent; map_env := restrict I c.env |>
+End
+
 Theorem is_chu_morphism_id[simp]:
-  is_chu_morphism c c <| map_agent := I; map_env := I |>
+  is_chu_morphism c c (chu_id_morphism_map c)
 Proof
-  rw[is_chu_morphism_def]
+  rw[is_chu_morphism_def, chu_id_morphism_map_def]
+  \\ rw[restrict_def]
+QED
+
+Definition mk_chu_morphism_def:
+  mk_chu_morphism c1 c2 f =
+    <| dom := c1; cod := c2; map :=
+      <| map_agent := restrict f.map_agent c1.agent;
+         map_env := restrict f.map_env c2.env |> |>
+End
+
+Theorem mk_chu_morphism_dom_cod[simp]:
+  (mk_chu_morphism c1 c2 f).dom = c1 ∧
+  (mk_chu_morphism c1 c2 f).cod = c2
+Proof
+  rw[mk_chu_morphism_def]
 QED
 
 Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
 
-val _ = type_abbrev_pp("chu_morphism", ``:('w cf, 'w cf, chu_morphism_map) morphism``);
+Type chu_morphism[pp] = ``:('w cf, 'w cf, chu_morphism_map) morphism``;
 
 Definition pre_chu_def:
   pre_chu w =
     <| obj := chu_objects w;
        mor := { m | m.dom ∈ chu_objects w ∧ m.cod ∈ chu_objects w ∧
                     is_chu_morphism m.dom m.cod m.map };
-       id_map := K <| map_agent := I; map_env := I |>;
-       comp := λm1 m2. <| map_agent := m2.map.map_agent o m1.map.map_agent;
-                          map_env := m1.map.map_env o m2.map.map_env |>
+       id_map := chu_id_morphism_map ;
+       comp := λm1 m2. <| map_agent := restrict (m2.map.map_agent o m1.map.map_agent) m1.dom.agent ;
+                          map_env := restrict (m1.map.map_env o m2.map.map_env) m2.cod.env |>
      |>
 End
 
@@ -59,18 +81,24 @@ Proof
     \\ simp[is_chu_morphism_def] )
   \\ conj_tac >- (
     simp[pre_chu_def, id_in_def, restrict_def, compose_in_def, composable_in_def]
-    \\ simp[morphism_component_equality, chu_morphism_map_component_equality])
+    \\ simp[morphism_component_equality, chu_morphism_map_component_equality]
+    \\ simp[FUN_EQ_THM]
+    \\ simp[is_chu_morphism_def, extensional_def]
+    \\ simp[chu_id_morphism_map_def, restrict_def]
+    \\ rw[] \\ rw[])
   \\ conj_tac >- (
     simp[pre_chu_def, id_in_def, restrict_def, compose_in_def, composable_in_def]
-    \\ simp[morphism_component_equality, chu_morphism_map_component_equality])
+    \\ simp[morphism_component_equality, chu_morphism_map_component_equality]
+    \\ simp[FUN_EQ_THM]
+    \\ simp[is_chu_morphism_def, extensional_def]
+    \\ simp[chu_id_morphism_map_def, restrict_def]
+    \\ rw[] \\ rw[])
   \\ conj_tac >- (
     simp[composable_in_def, compose_in_def, restrict_def]
-    \\ rw[pre_chu_def]
-    \\ `F` suffices_by rw[]
-    \\ qpat_x_assum`¬_`mp_tac
-    \\ fs[is_chu_morphism_def])
+    \\ rw[pre_chu_def, restrict_def] \\ rw[]
+    \\ fs[is_chu_morphism_def, extensional_def])
   \\ rw[maps_to_in_def, compose_in_def, restrict_def, composable_in_def]
-  \\ fs[pre_chu_def, is_chu_morphism_def]
+  \\ fs[pre_chu_def, is_chu_morphism_def, restrict_def, extensional_def]
 QED
 
 Theorem chu_obj[simp]:
@@ -86,9 +114,26 @@ Proof
 QED
 
 Theorem chu_id_map:
-  (chu w).id_map = restrict (K <| map_agent := I; map_env := I |>) (chu_objects w)
+  (chu w).id_map = restrict chu_id_morphism_map (chu_objects w)
 Proof
   rw[chu_def, pre_chu_def, mk_cat_def]
+QED
+
+Theorem chu_id[simp]:
+  x ∈ chu_objects w ⇒
+  (id x -: chu w).dom = x ∧
+  (id x -: chu w).cod = x ∧
+  (id x -: chu w).map = chu_id_morphism_map x
+Proof
+  rw[id_in_def]
+  \\ rw[restrict_def, chu_id_map]
+QED
+
+Theorem chu_comp[simp]:
+  f ≈> g -: chu w ⇒
+  (chu w).comp f g = (pre_chu w).comp f g
+Proof
+  rw[composable_in_def, chu_def, mk_cat_def, restrict_def]
 QED
 
 Definition swap_def:
@@ -165,7 +210,7 @@ Theorem swap_morphism_id:
 Proof
   rw[id_in_def, restrict_def, swap_morphism_def, morphism_component_equality] \\ rfs[]
   \\ rw[swap_morphism_map_def, chu_id_map]
-  \\ rw[chu_morphism_map_component_equality, restrict_def]
+  \\ rw[chu_morphism_map_component_equality, restrict_def, chu_id_morphism_map_def]
 QED
 
 Theorem swap_morphism_comp:
@@ -469,37 +514,23 @@ QED
 Definition comm_sum_def:
   comm_sum = <|
     map_agent := λs.
-      if (∃a. s = encode_sum a) then
         sum_CASE (decode_sum s)
           (λa. encode_sum (INR a))
-          (λa. encode_sum (INL a))
-      else s;
+          (λa. encode_sum (INL a));
     map_env := λp.
-      if (∃e1 e2. p = encode_pair (e1, e2))
-      then let (e1, e2) = decode_pair p in encode_pair (e2, e1)
-      else p
+      let (e1, e2) = decode_pair p in encode_pair (e2, e1)
   |>
 End
 
 Theorem comm_sum_is_chu_morphism[simp]:
-  is_chu_morphism (sum c1 c2) (sum c2 c1) comm_sum
+  is_chu_morphism (sum c1 c2) (sum c2 c1)
+    (mk_chu_morphism (sum c1 c2) (sum c2 c1) comm_sum).map
 Proof
-  simp[is_chu_morphism_def]
-  \\ conj_tac
-  >- (
-    simp[sum_def, comm_sum_def, EXISTS_PROD]
-    \\ gen_tac \\ strip_tac
-    \\ simp[] \\ metis_tac[] )
-  \\ conj_tac
-  >- (
-    simp[sum_def, comm_sum_def]
-    \\ gen_tac \\ strip_tac \\ simp[]
-    \\ metis_tac[])
+  simp[is_chu_morphism_def, mk_chu_morphism_def]
+  \\ simp[restrict_def]
   \\ simp[sum_def, comm_sum_def, EXISTS_PROD]
-  \\ rw[] \\ fs[] \\ rw[sum_eval_def]
-  \\ TRY (qmatch_goalsub_rename_tac`sum_CASE a` \\ CASE_TAC \\ fs[])
-  \\ metis_tac[PAIR_FST_SND_EQ, FST, SND, decode_encode_pair, decode_encode_sum,
-               INR_INL_11, sum_distinct]
+  \\ rw[] \\ fs[]
+  \\ simp[sum_eval_def]
 QED
 
 Theorem sum_comm:
@@ -507,8 +538,8 @@ Theorem sum_comm:
   sum c1 c2 ≅ sum c2 c1 -: chu w
 Proof
   rw[iso_objs_def]
-  \\ qexists_tac`<| dom := sum c1 c2; cod := sum c2 c1; map := comm_sum |>`
-  \\ qexists_tac`<| dom := sum c2 c1; cod := sum c1 c2; map := comm_sum |>`
+  \\ qexists_tac`mk_chu_morphism (sum c1 c2) (sum c2 c1) comm_sum`
+  \\ qexists_tac`mk_chu_morphism (sum c2 c1) (sum c1 c2) comm_sum`
   \\ simp[iso_pair_between_objs_def]
   \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
   \\ simp[iso_pair_def]
@@ -521,19 +552,11 @@ Proof
   \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
   \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
   \\ simp[]
-  \\ simp[chu_id_map, restrict_def]
-  \\ simp[pre_chu_def]
-  \\ simp[Abbr`f`, Abbr`g`]
-  \\ conj_tac
-  >- (
-    simp[comm_sum_def, FUN_EQ_THM]
-    \\ rw[] \\ fs[] \\ pop_assum mp_tac
-    \\ CASE_TAC \\ rw[] \\ rw[])
-  \\ simp[comm_sum_def, FUN_EQ_THM]
-  \\ qx_gen_tac`p`
-  \\ Cases_on`∃e1 e2. p = encode_pair (e1, e2)` \\ simp[]
-  \\ reverse CASE_TAC >- (fs[UNCURRY] \\ metis_tac[])
-  \\ simp[UNCURRY] \\ fs[]
+  \\ simp[pre_chu_def, chu_id_morphism_map_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def]
+  \\ simp[FUN_EQ_THM, restrict_def]
+  \\ simp[comm_sum_def, sum_def, EXISTS_PROD]
+  \\ rw[] \\ fs[]
 QED
 
 Definition assoc_sum_def:
@@ -549,49 +572,29 @@ Definition assoc_sum_def:
            OUTR (decode_sum a)
          else if ltr ∧ (∃x. a = encode_sum (INL x)) then
            encode_sum (INL a)
-         else if ¬ltr ∧ (∃x. a = encode_sum (INR x)) then
-           encode_sum (INR a)
-         else if  (∃x. a = encode_sum (INL (encode_sum (INL x)))) then
-           OUTL (decode_sum a)
-         (*
-         else if  (∃x. a = encode_sum (INL (encode_sum (INR x)))) then
-           encode_sum (INR (encode_sum (INL (OUTR (decode_sum (OUTL (decode_sum a)))))))
-         else if  (∃x. a = encode_sum (INR (encode_sum (INL x)))) then
-           encode_sum (INL (encode_sum (INR (OUTL (decode_sum (OUTR (decode_sum a)))))))
-         else if  (∃x. a = encode_sum (INR (encode_sum (INR x)))) then
-           OUTR (decode_sum a)
-         else if  (∃x. a = encode_sum (INL x)) then
-           encode_sum (INL a)
-         else if  (∃x. a = encode_sum (INR x)) then
-           encode_sum (INR a)
-         *)
-         else if  (∃x. a = encode_sum (INL x)) then
-           encode_sum (INR (OUTL (decode_sum a)))
-         else if  (∃x. a = encode_sum (INR x)) then
-           encode_sum (INL (OUTR (decode_sum a)))
-         else a;
+         else encode_sum (INR a);
        map_env := λa.
          if ¬ltr ∧ (∃a1 a2 a3. a = encode_pair (a1, encode_pair (a2, a3))) then
            let (a1, p) = decode_pair a in
            let (a2, a3) = decode_pair p in
            encode_pair (encode_pair (a1, a2), a3)
-         else if ltr ∧ (∃a1 a2 a3. a = encode_pair (encode_pair (a1, a2), a3)) then
+         else
            let (p, a3) = decode_pair a in
            let (a1, a2) = decode_pair p in
            encode_pair (a1, encode_pair (a2, a3))
-         else if (∃a1 a2. a = encode_pair (a1, a2)) then
-           let (a1, a2) = decode_pair a in (encode_pair (a2, a1))
-         else a |>
+         |>
 End
 
 Theorem assoc_sum_is_chu_morphism[simp]:
   c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
-  is_chu_morphism (sum c1 (sum c2 c3)) (sum (sum c1 c2) c3) (assoc_sum T) ∧
-  is_chu_morphism (sum (sum c1 c2) c3) (sum c1 (sum c2 c3)) (assoc_sum F)
+  is_chu_morphism (sum c1 (sum c2 c3)) (sum (sum c1 c2) c3)
+    (mk_chu_morphism (sum c1 (sum c2 c3)) (sum (sum c1 c2) c3) (assoc_sum T)).map ∧
+  is_chu_morphism (sum (sum c1 c2) c3) (sum c1 (sum c2 c3))
+    (mk_chu_morphism (sum (sum c1 c2) c3) (sum c1 (sum c2 c3)) (assoc_sum F)).map
 Proof
   simp[is_chu_morphism_def]
-  \\ rw[sum_def, PULL_EXISTS, FORALL_PROD, EXISTS_PROD]
-  \\ rw[assoc_sum_def, sum_eval_def]
+  \\ rw[mk_chu_morphism_def, sum_def, PULL_EXISTS, FORALL_PROD, EXISTS_PROD]
+  \\ rw[restrict_def, assoc_sum_def, sum_eval_def]
 QED
 
 Theorem sum_assoc:
@@ -599,8 +602,8 @@ Theorem sum_assoc:
   sum c1 (sum c2 c3) ≅ sum (sum c1 c2) c3 -: chu w
 Proof
   rw[iso_objs_def]
-  \\ qexists_tac`<| dom := sum c1 (sum c2 c3); cod := sum (sum c1 c2) c3; map := assoc_sum T |>`
-  \\ qexists_tac`<| dom := sum (sum c1 c2) c3; cod := sum c1 (sum c2 c3); map := assoc_sum F |>`
+  \\ qexists_tac`mk_chu_morphism (sum c1 (sum c2 c3)) (sum (sum c1 c2) c3) (assoc_sum T)`
+  \\ qexists_tac`mk_chu_morphism (sum (sum c1 c2) c3) (sum c1 (sum c2 c3)) (assoc_sum F)`
   \\ simp[iso_pair_between_objs_def]
   \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
   \\ simp[iso_pair_def]
@@ -619,13 +622,12 @@ Proof
   \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
   \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
   \\ simp[]
-  \\ simp[chu_id_map, restrict_def]
   \\ simp[pre_chu_def]
   \\ simp[Abbr`f`, Abbr`g`]
-  \\ simp[GSYM CONJ_ASSOC]
-  \\ simp[assoc_sum_def, FUN_EQ_THM]
-  \\ rw[] \\ fs[] \\ pop_assum mp_tac
-  \\ CASE_TAC \\ rw[] \\ rw[] \\ fs[]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[chu_id_morphism_map_def, restrict_def]
+  \\ simp[sum_def, assoc_sum_def, FUN_EQ_THM, EXISTS_PROD]
+  \\ rw[] \\ fs[]
 QED
 
 Definition cf0_def:
@@ -646,37 +648,29 @@ QED
 
 Definition remove_cf0_def:
   remove_cf0 onl = <|
-    map_agent := λa.
-      if ¬onl ∧ (∃x. a = encode_sum (INL x)) then OUTL (decode_sum a) else
-      if onl ∧ (∃x. a = encode_sum (INR x)) then OUTR (decode_sum a) else
-      a;
-    map_env := λe.
-      if ¬onl then encode_pair (e, "") else encode_pair ("", e) |>
+    map_agent := λa.(if onl then OUTR else OUTL) (decode_sum a);
+    map_env := λe. encode_pair (if onl then ("", e) else (e, "")) |>
 End
 
 Definition add_cf0_def:
   add_cf0 onl = <|
-    map_agent := λa.
-      if ¬onl then encode_sum (INL a) else encode_sum (INR a);
-    map_env := λe.
-      if ¬onl ∧ (∃x. e = encode_pair (x, "")) then FST (decode_pair e) else
-      if onl ∧ (∃x. e = encode_pair ("", x)) then SND (decode_pair e) else
-      e |>
+    map_agent := λa. encode_sum ((if onl then INR else INL) a);
+    map_env := λe. (if onl then SND else FST) (decode_pair e) |>
 End
 
 Theorem add_remove_cf0_is_chu_morphism[simp]:
   c ∈ chu_objects w ⇒
-  is_chu_morphism c (sum c (cf0 w)) (add_cf0 F) ∧
-  is_chu_morphism c (sum (cf0 w) c) (add_cf0 T) ∧
-  is_chu_morphism (sum c (cf0 w)) c (remove_cf0 F) ∧
-  is_chu_morphism (sum (cf0 w) c) c (remove_cf0 T)
+  is_chu_morphism c (sum c (cf0 w)) (mk_chu_morphism c (sum c (cf0 w)) (add_cf0 F)).map ∧
+  is_chu_morphism c (sum (cf0 w) c) (mk_chu_morphism c (sum (cf0 w) c) (add_cf0 T)).map ∧
+  is_chu_morphism (sum c (cf0 w)) c (mk_chu_morphism (sum c (cf0 w)) c (remove_cf0 F)).map ∧
+  is_chu_morphism (sum (cf0 w) c) c (mk_chu_morphism (sum (cf0 w) c) c (remove_cf0 T)).map
 Proof
-  rw[is_chu_morphism_def, sum_def, FORALL_PROD, EXISTS_PROD,
-     cf0_def, add_cf0_def, remove_cf0_def]
+  rw[is_chu_morphism_def, mk_chu_morphism_def]
+  \\ fs[restrict_def]
+  \\ fs[sum_def, FORALL_PROD, EXISTS_PROD, cf0_def, add_cf0_def, remove_cf0_def]
   \\ rw[] \\ fs[] \\ rw[sum_eval_def]
 QED
 
-(*
 Theorem sum_cf0:
   c ∈ chu_objects w ⇒
   sum c (cf0 w) ≅ c -: chu w ∧
@@ -684,31 +678,28 @@ Theorem sum_cf0:
 Proof
   simp[iso_objs_def] \\ strip_tac
   \\ conj_tac
-  >- (
-    qexists_tac`<|dom:= sum c (cf0 w); cod := c; map := remove_cf0 F|>`
-    \\ qexists_tac`<|dom:= c; cod := sum c (cf0 w); map := add_cf0 F|>`
-    \\ simp[iso_pair_between_objs_def]
-    \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
-    \\ simp[iso_pair_def]
-    \\ conj_asm1_tac >- ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def])
-    \\ `g ≈> f -: chu w` by ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def])
-    \\ simp[compose_in_thm]
-    \\ DEP_REWRITE_TAC[compose_thm]
-    \\ conj_tac >- fs[composable_in_def]
-    \\ simp[morphism_component_equality]
-    \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
-    \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
-    \\ simp[]
-    \\ simp[chu_id_map, restrict_def]
-    \\ simp[pre_chu_def]
-    \\ simp[Abbr`f`, Abbr`g`]
-    \\ simp[GSYM CONJ_ASSOC]
-    \\ conj_tac
-    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
-    \\ conj_tac
-    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
-    \\ conj_tac
-    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
-*)
+  THENL [
+    qexists_tac`mk_chu_morphism (sum c (cf0 w)) c (remove_cf0 F)`
+    \\ qexists_tac`mk_chu_morphism c (sum c (cf0 w)) (add_cf0 F)`,
+    qexists_tac`mk_chu_morphism (sum (cf0 w) c) c (remove_cf0 T)`
+    \\ qexists_tac`mk_chu_morphism c (sum (cf0 w) c) (add_cf0 T)`
+  ]
+  \\ simp[iso_pair_between_objs_def]
+  \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
+  \\ simp[iso_pair_def]
+  \\ (conj_asm1_tac >- ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def]))
+  \\ `g ≈> f -: chu w` by ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def])
+  \\ simp[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ (conj_tac >- fs[composable_in_def])
+  \\ simp[morphism_component_equality]
+  \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ simp[]
+  \\ simp[pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, chu_id_morphism_map_def]
+  \\ rw[restrict_def, remove_cf0_def, add_cf0_def, FUN_EQ_THM]
+  \\ fs[sum_def, cf0_def, EXISTS_PROD] \\ rw[] \\ fs[]
+QED
 
 val _ = export_theory();

@@ -668,17 +668,21 @@ Definition test_demanding_def:
 End
 
 Theorem morphism_today_yesterday:
-  is_chu_morphism test_today test_yesterday <| map_env := I; map_agent := I |>
+  is_chu_morphism test_today test_yesterday
+    (mk_chu_morphism test_today test_yesterday <| map_env := I; map_agent := I |>).map
 Proof
   simp[is_chu_morphism_def]
-  \\ rw[test_today_def, test_yesterday_def]
+  \\ simp[mk_chu_morphism_def]
+  \\ rw[test_today_def, test_yesterday_def, categoryTheory.restrict_def]
 QED
 
 Theorem morphism_today_demanding:
-  is_chu_morphism test_today test_demanding <| map_env := I; map_agent := I |>
+  is_chu_morphism test_today test_demanding
+    (mk_chu_morphism test_today test_demanding <| map_env := I; map_agent := I |>).map
 Proof
   simp[is_chu_morphism_def]
-  \\ rw[test_today_def, test_demanding_def]
+  \\ simp[mk_chu_morphism_def]
+  \\ rw[test_today_def, test_demanding_def, categoryTheory.restrict_def]
 QED
 
 Theorem no_morphisms_yesterday_demanding:
@@ -689,6 +693,8 @@ Proof
   \\ qmatch_goalsub_rename_tac`chu_morphism_map f g`
   \\ simp[is_chu_morphism_def]
   \\ conj_tac
+  \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`])
+  \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`])
   \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`]
       >- metis_tac[] \\ disj2_tac)
   \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`]
@@ -720,17 +726,21 @@ Definition bothsing_def:
 End
 
 Theorem morphism_handshake_bothsing:
-  is_chu_morphism handshake bothsing <| map_agent := K ""; map_env := K "" |>
+  is_chu_morphism handshake bothsing
+    (mk_chu_morphism handshake bothsing <| map_agent := K ""; map_env := K "" |>).map
 Proof
-  simp[is_chu_morphism_def, handshake_def, bothsing_def]
+  simp[is_chu_morphism_def, handshake_def, bothsing_def, mk_chu_morphism_def]
   \\ rw[] \\ EVAL_TAC
 QED
 
 Theorem morphism_bothsing_handshake:
-  is_chu_morphism bothsing handshake <| map_agent := K ""; map_env := K "" |>
+  is_chu_morphism bothsing handshake
+    (mk_chu_morphism bothsing handshake <| map_agent := K ""; map_env := K "" |>).map
 Proof
-  simp[is_chu_morphism_def, handshake_def, bothsing_def]
+  simp[is_chu_morphism_def, handshake_def, bothsing_def, mk_chu_morphism_def]
   \\ rw[] \\ EVAL_TAC
 QED
+
+(* TODO: example of sum *)
 
 val _ = export_theory();

@@ -3,7 +3,7 @@ open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory dep_
 val _ = new_theory"cf1";
 
 Datatype:
-  chu_morphism_map = <| map_agent: 'a -> 'b; map_env: 'f -> 'e |>
+  chu_morphism_map = <| map_agent: act -> act; map_env: act -> act |>
 End
 
 val chu_morphism_map_component_equality = theorem"chu_morphism_map_component_equality";
@@ -26,8 +26,7 @@ Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
 
-val _ = type_abbrev_pp("chu_morphism",
-  ``:(('a, 'e, 'w) cf, ('b, 'f, 'w) cf, ('a, 'b, 'e, 'f) chu_morphism_map) morphism``);
+val _ = type_abbrev_pp("chu_morphism", ``:('w cf, 'w cf, chu_morphism_map) morphism``);
 
 Definition pre_chu_def:
   pre_chu w =
@@ -314,27 +313,19 @@ Proof
   \\ simp[]
 QED
 
-Theorem iso_pair_between_cats_chu_op =
-  iso_pair_between_cats_def
-  |> CONV_RULE SWAP_FORALL_CONV
-  |> Q.ISPECL[`swap_functor w`, `chu w`]
-  |> Q.ISPEC`op_swap_functor w`
-  |> Q.ISPEC `op_cat (chu w)`
-  |> REWRITE_RULE[cat_iso_pair_swap_functor, maps_to_def]
-  |> CONV_RULE(RAND_CONV(SIMP_CONV(srw_ss())[swap_functor_def]))
-  |> EQT_ELIM
+Theorem iso_pair_between_cats_chu_op:
+  iso_pair_between_cats (chu w) (swap_functor w) (op_swap_functor w) (op_cat (chu w))
+Proof
+  rw[iso_pair_between_cats_def, cat_iso_pair_swap_functor]
+  \\ rw[swap_functor_def]
+QED
 
-val tm = iso_pair_between_cats_chu_op |> concl
-val (func, args) = strip_comb tm
-val [ctm, ftm, gtm, cotm] = args
-val varf = mk_var("f", type_of ftm)
-val varg = mk_var("g", type_of gtm)
-val tm' = list_mk_exists([varf, varg],
-  list_mk_comb(func, [ctm, varf, varg, cotm]))
-
-Theorem iso_cats_chu_op =
-  iso_cats_def |> ISPECL[ctm, cotm]
-  |> REWRITE_RULE[prove(tm', metis_tac[iso_pair_between_cats_chu_op])]
+Theorem iso_cats_chu_op:
+  iso_cats (chu w) (op_cat (chu w))
+Proof
+  rw[iso_cats_def]
+  \\ metis_tac[iso_pair_between_cats_chu_op]
+QED
 
 (*
 can't get this to work - maybe it's not true
@@ -349,10 +340,11 @@ Proof
   \\ qmatch_abbrev_tac`COND b1 _ _ = COND b2 _ _`
   \\ `b1 = b2` suffices_by rw[]
   \\ simp[Abbr`b1`, Abbr`b2`]
-  \\ `e = op_mor (swap_morphism e)`
+  \\ simp[pre_chu_def]
+  \\ `∀x. e = x° ⇔  x = e°`
   by (
-    simp[morphism_component_equality]
-    swap_def
+    rw[morphism_component_equality]
+    \\ metis_tac[] )
 *)
 
 Theorem swap_functor_objf[simp]:

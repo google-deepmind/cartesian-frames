@@ -1,11 +1,13 @@
-open HolKernel boolLib bossLib pred_setTheory arithmeticTheory Parse
+open HolKernel boolLib bossLib pred_setTheory arithmeticTheory stringTheory Parse
 
 val _ = new_theory"cf0";
 
 (* Cartesian Frames *)
 
+val _ = type_abbrev("act", ``:string``)
+
 Datatype:
-  cf = <| agent: 'a set; env: 'e set; world: 'w set; eval: 'a -> 'e -> 'w |>
+  cf = <| agent: act set; env: act set; world: 'w set; eval: act -> act -> 'w |>
 End
 
 Definition wf_def:

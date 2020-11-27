@@ -629,15 +629,14 @@ Proof
 QED
 
 Definition runs_cf4_def:
-  runs_cf4 = <| world := runs_cf1.world; agent := {1}; env := runs_cf1.world; eval := λa e. e |>
+  runs_cf4 = <| world := runs_cf1.world; agent := {""}; env := runs_cf1.world; eval := λa e. e |>
 End
 
 Definition runs_cf5_def:
-  runs_cf5 = <| world := runs_cf1.world; env := {1}; agent := runs_cf1.world; eval := λa e. a |>
+  runs_cf5 = <| world := runs_cf1.world; env := {""}; agent := runs_cf1.world; eval := λa e. a |>
 End
 
 (* TODO: facts about runs_cf4, runs_cf5 *)
-
 
 Definition test_world_def:
   test_world = "F" INSERT BIGUNION (IMAGE (λg. {g;g++"+";g++"-"}) {"A";"B";"C";"D"})
@@ -707,29 +706,31 @@ Proof
 QED
 
 Definition handshake_def:
-  handshake = <| world := {0; 1};
-                 agent := {0; 1};
-                 env := {0; 1};
-                 eval := arithmetic$* |>
+  handshake = <| world := {""; "*"};
+                 agent := {""; "*"};
+                 env := {""; "*"};
+                 eval := λa e. DROP 1 (a ++ e) |>
 End
 
 Definition bothsing_def:
-  bothsing = <| world := {0};
-                agent := {0};
-                env := {0};
-                eval := K (K 0) |>
+  bothsing = <| world := {""};
+                agent := {""};
+                env := {""};
+                eval := K (K "") |>
 End
 
 Theorem morphism_handshake_bothsing:
-  is_chu_morphism handshake bothsing <| map_agent := K 0; map_env := K 0 |>
+  is_chu_morphism handshake bothsing <| map_agent := K ""; map_env := K "" |>
 Proof
   simp[is_chu_morphism_def, handshake_def, bothsing_def]
+  \\ rw[] \\ EVAL_TAC
 QED
 
 Theorem morphism_bothsing_handshake:
-  is_chu_morphism bothsing handshake <| map_agent := K 0; map_env := K 0 |>
+  is_chu_morphism bothsing handshake <| map_agent := K ""; map_env := K "" |>
 Proof
   simp[is_chu_morphism_def, handshake_def, bothsing_def]
+  \\ rw[] \\ EVAL_TAC
 QED
 
 val _ = export_theory();

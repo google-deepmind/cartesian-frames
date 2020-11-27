@@ -1,4 +1,5 @@
-open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory dep_rewrite
+open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory
+     dep_rewrite sumTheory pairTheory pred_setTheory listTheory rich_listTheory ASCIInumbersTheory
 
 val _ = new_theory"cf1";
 
@@ -365,5 +366,349 @@ Theorem swap_functor_idem[simp]:
 Proof
   rw[]
 QED
+
+Definition encode_pair_def:
+  encode_pair (s1, s2) =
+    toString (LENGTH s1) ++ ":" ++ s1 ++ s2
+End
+
+Definition decode_pair_def:
+  decode_pair s =
+    let (n, s) = SPLITP ((=)#":") s in
+    let s = TL s in
+    let n = toNum n in
+    (TAKE n s, DROP n s)
+End
+
+Theorem decode_encode_pair[simp]:
+  decode_pair (encode_pair p) = p
+Proof
+  Cases_on`p`
+  \\ rw[encode_pair_def]
+  \\ rw[decode_pair_def]
+  \\ rewrite_tac[GSYM APPEND_ASSOC]
+  \\ once_rewrite_tac[SPLITP_APPEND]
+  \\ qmatch_goalsub_rename_tac`_ = (s1, s2)`
+  \\ IF_CASES_TAC
+  >- (
+    qspec_then`LENGTH s1`assume_tac EVERY_isDigit_num_to_dec_string
+    \\ fs[EXISTS_MEM, EVERY_MEM]
+    \\ `F` suffices_by rw[]
+    \\ res_tac \\ pop_assum mp_tac
+    \\ EVAL_TAC )
+  \\ simp[SPLITP]
+  \\ simp[toNum_toString]
+  \\ simp[TAKE_APPEND, DROP_APPEND, DROP_LENGTH_TOO_LONG]
+QED
+
+Theorem encode_pair_inj[simp]:
+  encode_pair p1 = encode_pair p2 ⇔ p1 = p2
+Proof
+  metis_tac[decode_encode_pair]
+QED
+
+Definition encode_sum_def:
+  encode_sum (INL s) = toString (LENGTH s) ++ "l" ++ s ∧
+  encode_sum (INR s) = toString (LENGTH s) ++ "r" ++ s
+End
+
+Definition decode_sum_def:
+  decode_sum s =
+    let (n, r) = SPLITP ((~) o isDigit) s in
+    let (t, r) = (HD r, TL r) in
+    let n = toNum n in
+    if t = #"l" ∧ LENGTH r = n then INL r else
+    if t = #"r" ∧ LENGTH r = n then INR r else ARB
+End
+
+Theorem decode_encode_sum[simp]:
+  decode_sum (encode_sum s) = s
+Proof
+  Cases_on`s` \\ rw[encode_sum_def, decode_sum_def]
+  \\ rewrite_tac[GSYM APPEND_ASSOC]
+  \\ once_rewrite_tac[SPLITP_APPEND]
+  \\ rewrite_tac[GSYM NOT_EVERY, EVERY_isDigit_num_to_dec_string]
+  \\ simp[SPLITP, EVAL``isDigit #"l"``, EVAL ``isDigit #"r"``]
+  \\ simp[toNum_toString]
+QED
+
+Theorem encode_sum_inj[simp]:
+  encode_sum x = encode_sum y ⇔ x = y
+Proof
+  metis_tac[decode_encode_sum]
+QED
+
+Definition sum_eval_def:
+  sum_eval f1 f2 a e =
+    sum_CASE (decode_sum a)
+    (λa. f1 a (FST (decode_pair e)))
+    (λa. f2 a (SND (decode_pair e)))
+End
+
+Definition sum_def:
+  sum c1 c2 = <| world := c1.world ∪ c2.world;
+                 agent := IMAGE encode_sum (IMAGE INL c1.agent ∪ IMAGE INR c2.agent);
+                 env := IMAGE encode_pair (c1.env × c2.env);
+                 eval := sum_eval c1.eval c2.eval |>
+End
+
+Theorem wf_sum[simp]:
+  wf c1 ∧ wf c2 ⇒ wf (sum c1 c2)
+Proof
+  rw[wf_def]
+  \\ fs[sum_def]
+  \\ fs[sum_eval_def]
+QED
+
+Theorem sum_in_chu_objects[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒ sum c1 c2 ∈ chu_objects w
+Proof
+  rw[chu_objects_def] \\ rw[sum_def]
+QED
+
+Definition comm_sum_def:
+  comm_sum = <|
+    map_agent := λs.
+      if (∃a. s = encode_sum a) then
+        sum_CASE (decode_sum s)
+          (λa. encode_sum (INR a))
+          (λa. encode_sum (INL a))
+      else s;
+    map_env := λp.
+      if (∃e1 e2. p = encode_pair (e1, e2))
+      then let (e1, e2) = decode_pair p in encode_pair (e2, e1)
+      else p
+  |>
+End
+
+Theorem comm_sum_is_chu_morphism[simp]:
+  is_chu_morphism (sum c1 c2) (sum c2 c1) comm_sum
+Proof
+  simp[is_chu_morphism_def]
+  \\ conj_tac
+  >- (
+    simp[sum_def, comm_sum_def, EXISTS_PROD]
+    \\ gen_tac \\ strip_tac
+    \\ simp[] \\ metis_tac[] )
+  \\ conj_tac
+  >- (
+    simp[sum_def, comm_sum_def]
+    \\ gen_tac \\ strip_tac \\ simp[]
+    \\ metis_tac[])
+  \\ simp[sum_def, comm_sum_def, EXISTS_PROD]
+  \\ rw[] \\ fs[] \\ rw[sum_eval_def]
+  \\ TRY (qmatch_goalsub_rename_tac`sum_CASE a` \\ CASE_TAC \\ fs[])
+  \\ metis_tac[PAIR_FST_SND_EQ, FST, SND, decode_encode_pair, decode_encode_sum,
+               INR_INL_11, sum_distinct]
+QED
+
+Theorem sum_comm:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒
+  sum c1 c2 ≅ sum c2 c1 -: chu w
+Proof
+  rw[iso_objs_def]
+  \\ qexists_tac`<| dom := sum c1 c2; cod := sum c2 c1; map := comm_sum |>`
+  \\ qexists_tac`<| dom := sum c2 c1; cod := sum c1 c2; map := comm_sum |>`
+  \\ simp[iso_pair_between_objs_def]
+  \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
+  \\ simp[iso_pair_def]
+  \\ conj_asm1_tac >- simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def]
+  \\ `g ≈> f -: chu w` by simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def]
+  \\ simp[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ conj_tac >- fs[composable_in_def]
+  \\ simp[morphism_component_equality]
+  \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ simp[]
+  \\ simp[chu_id_map, restrict_def]
+  \\ simp[pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`]
+  \\ conj_tac
+  >- (
+    simp[comm_sum_def, FUN_EQ_THM]
+    \\ rw[] \\ fs[] \\ pop_assum mp_tac
+    \\ CASE_TAC \\ rw[] \\ rw[])
+  \\ simp[comm_sum_def, FUN_EQ_THM]
+  \\ qx_gen_tac`p`
+  \\ Cases_on`∃e1 e2. p = encode_pair (e1, e2)` \\ simp[]
+  \\ reverse CASE_TAC >- (fs[UNCURRY] \\ metis_tac[])
+  \\ simp[UNCURRY] \\ fs[]
+QED
+
+Definition assoc_sum_def:
+  assoc_sum ltr =
+    <| map_agent := λa.
+         if ¬ltr ∧ (∃x. a = encode_sum (INL (encode_sum (INL x)))) then
+           OUTL (decode_sum a)
+         else if ¬ltr ∧ (∃x. a = encode_sum (INL (encode_sum (INR x)))) then
+           encode_sum (INR (encode_sum (INL (OUTR (decode_sum (OUTL (decode_sum a)))))))
+         else if ltr ∧ (∃x. a = encode_sum (INR (encode_sum (INL x)))) then
+           encode_sum (INL (encode_sum (INR (OUTL (decode_sum (OUTR (decode_sum a)))))))
+         else if ltr ∧ (∃x. a = encode_sum (INR (encode_sum (INR x)))) then
+           OUTR (decode_sum a)
+         else if ltr ∧ (∃x. a = encode_sum (INL x)) then
+           encode_sum (INL a)
+         else if ¬ltr ∧ (∃x. a = encode_sum (INR x)) then
+           encode_sum (INR a)
+         else if  (∃x. a = encode_sum (INL (encode_sum (INL x)))) then
+           OUTL (decode_sum a)
+         (*
+         else if  (∃x. a = encode_sum (INL (encode_sum (INR x)))) then
+           encode_sum (INR (encode_sum (INL (OUTR (decode_sum (OUTL (decode_sum a)))))))
+         else if  (∃x. a = encode_sum (INR (encode_sum (INL x)))) then
+           encode_sum (INL (encode_sum (INR (OUTL (decode_sum (OUTR (decode_sum a)))))))
+         else if  (∃x. a = encode_sum (INR (encode_sum (INR x)))) then
+           OUTR (decode_sum a)
+         else if  (∃x. a = encode_sum (INL x)) then
+           encode_sum (INL a)
+         else if  (∃x. a = encode_sum (INR x)) then
+           encode_sum (INR a)
+         *)
+         else if  (∃x. a = encode_sum (INL x)) then
+           encode_sum (INR (OUTL (decode_sum a)))
+         else if  (∃x. a = encode_sum (INR x)) then
+           encode_sum (INL (OUTR (decode_sum a)))
+         else a;
+       map_env := λa.
+         if ¬ltr ∧ (∃a1 a2 a3. a = encode_pair (a1, encode_pair (a2, a3))) then
+           let (a1, p) = decode_pair a in
+           let (a2, a3) = decode_pair p in
+           encode_pair (encode_pair (a1, a2), a3)
+         else if ltr ∧ (∃a1 a2 a3. a = encode_pair (encode_pair (a1, a2), a3)) then
+           let (p, a3) = decode_pair a in
+           let (a1, a2) = decode_pair p in
+           encode_pair (a1, encode_pair (a2, a3))
+         else if (∃a1 a2. a = encode_pair (a1, a2)) then
+           let (a1, a2) = decode_pair a in (encode_pair (a2, a1))
+         else a |>
+End
+
+Theorem assoc_sum_is_chu_morphism[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+  is_chu_morphism (sum c1 (sum c2 c3)) (sum (sum c1 c2) c3) (assoc_sum T) ∧
+  is_chu_morphism (sum (sum c1 c2) c3) (sum c1 (sum c2 c3)) (assoc_sum F)
+Proof
+  simp[is_chu_morphism_def]
+  \\ rw[sum_def, PULL_EXISTS, FORALL_PROD, EXISTS_PROD]
+  \\ rw[assoc_sum_def, sum_eval_def]
+QED
+
+Theorem sum_assoc:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+  sum c1 (sum c2 c3) ≅ sum (sum c1 c2) c3 -: chu w
+Proof
+  rw[iso_objs_def]
+  \\ qexists_tac`<| dom := sum c1 (sum c2 c3); cod := sum (sum c1 c2) c3; map := assoc_sum T |>`
+  \\ qexists_tac`<| dom := sum (sum c1 c2) c3; cod := sum c1 (sum c2 c3); map := assoc_sum F |>`
+  \\ simp[iso_pair_between_objs_def]
+  \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
+  \\ simp[iso_pair_def]
+  \\ conj_asm1_tac >- (
+    simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def]
+    \\ match_mp_tac assoc_sum_is_chu_morphism (* not sure why simp does not get this *)
+    \\ simp[] )
+  \\ `g ≈> f -: chu w` by (
+    simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def]
+    \\ match_mp_tac (ONCE_REWRITE_RULE[CONJ_COMM]assoc_sum_is_chu_morphism)
+    \\ simp[] )
+  \\ simp[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ conj_tac >- fs[composable_in_def]
+  \\ simp[morphism_component_equality]
+  \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+  \\ simp[]
+  \\ simp[chu_id_map, restrict_def]
+  \\ simp[pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`]
+  \\ simp[GSYM CONJ_ASSOC]
+  \\ simp[assoc_sum_def, FUN_EQ_THM]
+  \\ rw[] \\ fs[] \\ pop_assum mp_tac
+  \\ CASE_TAC \\ rw[] \\ rw[] \\ fs[]
+QED
+
+Definition cf0_def:
+  cf0 w = <| world := w; agent := ∅; env := {""}; eval := K (K (CHOICE w)) |>
+End
+
+Theorem wf_cf0[simp]:
+  wf (cf0 w)
+Proof
+  rw[wf_def, cf0_def]
+QED
+
+Theorem cf0_in_chu_objects[simp]:
+  cf0 w ∈ chu_objects w
+Proof
+  rw[chu_objects_def] \\ rw[cf0_def]
+QED
+
+Definition remove_cf0_def:
+  remove_cf0 onl = <|
+    map_agent := λa.
+      if ¬onl ∧ (∃x. a = encode_sum (INL x)) then OUTL (decode_sum a) else
+      if onl ∧ (∃x. a = encode_sum (INR x)) then OUTR (decode_sum a) else
+      a;
+    map_env := λe.
+      if ¬onl then encode_pair (e, "") else encode_pair ("", e) |>
+End
+
+Definition add_cf0_def:
+  add_cf0 onl = <|
+    map_agent := λa.
+      if ¬onl then encode_sum (INL a) else encode_sum (INR a);
+    map_env := λe.
+      if ¬onl ∧ (∃x. e = encode_pair (x, "")) then FST (decode_pair e) else
+      if onl ∧ (∃x. e = encode_pair ("", x)) then SND (decode_pair e) else
+      e |>
+End
+
+Theorem add_remove_cf0_is_chu_morphism[simp]:
+  c ∈ chu_objects w ⇒
+  is_chu_morphism c (sum c (cf0 w)) (add_cf0 F) ∧
+  is_chu_morphism c (sum (cf0 w) c) (add_cf0 T) ∧
+  is_chu_morphism (sum c (cf0 w)) c (remove_cf0 F) ∧
+  is_chu_morphism (sum (cf0 w) c) c (remove_cf0 T)
+Proof
+  rw[is_chu_morphism_def, sum_def, FORALL_PROD, EXISTS_PROD,
+     cf0_def, add_cf0_def, remove_cf0_def]
+  \\ rw[] \\ fs[] \\ rw[sum_eval_def]
+QED
+
+(*
+Theorem sum_cf0:
+  c ∈ chu_objects w ⇒
+  sum c (cf0 w) ≅ c -: chu w ∧
+  sum (cf0 w) c ≅ c -: chu w
+Proof
+  simp[iso_objs_def] \\ strip_tac
+  \\ conj_tac
+  >- (
+    qexists_tac`<|dom:= sum c (cf0 w); cod := c; map := remove_cf0 F|>`
+    \\ qexists_tac`<|dom:= c; cod := sum c (cf0 w); map := add_cf0 F|>`
+    \\ simp[iso_pair_between_objs_def]
+    \\ qmatch_goalsub_abbrev_tac`f <≃> g -: _`
+    \\ simp[iso_pair_def]
+    \\ conj_asm1_tac >- ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def])
+    \\ `g ≈> f -: chu w` by ( simp[Abbr`f`, Abbr`g`, composable_in_def, pre_chu_def])
+    \\ simp[compose_in_thm]
+    \\ DEP_REWRITE_TAC[compose_thm]
+    \\ conj_tac >- fs[composable_in_def]
+    \\ simp[morphism_component_equality]
+    \\ `g.dom ∈ chu_objects w ∧ f.cod ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+    \\ `g.cod ∈ chu_objects w ∧ f.dom ∈ chu_objects w` by simp[Abbr`f`, Abbr`g`]
+    \\ simp[]
+    \\ simp[chu_id_map, restrict_def]
+    \\ simp[pre_chu_def]
+    \\ simp[Abbr`f`, Abbr`g`]
+    \\ simp[GSYM CONJ_ASSOC]
+    \\ conj_tac
+    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
+    \\ conj_tac
+    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
+    \\ conj_tac
+    >- (simp[remove_cf0_def, add_cf0_def] \\ simp[FUN_EQ_THM] \\ rw[] \\ fs[])
+*)
 
 val _ = export_theory();

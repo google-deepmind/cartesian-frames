@@ -399,12 +399,14 @@ Proof
 *)
 
 Theorem swap_functor_objf[simp]:
-  c ∈ chu_objects w ⇒ (swap_functor w) @@ c = swap c
+  c ∈ chu_objects w ⇒
+    (swap_functor w) @@ c = swap c ∧
+    (op_swap_functor w) @@ c = swap c
 Proof
-  rw[swap_functor_def]
+  rw[swap_functor_def, op_swap_functor_def]
   \\ rw[objf_def, morf_def]
   \\ SELECT_ELIM_TAC
-  \\ conj_tac >- metis_tac[swap_morphism_id, swap_in_chu_objects]
+  \\ (conj_tac >- metis_tac[swap_morphism_id, swap_in_chu_objects])
   \\ simp[swap_morphism_id]
   \\ rw[]
   \\ qspec_then`chu w`match_mp_tac id_inj
@@ -412,7 +414,9 @@ Proof
 QED
 
 Theorem swap_functor_idem[simp]:
-  c ∈ chu_objects w ⇒ (swap_functor w) @@ ((swap_functor w) @@ c) = c
+  c ∈ chu_objects w ⇒
+    (swap_functor w) @@ ((swap_functor w) @@ c) = c ∧
+    (op_swap_functor w) @@ ((op_swap_functor w) @@ c) = c
 Proof
   rw[]
 QED
@@ -835,6 +839,46 @@ Proof
     \\ first_x_assum(fn th =>
          qspec_then`z`mp_tac th \\ simp[] \\ disch_then(qx_choose_then`_1`strip_assume_tac))
     \\ simp[] )
+QED
+
+Definition cfT_def:
+  cfT w = swap (cf0 w)
+End
+
+Theorem cfT_in_chu_objects[simp]:
+  cfT w ∈ chu_objects w
+Proof
+  rw[cfT_def]
+QED
+
+Theorem cfT_agent_env:
+  (cfT w).agent = {""} ∧
+  (cfT w).env = ∅
+Proof
+  rw[cfT_def, swap_def, cf0_def]
+QED
+
+Theorem cfT_swap_cf0:
+  cfT w = swap_functor w @@ (cf0 w) ∧
+  cfT w = op_swap_functor w @@ (cf0 w)
+Proof
+  rw[swap_functor_objf, cfT_def]
+QED
+
+Theorem is_terminal_cfT:
+  is_terminal (chu w) (cfT w)
+Proof
+  rewrite_tac[CONJUNCT2 cfT_swap_cf0]
+  \\ match_mp_tac is_terminal_cat_iso
+  \\ qexists_tac`(chu w) °`
+  \\ mp_tac cat_iso_pair_swap_functor
+  \\ simp[cat_iso_def]
+  \\ mp_tac is_initial_cf0
+  \\ rewrite_tac[is_initial_def]
+  \\ simp[]
+  \\ simp[Once cat_iso_pair_sym]
+  \\ rw[] >- metis_tac[]
+  \\ simp[op_swap_functor_def]
 QED
 
 val _ = export_theory();

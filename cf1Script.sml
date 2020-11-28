@@ -1,4 +1,4 @@
-open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory
+open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory limitTheory
      dep_rewrite sumTheory pairTheory pred_setTheory listTheory rich_listTheory ASCIInumbersTheory
 
 val _ = new_theory"cf1";
@@ -48,6 +48,11 @@ QED
 Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
+
+(* TODO: should these be temp? or moved elsewhere? *)
+Type functor[pp] = ``:('a,'b,'c,'d) functor``;
+Type nat_trans[pp] = ``:('a, 'b, 'c, 'd) nat_trans``;
+(* -- *)
 
 Type chu_morphism[pp] = ``:('w cf, 'w cf, chu_morphism_map) morphism``;
 
@@ -700,6 +705,136 @@ Proof
   \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, chu_id_morphism_map_def]
   \\ rw[restrict_def, remove_cf0_def, add_cf0_def, FUN_EQ_THM]
   \\ fs[sum_def, cf0_def, EXISTS_PROD] \\ rw[] \\ fs[]
+QED
+
+Theorem is_initial_cf0[simp]:
+  is_initial (chu w) (cf0 w)
+Proof
+  rw[is_initial_thm]
+  \\ simp[EXISTS_UNIQUE_THM]
+  \\ conj_tac
+  >- (
+    qexists_tac`mk_chu_morphism (cf0 w) y <| map_env := K "" |>`
+    \\ simp[maps_to_in_def, pre_chu_def]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[cf0_def, restrict_def] )
+  \\ rw[]
+  \\ simp[morphism_component_equality]
+  \\ fs[maps_to_in_def]
+  \\ fs[pre_chu_def, is_chu_morphism_def]
+  \\ simp[chu_morphism_map_component_equality]
+  \\ fs[cf0_def, extensional_def]
+  \\ simp[FUN_EQ_THM]
+  \\ metis_tac[]
+QED
+
+Theorem has_binary_products_chu_op:
+  has_binary_products (chu w)°
+Proof
+  simp[has_binary_products_thm, is_binary_product_thm]
+  \\ rpt strip_tac
+  \\ qexists_tac`sum a b`
+  \\ qexists_tac`<| dom := (sum a b); cod := a; map :=
+      <| map_agent := restrict (encode_sum o INL) a.agent;
+         map_env := restrict (FST o decode_pair) (sum a b).env |> |>`
+  \\ qexists_tac`<| dom := (sum a b); cod := b; map :=
+      <| map_agent := restrict (encode_sum o INR) b.agent;
+         map_env := restrict (SND o decode_pair) (sum a b).env |> |>`
+  \\ qmatch_goalsub_abbrev_tac`p1 ° :- a → _ -: _`
+  \\ qmatch_goalsub_abbrev_tac`p2 ° :- b → _ -: _`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[Abbr`p1`]
+    \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[sum_eval_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[Abbr`p2`]
+    \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[sum_eval_def] )
+  \\ qx_gen_tac`c`
+  \\ qx_genl_tac[`m1`,`m2`]
+  \\ strip_tac
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ simp[EXISTS_UNIQUE_THM]
+  \\ conj_tac
+  >- (
+    qexists_tac`<| dom := c; cod := sum a b; map :=
+      <| map_agent := restrict (λs. sum_CASE (decode_sum s) m1.map.map_agent m2.map.map_agent)
+                        (sum a b).agent;
+         map_env := restrict (λe. encode_pair (m1.map.map_env e, m2.map.map_env e)) c.env |> |>`
+    \\ qmatch_goalsub_abbrev_tac`op_mor m`
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_def]
+      \\ simp[pre_chu_def]
+      \\ simp[Abbr`m`]
+      \\ simp[is_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
+      \\ simp[sum_eval_def]
+      \\ fs[maps_to_in_def, pre_chu_def, is_chu_morphism_def, restrict_def]
+      \\ rw[] \\ rw[] \\ fs[] )
+    \\ DEP_REWRITE_TAC[compose_in_thm]
+    \\ conj_tac >- ( fs[maps_to_in_def, composable_in_def] )
+    \\ DEP_REWRITE_TAC[compose_thm]
+    \\ conj_tac >- ( fs[maps_to_in_def, composable_in_def] )
+    \\ simp[morphism_component_equality]
+    \\ fs[maps_to_in_def]
+    \\ DEP_REWRITE_TAC[chu_comp]
+    \\ simp[composable_in_def]
+    \\ simp[pre_chu_def]
+    \\ simp[chu_morphism_map_component_equality]
+    \\ simp[Abbr`m`, restrict_def]
+    \\ simp[Abbr`p1`, Abbr`p2`]
+    \\ simp[sum_def, restrict_def, FUN_EQ_THM]
+    \\ fs[pre_chu_def, is_chu_morphism_def, extensional_def]
+    \\ rw[] )
+  \\ qx_genl_tac[`p`,`q`]
+  \\ strip_tac
+  \\ simp[morphism_component_equality]
+  \\ fs[maps_to_in_def]
+  \\ simp[chu_morphism_map_component_equality]
+  \\ rpt(qpat_x_assum`_ o _ -: _ = _`mp_tac)
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ simp[composable_in_def]
+  \\ disch_then (SUBST1_TAC o GSYM)
+  \\ disch_then (SUBST1_TAC o GSYM)
+  \\ simp[pre_chu_def]
+  \\ simp[Abbr`p1`, Abbr`p2`]
+  \\ simp[FUN_EQ_THM, restrict_def]
+  \\ strip_tac
+  \\ strip_tac
+  \\ fs[pre_chu_def, is_chu_morphism_def, extensional_def, restrict_def]
+  \\ fs[sum_def, EXISTS_PROD, PULL_EXISTS]
+  \\ conj_tac
+  >- (
+    qx_gen_tac`z`
+    \\ qpat_x_assum`∀z. _ ⇒ p.map.map_agent z = ARB`(qspec_then`z`mp_tac)
+    \\ qpat_x_assum`∀z. _ ⇒ q.map.map_agent z = ARB`(qspec_then`z`mp_tac)
+    \\ qmatch_goalsub_abbrev_tac`cnd ⇒ (_ = _)`
+    \\ Cases_on`cnd = T` \\ fs[Abbr`cnd`]
+    \\ metis_tac[] )
+  >- (
+    qx_gen_tac`z`
+    \\ qpat_x_assum`∀z. _ ⇒ p.map.map_env z = ARB`(qspec_then`z`mp_tac)
+    \\ qpat_x_assum`∀z. _ ⇒ q.map.map_env z = ARB`(qspec_then`z`mp_tac)
+    \\ qmatch_goalsub_abbrev_tac`cnd ⇒ (_ = _)`
+    \\ Cases_on`cnd = T` \\ fs[Abbr`cnd`]
+    \\ first_x_assum(qspec_then`z`mp_tac) \\ simp[]
+    \\ qpat_x_assum`∀x. (COND (x ∈ c.env) _ _) = _`(qspec_then`z`mp_tac) \\ simp[]
+    \\ first_x_assum(fn th =>
+         qspec_then`z`mp_tac th \\ simp[] \\ disch_then(qx_choose_then`_0`strip_assume_tac))
+    \\ first_x_assum(fn th =>
+         qspec_then`z`mp_tac th \\ simp[] \\ disch_then(qx_choose_then`_1`strip_assume_tac))
+    \\ simp[] )
 QED
 
 val _ = export_theory();

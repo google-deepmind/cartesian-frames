@@ -1,5 +1,6 @@
 open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory limitTheory
-     dep_rewrite sumTheory pairTheory pred_setTheory listTheory rich_listTheory ASCIInumbersTheory
+     dep_rewrite combinTheory sumTheory pairTheory pred_setTheory
+     listTheory rich_listTheory ASCIInumbersTheory
 
 val _ = new_theory"cf1";
 
@@ -143,7 +144,7 @@ QED
 
 Definition swap_def:
   swap c = <| world := c.world; agent := c.env; env := c.agent;
-              eval := λa e. c.eval e a |>
+              eval := flip c.eval |>
 End
 
 Theorem swap_components[simp]:
@@ -166,7 +167,7 @@ Theorem swap_swap[simp]:
   swap (swap c) = c
 Proof
   rw[swap_def, cf_component_equality]
-  \\ srw_tac[boolSimps.ETA_ss][]
+  \\ rw[FUN_EQ_THM]
 QED
 
 Definition swap_morphism_map_def:
@@ -207,6 +208,16 @@ Theorem swap_morphism_idem[simp]:
 Proof
   rw[swap_morphism_def, morphism_component_equality]
   \\ rw[swap_morphism_map_def, chu_morphism_map_component_equality]
+QED
+
+Theorem swap_morphism_inj[simp]:
+  swap_morphism m1 = swap_morphism m2 ⇔ m1 = m2
+Proof
+  rw[swap_morphism_def, morphism_component_equality]
+  \\ simp[swap_def, swap_morphism_map_def]
+  \\ simp[cf_component_equality, chu_morphism_map_component_equality]
+  \\ simp[FUN_EQ_THM]
+  \\ metis_tac[]
 QED
 
 Theorem swap_morphism_id:
@@ -411,6 +422,14 @@ Proof
   \\ rw[]
   \\ qspec_then`chu w`match_mp_tac id_inj
   \\ simp[]
+QED
+
+Theorem swap_functor_morf[simp]:
+  (f ∈ (pre_chu w).mor ⇒ (swap_functor w) ## f = swap_morphism f )∧
+  (g ∈ ((pre_chu w)°).mor ⇒ (op_swap_functor w) ## g = swap_morphism g)
+Proof
+  rw[swap_functor_def, op_swap_functor_def]
+  \\ simp[morf_def]
 QED
 
 Theorem swap_functor_idem[simp]:
@@ -862,7 +881,14 @@ Theorem cfT_swap_cf0:
   cfT w = swap_functor w @@ (cf0 w) ∧
   cfT w = op_swap_functor w @@ (cf0 w)
 Proof
-  rw[swap_functor_objf, cfT_def]
+  rw[cfT_def]
+QED
+
+Theorem cf0_swap_cfT:
+  cf0 w = (swap_functor w) @@ (cfT w) ∧
+  cf0 w = (op_swap_functor w) @@ (cfT w)
+Proof
+  rw[cfT_def]
 QED
 
 Theorem is_terminal_cfT:
@@ -879,6 +905,114 @@ Proof
   \\ simp[Once cat_iso_pair_sym]
   \\ rw[] >- metis_tac[]
   \\ simp[op_swap_functor_def]
+QED
+
+Definition prod_def:
+  prod c1 c2 =  <| world := c1.world ∪ c2.world;
+                   agent := IMAGE encode_pair (c1.agent × c2.agent);
+                   env := IMAGE encode_sum (IMAGE INL c1.env ∪ IMAGE INR c2.env);
+                   eval := flip (sum_eval (flip c1.eval) (flip c2.eval)) |>
+End
+
+Theorem swap_sum_prod:
+  swap (sum (swap c) (swap d)) = prod c d
+Proof
+  rw[cf_component_equality]
+  \\ rw[prod_def, sum_def]
+  \\ rw[swap_def, FUN_EQ_THM]
+QED
+
+Theorem swap_prod_sum:
+  swap (prod (swap c) (swap d)) = sum c d
+Proof
+  rw[cf_component_equality]
+  \\ rw[prod_def, sum_def]
+  \\ rw[swap_def, FUN_EQ_THM]
+  \\ srw_tac[boolSimps.ETA_ss][C_DEF]
+QED
+
+Theorem has_binary_products_chu:
+  has_binary_products (chu w)
+Proof
+  assume_tac has_binary_products_chu_op
+  \\ fs[has_binary_products_thm]
+  \\ fs[is_binary_product_thm]
+  \\ rpt gen_tac \\ strip_tac
+  \\ first_x_assum(qspecl_then[`swap a`,`swap b`]mp_tac)
+  \\ simp[] \\ strip_tac
+  \\ qexists_tac`swap ab`
+  \\ qexists_tac`(op_swap_functor w) ## $π1`
+  \\ qexists_tac`(op_swap_functor w) ## $π2`
+  \\ rewrite_tac[CONJ_ASSOC]
+  \\ conj_asm1_tac
+  >- (
+    conj_tac
+    \\ match_mp_tac morf_maps_to \\ simp[]
+    \\ simp[Once op_swap_functor_def]
+    \\ simp[Once op_swap_functor_def]
+    \\ imp_res_tac maps_to_obj
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ fs[] )
+  \\ rpt gen_tac \\ strip_tac
+  \\ first_x_assum(qspecl_then[`swap p`,`swap_functor w ## p1`,`swap_functor w ## p2`]mp_tac)
+  \\ impl_keep_tac
+  >- (
+    conj_tac
+    \\ rewrite_tac[GSYM op_cat_maps_to_in]
+    \\ match_mp_tac morf_maps_to \\ simp[]
+    \\ simp[Once swap_functor_def]
+    \\ simp[Once swap_functor_def]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ imp_res_tac maps_to_obj
+    \\ fs[] )
+  \\ simp[GSYM CONJ_ASSOC]
+  \\ Ho_Rewrite.REWRITE_TAC[EXISTS_UNIQUE_THM]
+  \\ strip_tac
+  \\ conj_tac
+  >- (
+    first_x_assum(qspec_then`ARB`kall_tac)
+    \\ qexists_tac`op_swap_functor w ## m`
+    \\ conj_asm1_tac
+    >- (
+      match_mp_tac morf_maps_to \\ simp[]
+      \\ simp[Once op_swap_functor_def]
+      \\ simp[Once op_swap_functor_def]
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ imp_res_tac maps_to_obj
+      \\ fs[] )
+    \\ qmatch_goalsub_abbrev_tac`(G ## g) o (G ## f) -: chu w`
+    \\ qspecl_then[`G`,`op_cat(chu w)`]mp_tac morf_comp
+    \\ disch_then(fn th=> DEP_REWRITE_TAC[GSYM th])
+    \\ simp[Abbr`G`,Abbr`f`,Abbr`g`]
+    \\ simp[Once op_swap_functor_def]
+    \\ simp[Once op_swap_functor_def]
+    \\ conj_tac
+    >- (
+      conj_tac
+      \\ match_mp_tac maps_to_composable
+      \\ metis_tac[] )
+    \\ fs[]
+    \\ metis_tac[swap_functor_morf, maps_to_in_def, chu_mor,
+                 op_cat_maps_to_in, swap_morphism_idem])
+  \\ qx_genl_tac[`s`,`t`]
+  \\ strip_tac
+  \\ `swap_functor w ## s = swap_functor w ## t` suffices_by (
+    metis_tac[swap_functor_morf, maps_to_in_def, chu_mor, swap_morphism_inj] )
+  \\ first_x_assum match_mp_tac
+  \\ qmatch_goalsub_abbrev_tac`G ## s`
+  \\ CONV_TAC(markerLib.move_conj_left(Lib.mem"t" o List.map (#1 o dest_var) o free_vars))
+  \\ simp[GSYM CONJ_ASSOC]
+  \\ simp[Once CONJ_ASSOC]
+  \\ conj_asm1_tac
+  >- (
+    conj_tac
+    \\ once_rewrite_tac[GSYM op_cat_maps_to_in]
+    \\ match_mp_tac morf_maps_to \\ simp[Abbr`G`]
+    \\ simp[Once swap_functor_def]
+    \\ simp[Once swap_functor_def]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ imp_res_tac maps_to_obj \\ fs[] )
+  \\ cheat
 QED
 
 val _ = export_theory();

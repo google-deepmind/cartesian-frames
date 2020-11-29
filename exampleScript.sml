@@ -743,4 +743,8 @@ QED
 
 (* TODO: example of sum *)
 
+(* TODO: example of product *)
+
+(* TODO: example of a product equals a previous example *)
+
 val _ = export_theory();

@@ -495,17 +495,15 @@ Proof
 QED
 
 Definition encode_sum_def:
-  encode_sum (INL s) = toString (LENGTH s) ++ "l" ++ s ∧
-  encode_sum (INR s) = toString (LENGTH s) ++ "r" ++ s
+  encode_sum (INL s) = "l" ++ s ∧
+  encode_sum (INR s) = "r" ++ s
 End
 
 Definition decode_sum_def:
   decode_sum s =
-    let (n, r) = SPLITP ((~) o isDigit) s in
-    let (t, r) = (HD r, TL r) in
-    let n = toNum n in
-    if t = #"l" ∧ LENGTH r = n then INL r else
-    if t = #"r" ∧ LENGTH r = n then INR r else ARB
+    let (t, s) = (HD s, TL s) in
+    if t = #"l" then INL s else
+    if t = #"r" then INR s else ARB
 End
 
 Theorem decode_encode_sum[simp]:

@@ -409,6 +409,20 @@ Proof
     \\ metis_tac[] )
 *)
 
+val _ = add_rule { fixity = Suffix 2100,
+                   block_style = (AroundEachPhrase, (Portable.CONSISTENT, 0)),
+                   paren_style = OnlyIfNecessary,
+                   pp_elements = [TOK "^*"],
+                   term_name = "swap_syntax" }
+val _ = Unicode.unicode_version {u = UTF8.chr 0xA673, tmnm = "swap_syntax"}
+
+(* TODO: this is perhaps not flexible enough with the free variable w *)
+val _ = overload_on("swap_syntax", ``objf (swap_functor w )``);
+val _ = overload_on("swap_syntax", ``objf (op_swap_functor w )``);
+val _ = overload_on("swap_syntax", ``morf (swap_functor w )``);
+val _ = overload_on("swap_syntax", ``morf (op_swap_functor w )``);
+val _ = overload_on("swap_syntax", ``swap``);
+
 Theorem swap_functor_objf[simp]:
   c ∈ chu_objects w ⇒
     (swap_functor w) @@ c = swap c ∧
@@ -524,6 +538,9 @@ Definition sum_def:
                  env := IMAGE encode_pair (c1.env × c2.env);
                  eval := sum_eval c1.eval c2.eval |>
 End
+
+val _ = overload_on("⊕", ``sum``);
+val _ = set_fixity "⊕" (Infix (LEFT, 500))
 
 Theorem wf_sum[simp]:
   wf c1 ∧ wf c2 ⇒ wf (sum c1 c2)
@@ -914,6 +931,9 @@ Definition prod_def:
                    eval := flip (sum_eval (flip c1.eval) (flip c2.eval)) |>
 End
 
+val _ = overload_on("&&", ``prod``)
+val _ = set_fixity "&&" (Infix (LEFT, 500))
+
 Theorem swap_sum_prod:
   swap (sum (swap c) (swap d)) = prod c d
 Proof
@@ -965,7 +985,7 @@ Proof
     \\ goal_assum(first_assum o mp_then Any mp_tac)
     \\ imp_res_tac maps_to_obj
     \\ fs[] )
-  \\ simp[GSYM CONJ_ASSOC]
+  \\ CHANGED_TAC(simp[GSYM CONJ_ASSOC])
   \\ Ho_Rewrite.REWRITE_TAC[EXISTS_UNIQUE_THM]
   \\ strip_tac
   \\ conj_tac
@@ -999,7 +1019,6 @@ Proof
   \\ `swap_functor w ## s = swap_functor w ## t` suffices_by (
     metis_tac[swap_functor_morf, maps_to_in_def, chu_mor, swap_morphism_inj] )
   \\ first_x_assum match_mp_tac
-  \\ qmatch_goalsub_abbrev_tac`G ## s`
   \\ CONV_TAC(markerLib.move_conj_left(Lib.mem"t" o List.map (#1 o dest_var) o free_vars))
   \\ simp[GSYM CONJ_ASSOC]
   \\ simp[Once CONJ_ASSOC]
@@ -1007,12 +1026,30 @@ Proof
   >- (
     conj_tac
     \\ once_rewrite_tac[GSYM op_cat_maps_to_in]
-    \\ match_mp_tac morf_maps_to \\ simp[Abbr`G`]
+    \\ match_mp_tac morf_maps_to \\ simp[]
     \\ simp[Once swap_functor_def]
     \\ simp[Once swap_functor_def]
     \\ goal_assum(first_assum o mp_then Any mp_tac)
     \\ imp_res_tac maps_to_obj \\ fs[] )
-  \\ cheat
+  \\ fs[]
+  \\ qpat_x_assum`_ o s -: _ = p1`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
+  \\ qpat_x_assum`_ o s -: _ = p2`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
+  \\ qpat_x_assum`_ o t -: _ = p1`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
+  \\ qpat_x_assum`_ o t -: _ = p2`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
+  \\ qspecl_then[`swap_functor w`,`chu w`,`op_cat(chu w)`](fn th => DEP_REWRITE_TAC[th])morf_comp
+  \\ simp[]
+  \\ reverse conj_asm1_tac
+  >- (
+    fs[]
+    \\ imp_res_tac maps_to_composable
+    \\ fs[composable_in_def, maps_to_in_def]
+    \\ DEP_REWRITE_TAC[swap_functor_morf]
+    \\ fs[]
+    \\ metis_tac[op_mor_idem] )
+  \\ simp[]
+  \\ simp[swap_functor_def]
+  \\ simp[composable_in_def]
+  \\ fs[maps_to_in_def]
 QED
 
 val _ = export_theory();

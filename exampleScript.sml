@@ -1,7 +1,8 @@
 open HolKernel boolLib bossLib boolSimps Parse dep_rewrite
   pred_setTheory stringTheory listTheory rich_listTheory
   relationTheory sortingTheory stringLib ASCIInumbersLib
-  cf0Theory cf1Theory
+  categoryTheory functorTheory
+  cf0Theory cf1Theory cf2Theory
 
 val _ = new_theory"example";
 
@@ -212,6 +213,20 @@ Theorem wf_runs3[simp]:
 Proof
   rw[wf_def, runs_cf3_def, runs_cf2_def, runs_cf1_def]
 QED
+
+Theorem runs_cf2_world[simp]:
+  runs_cf2.world = runs_cf1.world
+Proof
+  rw[runs_cf2_def]
+QED
+
+Theorem runs2_in_chu_objects[simp]:
+  runs_cf2 ∈ chu_objects runs_cf1.world
+Proof
+  rw[chu_objects_def]
+QED
+
+(* TODO: both proofs below could probably be streamlined *)
 
 Theorem runs2_obs:
   obs runs_cf2 = union_closure {{"ur";"nr"}; {"us";"ns"}}
@@ -931,6 +946,77 @@ Proof
   \\ EVAL_TAC
 QED
 
-(* TODO: example of a product that equals runs_cf2 *)
+Definition run_cf_def:
+  run_cf = <| world := runs_cf1.world;
+              agent := {"u"; "n"};
+              env := {"r"};
+              eval := (++) |>
+End
+
+Definition sun_cf_def:
+  sun_cf = <| world := runs_cf1.world;
+              agent := {"u"; "n"};
+              env := {"s"};
+              eval := (++) |>
+End
+
+Theorem wf_run_sun[simp]:
+  wf run_cf ∧ wf sun_cf
+Proof
+  rw[wf_def, run_cf_def, sun_cf_def, runs_cf1_def]
+QED
+
+Theorem run_sun_world[simp]:
+  run_cf.world = runs_cf1.world ∧
+  sun_cf.world = runs_cf1.world
+Proof
+  rw[run_cf_def, sun_cf_def]
+QED
+
+Theorem run_sun_in_chu_objects[simp]:
+  run_cf ∈ chu_objects runs_cf1.world ∧
+  sun_cf ∈ chu_objects runs_cf1.world
+Proof
+  rw[chu_objects_def]
+QED
+
+Theorem runs_cf2_as_product:
+  runs_cf2 ≅ run_cf && sun_cf -: chu (runs_cf1.world)
+Proof
+  simp[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (runs_cf2) (run_cf && sun_cf)
+                   <| map_agent :=
+                        (λa. encode_pair (if a = "u" ∨ a = "run" then "u" else "n",
+                                          if a = "n" ∨ a = "run" then "n" else "u"));
+                      map_env := TL |>`
+  \\ simp[maps_to_in_def]
+  \\ simp[pre_chu_def]
+  \\ simp[chu_iso_bij]
+  \\ reverse conj_asm1_tac \\ simp[]
+  >- (
+    simp[mk_chu_morphism_def]
+    \\ conj_tac
+    >- (
+      simp[BIJ_IFF_INV]
+      \\ conj_tac >- rw[runs_cf2_def, restrict_def, prod_def, run_cf_def, sun_cf_def]
+      \\ qexists_tac`λa.
+          let a = DROP 2 a in
+          if HD a = HD (TL a) then TAKE 1 a else
+          if HD a = #"u" then "run" else "sun"`
+      \\ rw[runs_cf2_def, run_cf_def, sun_cf_def, prod_def, pairTheory.EXISTS_PROD]
+      \\ rpt (pop_assum mp_tac)
+      \\ EVAL_TAC )
+    >- (
+      simp[BIJ_IFF_INV]
+      \\ conj_tac >- (EVAL_TAC \\ rw[] \\ rw[])
+      \\ qexists_tac`λe. if e = "r" then "lr" else "rs"`
+      \\ rw[runs_cf2_def, run_cf_def, sun_cf_def, prod_def, pairTheory.EXISTS_PROD]
+      \\ rpt(pop_assum mp_tac)
+      \\ EVAL_TAC ))
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[is_chu_morphism_def]
+  \\ rw[runs_cf2_def, run_cf_def, sun_cf_def, restrict_def, prod_def] \\ fs[] \\ rw[]
+  \\ rpt (pop_assum mp_tac) \\ EVAL_TAC
+QED
 
 val _ = export_theory();

@@ -1050,4 +1050,18 @@ Proof
   \\ fs[maps_to_in_def]
 QED
 
+Theorem wf_prod[simp]:
+  wf c1 ∧ wf c2 ⇒ wf (prod c1 c2)
+Proof
+  rw[wf_def]
+  \\ fs[prod_def]
+  \\ fs[sum_eval_def]
+QED
+
+Theorem prod_in_chu_objects[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒ prod c1 c2 ∈ chu_objects w
+Proof
+  rw[chu_objects_def] \\ rw[prod_def]
+QED
+
 val _ = export_theory();

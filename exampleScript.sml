@@ -1,8 +1,52 @@
-open HolKernel boolLib bossLib boolSimps Parse
-  pred_setTheory stringTheory stringLib
+open HolKernel boolLib bossLib boolSimps Parse dep_rewrite
+  pred_setTheory stringTheory listTheory rich_listTheory
+  relationTheory sortingTheory stringLib ASCIInumbersLib
   cf0Theory cf1Theory
 
 val _ = new_theory"example";
+
+(* TODO: move *)
+
+Theorem SORTS_PERM_EQ:
+  transitive R ∧ antisymmetric R ∧ SORTS f R ∧ PERM l1 l2 ⇒
+    f R l1 = f R l2
+Proof
+  strip_tac
+  \\ match_mp_tac (MP_CANON SORTED_PERM_EQ)
+  \\ qexists_tac`R` \\ simp[]
+  \\ fs[SORTS_DEF]
+  \\ `PERM (f R l1) l1` by metis_tac[PERM_SYM]
+  \\ `PERM l2 (f R l2)` by metis_tac[]
+  \\ metis_tac[PERM_TRANS]
+QED
+
+Theorem PERM_SET_TO_LIST_INSERT:
+  FINITE y ⇒
+    PERM
+      (SET_TO_LIST (x INSERT y))
+      (if x ∈ y then SET_TO_LIST y else x :: SET_TO_LIST y)
+Proof
+  rw[] >- ( `x INSERT y = y` by (simp[EXTENSION] \\ metis_tac[]) \\ rw[] )
+  \\ Cases_on`CHOICE (x INSERT y) = x`
+  >- (
+    rw[]
+    \\ simp[Once SET_TO_LIST_THM]
+    \\ `REST (x INSERT y) = y`
+    by (
+      qspec_then`x INSERT y`mp_tac CHOICE_INSERT_REST
+      \\ simp[]
+      \\ qspec_then`x INSERT y`mp_tac (CONV_RULE SWAP_FORALL_CONV IN_REST)
+      \\ simp[]
+      \\ rw[EXTENSION]
+      \\ metis_tac[] )
+    \\ simp[] )
+  \\ simp[Once SET_TO_LIST_THM]
+  \\ match_mp_tac PERM_ALL_DISTINCT
+  \\ simp[CHOICE_NOT_IN_REST]
+  \\ metis_tac[CHOICE_INSERT_REST, NOT_EMPTY_INSERT, IN_INSERT]
+QED
+
+(* -- *)
 
 Definition runs_cf1_def:
   runs_cf1 = <| agent := { "u"; "n" }; env := { "r"; "s" };
@@ -741,10 +785,152 @@ Proof
   \\ rw[] \\ EVAL_TAC
 QED
 
-(* TODO: example of sum *)
+Definition sum_exc_def:
+  sum_exc = <| world := IMAGE toString (count 13);
+               agent := IMAGE toString (count 2);
+               env := IMAGE toString (count 2);
+               eval := λa e. toString (toNum (a) * 2 + toNum(e)) |>
+End
 
-(* TODO: example of product *)
+Definition sum_exd_def:
+  sum_exd = <| world := IMAGE toString (count 13);
+               agent := IMAGE toString (count 3);
+               env := IMAGE toString (count 3);
+               eval := λa e. toString (4 + toNum(a) * 3 + toNum(e)) |>
+End
 
-(* TODO: example of a product equals a previous example *)
+Definition cf_matrix_def:
+  cf_matrix c =
+   MAP (λa. MAP (c.eval a) (QSORT $<= (SET_TO_LIST c.env)))
+       (QSORT $<= (SET_TO_LIST c.agent))
+End
+
+Theorem QSORT_string_le_SET_TO_LIST:
+∀x.
+  (FINITE ls ⇒
+   QSORT string_le (x ++ SET_TO_LIST (s INSERT ls)) =
+     QSORT string_le (x ++ if s ∈ ls then SET_TO_LIST ls else s::(SET_TO_LIST ls)))
+Proof
+  gen_tac \\ simp[]
+  \\ strip_tac
+  \\ match_mp_tac SORTS_PERM_EQ
+  \\ conj_asm1_tac >- ( rw[transitive_def] \\ metis_tac[string_le_def, string_lt_trans] )
+  \\ conj_tac >- ( rw[antisymmetric_def] \\ metis_tac[string_le_def, string_lt_antisym] )
+  \\ conj_tac
+  >- ( match_mp_tac QSORT_SORTS
+    \\ rw[total_def] \\ metis_tac[string_lt_cases, string_le_def] )
+  \\ simp[PERM_APPEND_IFF]
+  \\ simp[PERM_SET_TO_LIST_INSERT]
+QED
+
+Theorem QSORT_string_le_SET_TO_LIST_init =
+  QSORT_string_le_SET_TO_LIST |> Q.SPEC`[]` |> SIMP_RULE(srw_ss())[]
+
+val SET_TO_LIST_tm = ``SET_TO_LIST``
+
+fun qsort_set_to_list_conv1 tm =
+  if listSyntax.is_cons tm andalso
+     same_const SET_TO_LIST_tm (rator (#2(listSyntax.dest_cons tm)))
+  then
+    ONCE_REWRITE_CONV [CONS_APPEND] tm
+  else if listSyntax.is_append tm andalso
+          listSyntax.is_append (#2 (listSyntax.dest_append tm)) then
+    (ONCE_REWRITE_CONV [APPEND_ASSOC] THENC
+     LAND_CONV (SIMP_CONV (srw_ss()) [])) tm
+  else raise UNCHANGED
+
+fun qsort_set_to_list_conv2 tm =
+  if boolSyntax.is_cond tm then SIMP_CONV(srw_ss())[] tm
+  else raise UNCHANGED
+
+val qsort_set_to_list_tac =
+  simp[QSORT_string_le_SET_TO_LIST_init]
+  \\ rpt (CHANGED_TAC (
+    CONV_TAC(DEPTH_CONV qsort_set_to_list_conv1)
+    \\ DEP_REWRITE_TAC[QSORT_string_le_SET_TO_LIST]
+    \\ CONV_TAC(DEPTH_CONV qsort_set_to_list_conv2)))
+  \\ simp[]
+
+Theorem cf_matrix_sum_exc:
+  cf_matrix sum_exc =
+    [ ["0"; "1"];
+      ["2"; "3"] ]
+Proof
+  rw[cf_matrix_def, sum_exc_def]
+  \\ CONV_TAC(DEPTH_CONV(fn tm =>
+        if pred_setSyntax.is_image tm then EVAL tm else
+        raise UNCHANGED))
+  \\ simp[QSORT_string_le_SET_TO_LIST_init]
+  \\ EVAL_TAC
+QED
+
+Theorem cf_matrix_sum_exd:
+  cf_matrix sum_exd =
+    [ ["4"; "5"; "6"];
+      ["7"; "8"; "9"];
+      ["10"; "11"; "12"] ]
+Proof
+  rw[cf_matrix_def, sum_exd_def]
+  \\ CONV_TAC(DEPTH_CONV(fn tm =>
+        if pred_setSyntax.is_image tm then EVAL tm else
+        raise UNCHANGED))
+  \\ qsort_set_to_list_tac
+  \\ EVAL_TAC
+QED
+
+Theorem cf_matrix_sum_exc_exd:
+  cf_matrix (sum sum_exc sum_exd) =
+    [ ["0"; "0"; "0"; "1"; "1"; "1"];
+      ["2"; "2"; "2"; "3"; "3"; "3"];
+      ["4"; "5"; "6"; "4"; "5"; "6"];
+      ["7"; "8"; "9"; "7"; "8"; "9"];
+      ["10"; "11"; "12"; "10"; "11"; "12"]]
+Proof
+  simp[cf_matrix_def]
+  \\ simp[sum_def]
+  \\ simp[sum_exc_def, sum_exd_def]
+  \\ CONV_TAC(DEPTH_CONV(fn tm =>
+        if pred_setSyntax.is_image tm then EVAL tm else
+        raise UNCHANGED))
+  \\ simp[INSERT_UNION]
+  \\ qsort_set_to_list_tac
+  \\ EVAL_TAC
+QED
+
+Theorem cf_matrix_prod_exc_exd:
+  cf_matrix (prod sum_exc sum_exd) =
+    [ ["0"; "1";  "4";  "5";  "6"];
+      ["0"; "1";  "7";  "8";  "9"];
+      ["0"; "1"; "10"; "11"; "12"];
+      ["2"; "3";  "4";  "5";  "6"];
+      ["2"; "3";  "7";  "8";  "9"];
+      ["2"; "3"; "10"; "11"; "12"] ]
+Proof
+  simp[cf_matrix_def]
+  \\ simp[prod_def]
+  \\ simp[sum_exc_def, sum_exd_def]
+  \\ CONV_TAC(DEPTH_CONV(fn tm =>
+        if pred_setSyntax.is_image tm then EVAL tm else
+        raise UNCHANGED))
+  \\ simp[INSERT_UNION]
+  \\ qsort_set_to_list_tac
+  \\ EVAL_TAC
+QED
+
+Theorem cf_matrix_runs_cf2:
+  cf_matrix runs_cf2 =
+    [
+      (* n *)  ["nr"; "ns"];
+      (* run *)["ur"; "ns"];
+      (* sun *)["nr"; "us"];
+      (* u *)  ["ur"; "us"];
+    ]
+Proof
+  simp[cf_matrix_def, runs_cf2_def]
+  \\ qsort_set_to_list_tac
+  \\ EVAL_TAC
+QED
+
+(* TODO: example of a product that equals runs_cf2 *)
 
 val _ = export_theory();

@@ -137,4 +137,126 @@ Proof
   \\ metis_tac[]
 QED
 
+Definition homotopy_equiv_def:
+  homotopy_equiv w c d ⇔
+    ∃f g.
+      f :- c → d -: chu w ∧ g :- d → c -: chu w ∧
+      homotopic w (g o f -: chu w) (id c -: chu w) ∧
+      homotopic w (f o g -: chu w) (id d -: chu w)
+End
+
+val _ = overload_on("homotopy_equiv_syntax", ``λc d w. homotopy_equiv w c d``);
+
+val _ = add_rule {
+  term_name = "homotopy_equiv_syntax",
+  fixity = Infix(NONASSOC,450),
+  pp_elements = [HardSpace 1, TOK "\226\137\131", HardSpace 1, TM, HardSpace 1, TOK "-:"],
+  paren_style = OnlyIfNecessary,
+  block_style = (AroundEachPhrase, (PP.INCONSISTENT, 0))
+};
+
+Theorem homotopy_equiv_refl[simp]:
+  c ∈ chu_objects w ⇒ c ≃ c -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`id c -: chu w`
+  \\ qexists_tac`id c -: chu w`
+  \\ simp[]
+  \\ match_mp_tac homotopic_refl
+  \\ metis_tac[id_mor, chu_mor, is_category_chu, chu_obj]
+QED
+
+Theorem homotopy_equiv_sym:
+  c ≃ d -: w ⇔ d ≃ c -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ metis_tac[]
+QED
+
+Theorem homotopy_equiv_trans:
+  c1 ≃ c2 -: w ∧ c2 ≃ c3 -: w ⇒ c1 ≃ c3 -: w
+Proof
+  simp[homotopy_equiv_def]
+  \\ simp[GSYM AND_IMP_INTRO]
+  \\ disch_then(qx_choosel_then[`f1`, `f2`]strip_assume_tac)
+  \\ disch_then(qx_choosel_then[`f3`, `f4`]strip_assume_tac)
+  \\ qexists_tac`f3 o f1 -: chu w`
+  \\ qexists_tac`f2 o f4 -: chu w`
+  \\ DEP_REWRITE_TAC[maps_to_comp]
+  \\ simp[]
+  \\ conj_tac >- metis_tac[]
+  \\ imp_res_tac maps_to_composable
+  \\ imp_res_tac composable_comp \\ fs[]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ `homotopic w (f2 o (f4 o f3 -: chu w) -: chu w) (f2 o (id c2 -: chu w) -: chu w)`
+  by (
+    match_mp_tac homotopic_comp
+    \\ DEP_REWRITE_TAC[homotopic_refl]
+    \\ fs[composable_in_def]
+    \\ fs[maps_to_in_def])
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[id_comp1] \\ fs[]
+  \\ conj_asm1_tac >- fs[maps_to_in_def]
+  \\ strip_tac
+  \\ `homotopic w ((f2 o f4 o f3 -: chu w -: chu w) o f1 -: chu w) (f2 o f1 -: chu w)`
+  by (
+    match_mp_tac homotopic_comp
+    \\ DEP_REWRITE_TAC[homotopic_refl]
+    \\ fs[]
+    \\ conj_tac >- fs[maps_to_in_def]
+    \\ match_mp_tac maps_to_composable
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ qexists_tac`f2.cod`
+    \\ match_mp_tac composable_maps_to \\ fs[]
+    \\ simp[comp_mor_dom_cod]
+    \\ fs[maps_to_in_def])
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[comp_assoc]
+  \\ fs[] \\ strip_tac
+  \\ conj_tac >- metis_tac[homotopic_trans]
+  \\ `homotopic w (f3 o (f1 o f2 -: chu w) -: chu w) (f3 o (id c2 -: chu w) -: chu w)`
+  by (
+    match_mp_tac homotopic_comp
+    \\ DEP_REWRITE_TAC[homotopic_refl]
+    \\ fs[composable_in_def])
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[id_comp1] \\ fs[]
+  \\ conj_asm1_tac >- fs[maps_to_in_def]
+  \\ strip_tac
+  \\ `homotopic w ((f3 o f1 o f2 -: chu w -: chu w) o f4 -: chu w) (f3 o f4 -: chu w)`
+  by (
+    match_mp_tac homotopic_comp
+    \\ DEP_REWRITE_TAC[homotopic_refl]
+    \\ fs[]
+    \\ conj_tac >- fs[maps_to_in_def]
+    \\ match_mp_tac maps_to_composable
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ qexists_tac`f3.cod`
+    \\ match_mp_tac composable_maps_to \\ fs[]
+    \\ simp[comp_mor_dom_cod])
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[comp_assoc]
+  \\ fs[] \\ strip_tac
+  \\ metis_tac[homotopic_trans]
+QED
+
+Theorem iso_homotopy_equiv:
+  c1 ≅ c2 -: chu w ⇒ c1 ≃ c2 -: w
+Proof
+  simp[iso_objs_thm]
+  \\ simp[homotopy_equiv_def]
+  \\ simp[iso_def, iso_pair_def]
+  \\ strip_tac
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ qexists_tac`g`
+  \\ `g ≈> f -: chu w` by (
+    imp_res_tac comp_mor_dom_cod
+    \\ rfs[composable_in_def] )
+  \\ conj_asm1_tac
+  >- ( fs[maps_to_in_def, composable_in_def] )
+  \\ fs[maps_to_in_def]
+  \\ DEP_REWRITE_TAC[homotopic_refl]
+  \\ metis_tac[id_mor, chu_mor, is_category_chu, chu_obj, composable_obj]
+QED
+
 val _ = export_theory();

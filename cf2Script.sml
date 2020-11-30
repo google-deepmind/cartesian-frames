@@ -96,6 +96,13 @@ Proof
   rw[hom_comb_def, morphism_component_equality, chu_morphism_map_component_equality]
 QED
 
+Theorem hom_comb_dom_cod[simp]:
+  (hom_comb m1 m2).dom = m1.dom ∧
+  (hom_comb m1 m2).cod = m2.cod
+Proof
+  rw[hom_comb_def]
+QED
+
 Definition homotopic_def:
   homotopic w m1 m2 ⇔
     m1 ∈ (pre_chu w).mor ∧ m2 ∈ (pre_chu w).mor ∧
@@ -273,6 +280,68 @@ Proof
   \\ fs[maps_to_in_def]
   \\ DEP_REWRITE_TAC[homotopic_refl]
   \\ metis_tac[id_mor, chu_mor, is_category_chu, chu_obj, composable_obj]
+QED
+
+Definition biextensional_def:
+  biextensional c ⇔
+    (∀a1 a2. a1 ∈ c.agent ∧ a2 ∈ c.agent ∧
+            (∀e. e ∈ c.env ⇒ c.eval a1 e = c.eval a2 e)
+      ⇒ a1 = a2) ∧
+    (∀e1 e2. e1 ∈ c.env ∧ e2 ∈ c.env ∧
+             (∀a. a ∈ c.agent ⇒ c.eval a e1 = c.eval a e2)
+      ⇒ e1 = e2)
+End
+
+(* TODO: prove biextensional iff matrix row/cols all distinct *)
+
+Theorem biextensional_homotopy_equiv_iso:
+  biextensional c ∧ biextensional d ⇒
+    (c ≃ d -: w ⇔ c ≅ d -: chu w)
+Proof
+  strip_tac
+  \\ reverse eq_tac
+  >- metis_tac[iso_homotopy_equiv]
+  \\ simp[homotopy_equiv_def]
+  \\ strip_tac
+  \\ simp[iso_objs_thm]
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ simp[chu_iso_bij]
+  \\ rewrite_tac[Once CONJ_ASSOC]
+  \\ reverse conj_asm2_tac
+  >- ( imp_res_tac maps_to_composable
+       \\ fs[composable_in_def, pre_chu_def] )
+  \\ imp_res_tac homotopic_sym
+  \\ fs[homotopic_def, pre_chu_def]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ rpt(qpat_x_assum`T`kall_tac)
+  \\ rpt(qpat_x_assum`is_chu_morphism _ _ (hom_comb _ _).map`mp_tac)
+  \\ simp[hom_comb_def, chu_id_morphism_map_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ conj_asm1_tac >- ( imp_res_tac maps_to_composable \\ fs[] )
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ conj_asm1_tac >- fs[composable_in_def]
+  \\ simp[pre_chu_def]
+  \\ `f.dom = c ∧ g.dom = d ∧ f.cod = d ∧ g.cod = c` by fs[maps_to_in_def]
+  \\ rpt (BasicProvers.VAR_EQ_TAC)
+  \\ ntac 2(qpat_x_assum`_ = (_ _ _).cod`(assume_tac o SYM))
+  \\ ntac 2(qpat_x_assum`_ = (_ _ _).dom`(assume_tac o SYM))
+  \\ rfs[]
+  \\ simp[is_chu_morphism_def]
+  \\ ntac 4 strip_tac
+  \\ fs[restrict_def]
+  \\ ntac 2 (qpat_x_assum`biextensional _`mp_tac)
+  \\ simp[biextensional_def]
+  \\ ntac 2 strip_tac
+  \\ simp[BIJ_IFF_INV]
+  \\ fs[is_chu_morphism_def]
+  \\ conj_tac
+  >- (
+    qexists_tac`g.map.map_agent` \\ fs[]
+    \\ imp_res_tac maps_to_in_def
+    \\ fs[pre_chu_def, is_chu_morphism_def] )
+  \\ qexists_tac`g.map.map_env` \\ fs[]
+  \\ imp_res_tac maps_to_in_def
+  \\ fs[pre_chu_def, is_chu_morphism_def]
 QED
 
 val _ = export_theory();

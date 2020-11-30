@@ -15,9 +15,99 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-     pred_setTheory categoryTheory cf1Theory
+     pred_setTheory helperSetTheory relationTheory listTheory sortingTheory stringTheory
+     categoryTheory cf1Theory
 
 val _ = new_theory"cf2";
+
+(* -- *)
+Theorem IMAGE_CHR_UNIV:
+  UNIV = IMAGE CHR (count 256)
+Proof
+  rw[EXTENSION]
+  \\ Cases_on`x`
+  \\ metis_tac[]
+QED
+
+Theorem FINITE_UNIV_char[simp]:
+  FINITE (UNIV:char set)
+Proof
+  simp[IMAGE_CHR_UNIV]
+QED
+
+Theorem FINITE_strings_same_length:
+  (∀x. x ∈ s ⇒ LENGTH x = m) ⇒ FINITE (s:string set)
+Proof
+  qid_spec_tac`s`
+  \\ Induct_on`m` \\ rw[]
+  >- (
+    Cases_on`s` \\ fs[]
+    \\ `x = ""` by metis_tac[] \\ rw[]
+    \\ Cases_on`t` \\ fs[] \\ metis_tac[] )
+  \\ `s ⊆ BIGUNION (IMAGE (λf. IMAGE (f o TL) s) (IMAGE CONS UNIV))`
+  by (
+    rw[SUBSET_DEF, PULL_EXISTS]
+    \\ res_tac
+    \\ Cases_on`x` \\ fs[]
+    \\ qexists_tac`h::t` \\ simp[] )
+  \\ match_mp_tac (MP_CANON SUBSET_FINITE)
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ match_mp_tac FINITE_BIGUNION
+  \\ simp[PULL_EXISTS]
+  \\ gen_tac
+  \\ simp[IMAGE_COMPOSE]
+  \\ first_x_assum match_mp_tac
+  \\ qx_gen_tac`z`
+  \\ rw[PULL_EXISTS]
+  \\ res_tac
+  \\ Cases_on`x` \\ fs[]
+QED
+
+Theorem RC_char_lt:
+  RC (char_lt) = char_le
+Proof
+  rw[FUN_EQ_THM, RC_DEF, char_le_def, char_lt_def, arithmeticTheory.LESS_OR_EQ]
+  \\ metis_tac[ORD_11]
+QED
+
+Theorem WF_char_lt[simp]:
+  WF char_lt
+Proof
+  rw[WF_DEF]
+  \\ qexists_tac`CHR (LEAST n. (n < 256) ∧ B (CHR n))`
+  \\ numLib.LEAST_ELIM_TAC
+  \\ conj_tac >- (Cases_on`w` \\ fs[] \\ metis_tac[])
+  \\ rw[] \\ Cases_on`b` \\ fs[char_lt_def] \\ rfs[]
+QED
+
+Theorem string_lt_LLEX:
+  string_lt = LLEX char_lt
+Proof
+  simp[FUN_EQ_THM]
+  \\ recInduct string_lt_ind
+  \\ rw[string_lt_def]
+QED
+
+Theorem not_WF_string_lt:
+  ¬WF string_lt
+Proof
+  rw[string_lt_LLEX]
+  \\ match_mp_tac LLEX_not_WF
+  \\ qexists_tac`CHR 0`
+  \\ qexists_tac`CHR 1`
+  \\ simp[char_lt_def]
+QED
+
+Theorem HD_QSORT_SET_TO_LIST_IN[simp]:
+  FINITE s ∧ s ≠ ∅ ⇒
+  HD (QSORT R (SET_TO_LIST s)) ∈ s
+Proof
+  Cases_on`SET_TO_LIST s` \\ rw[]
+  >- (Cases_on`s` \\ fs[SET_TO_LIST_THM])
+  \\ Cases_on`QSORT R (SET_TO_LIST s)` \\ rfs[]
+  \\ metis_tac[QSORT_PERM, MEM, MEM_PERM, MEM_SET_TO_LIST]
+QED
+(*--*)
 
 Theorem chu_iso_bij:
   iso (chu w) f ⇔
@@ -342,6 +432,204 @@ Proof
   \\ qexists_tac`g.map.map_env` \\ fs[]
   \\ imp_res_tac maps_to_in_def
   \\ fs[pre_chu_def, is_chu_morphism_def]
+QED
+
+Definition agent_equiv_def:
+  agent_equiv c a1 a2 ⇔
+    (∀e. e ∈ c.env ⇒ c.eval a1 e = c.eval a2 e)
+End
+
+Definition env_equiv_def:
+  env_equiv c e1 e2 ⇔
+    (∀a. a ∈ c.agent ⇒ c.eval a e1 = c.eval a e2)
+End
+
+Theorem agent_equiv_equiv:
+  (∀a. agent_equiv c a a) ∧
+  (∀a1 a2. agent_equiv c a1 a2 ⇔ agent_equiv c a2 a1) ∧
+  (∀a1 a2 a3. agent_equiv c a1 a2 ∧ agent_equiv c a2 a3 ⇒ agent_equiv c a1 a3)
+Proof
+  rw[agent_equiv_def] \\ metis_tac[]
+QED
+
+Theorem env_equiv_equiv:
+  (∀a. env_equiv c a a) ∧
+  (∀a1 a2. env_equiv c a1 a2 ⇔ env_equiv c a2 a1) ∧
+  (∀a1 a2 a3. env_equiv c a1 a2 ∧ env_equiv c a2 a3 ⇒ env_equiv c a1 a3)
+Proof
+  rw[env_equiv_def] \\ metis_tac[]
+QED
+
+Definition min_elt_def:
+  min_elt R s = @x. x ∈ s ∧ ∀y. y ∈ s ⇒R x y
+End
+
+Theorem min_elt_HD_QSORT_SET_TO_LIST:
+  FINITE s ∧ s ≠ ∅ ⇒
+    min_elt string_le s = HD (QSORT string_le (SET_TO_LIST s))
+Proof
+  rw[]
+  \\ qspec_then`string_le` mp_tac QSORT_SORTS
+  \\ impl_keep_tac >- (
+    simp[transitive_def, total_def, string_le_def]
+    \\ metis_tac[string_lt_cases, string_lt_trans] )
+  \\ rw[SORTS_DEF]
+  \\ first_x_assum(qspec_then`SET_TO_LIST s`mp_tac)
+  \\ rw[]
+  \\ Cases_on`SET_TO_LIST s` \\ fs[]
+  >- ( imp_res_tac SET_TO_LIST_CARD \\ rfs[] )
+  \\ Cases_on`QSORT string_le (SET_TO_LIST s)` \\ fs[]
+  \\ rfs[] \\ fs[]
+  \\ rfs[SORTED_EQ]
+  \\ simp[min_elt_def]
+  \\ SELECT_ELIM_TAC
+  \\ imp_res_tac MEM_PERM \\ fs[]
+  \\ metis_tac[MEM_SET_TO_LIST, string_lt_antisym, string_le_def, MEM]
+QED
+
+Definition biextensional_collapse_def:
+  biextensional_collapse c =
+    <| world := c.world;
+       agent := IMAGE (min_elt (RC (SHORTLEX char_lt)) o (equiv_class (agent_equiv c) c.agent)) c.agent;
+       env := IMAGE (min_elt (RC (SHORTLEX char_lt)) o (equiv_class (env_equiv c) c.env)) c.env;
+       eval := c.eval |>
+End
+
+Theorem agent_equiv_on[simp]:
+  agent_equiv c equiv_on c.agent
+Proof
+  rw[equiv_on_def]
+  \\ metis_tac[agent_equiv_equiv]
+QED
+
+Theorem env_equiv_on[simp]:
+  env_equiv c equiv_on c.env
+Proof
+  rw[equiv_on_def]
+  \\ metis_tac[env_equiv_equiv]
+QED
+
+Theorem min_elt_char_lt_in:
+  s ≠ ∅ ⇒ min_elt (RC (SHORTLEX char_lt)) s ∈ s
+Proof
+  rw[min_elt_def]
+  \\ SELECT_ELIM_TAC
+  \\ simp[]
+  \\ mp_tac (MATCH_MP WF_SHORTLEX WF_char_lt)
+  \\ rewrite_tac[WF_DEF]
+  \\ disch_then(qspec_then`s`mp_tac)
+  \\ impl_tac >- metis_tac[IN_DEF, MEMBER_NOT_EMPTY]
+  \\ strip_tac
+  \\ qexists_tac`min`
+  \\ `total (RC char_lt)`
+  by ( simp[RC_char_lt] \\ simp[total_def, char_le_def] )
+  \\ imp_res_tac SHORTLEX_total
+  \\ fs[IN_DEF, RC_DEF, total_def]
+  \\ metis_tac[]
+QED
+
+Theorem eval_equiv:
+  a ∈ c.agent ∧ e ∈ c.env ∧
+  a' ∈ equiv_class (agent_equiv c) c.agent a ∧
+  e' ∈ equiv_class (env_equiv c) c.env e ⇒
+  c.eval a' e' = c.eval a e
+Proof
+  rw[agent_equiv_def, env_equiv_def]
+QED
+
+Theorem biextensional_collapse_biextensional:
+  biextensional (biextensional_collapse c)
+Proof
+  rw[biextensional_def]
+  \\ fs[biextensional_collapse_def, PULL_EXISTS] \\ rw[]
+  \\ AP_TERM_TAC
+  \\ DEP_REWRITE_TAC[equiv_class_eq]
+  \\ simp[]
+  >- (
+    qmatch_rename_tac`agent_equiv c a1 a2`
+    \\ qmatch_asmsub_abbrev_tac`c.eval x1 _ = c.eval x2 _`
+    \\ qmatch_asmsub_abbrev_tac`x1 = min_elt _ s1`
+    \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
+    \\ `a1 ∈ s1` by simp[Abbr`s1`, agent_equiv_equiv]
+    \\ `a2 ∈ s2` by simp[Abbr`s2`, agent_equiv_equiv]
+    \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+    \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+    \\ `agent_equiv c x1 a1`
+    by (
+      rw[agent_equiv_def]
+      \\ match_mp_tac eval_equiv
+      \\ qunabbrev_tac`x1`
+      \\ qunabbrev_tac`s1`
+      \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+      \\ simp[env_equiv_equiv]
+      \\ simp[EXTENSION]
+      \\ metis_tac[agent_equiv_equiv] )
+    \\ `agent_equiv c x1 x2`
+    by (
+      simp[agent_equiv_def] \\ rw[]
+      \\ first_x_assum(qspec_then`e`mp_tac) \\ rw[]
+      \\ qmatch_asmsub_abbrev_tac`c.eval x1 (min_elt _ t1)`
+      \\ qmatch_asmsub_abbrev_tac`c.eval x1 y1`
+      \\ `e ∈ t1` by simp[Abbr`t1`, env_equiv_equiv]
+      \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+      \\ `c.eval x1 e = c.eval x1 y1`
+      by ( fs[Abbr`t1`, env_equiv_def, Abbr`s1`] )
+      \\ `c.eval x2 e = c.eval x2 y1`
+      by ( fs[Abbr`t1`, env_equiv_def, Abbr`s2`] )
+      \\ fs[] )
+    \\ `agent_equiv c x2 a2`
+    by (
+      rw[agent_equiv_def]
+      \\ match_mp_tac eval_equiv
+      \\ qunabbrev_tac`x2`
+      \\ qunabbrev_tac`s2`
+      \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+      \\ simp[env_equiv_equiv]
+      \\ simp[EXTENSION]
+      \\ metis_tac[agent_equiv_equiv] )
+    \\ metis_tac[agent_equiv_equiv])
+  \\ qmatch_rename_tac`env_equiv c a1 a2`
+  \\ qmatch_asmsub_abbrev_tac`c.eval _ x1 = c.eval _ x2`
+  \\ qmatch_asmsub_abbrev_tac`x1 = min_elt _ s1`
+  \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
+  \\ `a1 ∈ s1` by simp[Abbr`s1`, env_equiv_equiv]
+  \\ `a2 ∈ s2` by simp[Abbr`s2`, env_equiv_equiv]
+  \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+  \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+  \\ `env_equiv c x1 a1`
+  by (
+    rw[env_equiv_def]
+    \\ match_mp_tac eval_equiv
+    \\ qunabbrev_tac`x1`
+    \\ qunabbrev_tac`s1`
+    \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+    \\ simp[agent_equiv_equiv]
+    \\ simp[EXTENSION]
+    \\ metis_tac[env_equiv_equiv] )
+  \\ `env_equiv c x1 x2`
+  by (
+    simp[env_equiv_def] \\ rw[]
+    \\ first_x_assum(qspec_then`a`mp_tac) \\ rw[]
+    \\ qmatch_asmsub_abbrev_tac`c.eval (min_elt _ t1) x1`
+    \\ qmatch_asmsub_abbrev_tac`c.eval y1 x1`
+    \\ `a ∈ t1` by simp[Abbr`t1`, agent_equiv_equiv]
+    \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+    \\ `c.eval a x1 = c.eval y1 x1`
+    by ( fs[Abbr`t1`, agent_equiv_def, Abbr`s1`] )
+    \\ `c.eval a x2 = c.eval y1 x2`
+    by ( fs[Abbr`t1`, agent_equiv_def, Abbr`s2`] )
+    \\ fs[] )
+  \\ `env_equiv c x2 a2`
+  by (
+    rw[env_equiv_def]
+    \\ match_mp_tac eval_equiv
+    \\ qunabbrev_tac`x2`
+    \\ qunabbrev_tac`s2`
+    \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+    \\ simp[agent_equiv_equiv]
+    \\ simp[EXTENSION]
+    \\ metis_tac[env_equiv_equiv] )
+  \\ metis_tac[env_equiv_equiv]
 QED
 
 val _ = export_theory();

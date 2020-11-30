@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
      pred_setTheory helperSetTheory relationTheory listTheory sortingTheory stringTheory
-     categoryTheory cf1Theory
+     categoryTheory cf0Theory cf1Theory
 
 val _ = new_theory"cf2";
 
@@ -631,5 +631,91 @@ Proof
     \\ metis_tac[env_equiv_equiv] )
   \\ metis_tac[env_equiv_equiv]
 QED
+
+Theorem biextensional_iso:
+  biextensional c ∧ c ≅ d -: chu w ⇒ biextensional d
+Proof
+  rw[iso_objs_thm, chu_iso_bij]
+  \\ fs[biextensional_def]
+  \\ fs[maps_to_in_def]
+  \\ rpt BasicProvers.VAR_EQ_TAC
+  \\ fs[pre_chu_def]
+  \\ fs[is_chu_morphism_def]
+  \\ fs[BIJ_IFF_INV]
+  \\ metis_tac[]
+QED
+
+Theorem biextensional_collapse_in_chu_objects[simp]:
+  c ∈ chu_objects w ⇒ biextensional_collapse c ∈ chu_objects w
+Proof
+  rw[chu_objects_def, biextensional_collapse_def]
+  \\ fs[wf_def, PULL_EXISTS] \\ rw[]
+  \\ first_x_assum match_mp_tac
+  \\ metis_tac[min_elt_char_lt_in, MEMBER_NOT_EMPTY, equiv_class_element,
+               agent_equiv_equiv, env_equiv_equiv]
+QED
+
+Theorem min_elt_in_equiv_class[simp]:
+  R equiv_on s ∧ x ∈ s ⇒
+  min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x) ∈ s ∧
+  min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x) ∈ equiv_class R s x
+Proof
+  strip_tac
+  \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
+  \\ imp_res_tac MEMBER_NOT_EMPTY
+  \\ imp_res_tac min_elt_char_lt_in
+  \\ fs[]
+QED
+
+Theorem equiv_class_min_elt_eq:
+  R equiv_on s ∧ x ∈ s⇒
+  (equiv_class R s (min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x))) =
+  (equiv_class R s x)
+Proof
+  strip_tac
+  \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
+  \\ imp_res_tac MEMBER_NOT_EMPTY
+  \\ imp_res_tac min_elt_char_lt_in
+  \\ DEP_REWRITE_TAC[equiv_class_eq]
+  \\ fs[]
+  \\ fs[equiv_on_def]
+QED
+
+(*
+Theorem biextensional_iff_iso_collapse:
+  c ∈ chu_objects w ⇒
+  (biextensional c ⇔ c ≅ (biextensional_collapse c) -: chu w)
+Proof
+  strip_tac
+  \\ reverse EQ_TAC
+  >- metis_tac[biextensional_iso, biextensional_collapse_biextensional,
+               iso_objs_sym, is_category_chu]
+  \\ simp[iso_objs_thm]
+  \\ rw[biextensional_def]
+  \\ qexists_tac`mk_chu_morphism c (biextensional_collapse c)
+                   <| map_agent := min_elt (RC (SHORTLEX char_lt)) o
+                                     equiv_class (agent_equiv c) c.agent;
+                      map_env := min_elt (RC (SHORTLEX char_lt)) o
+                                     equiv_class (env_equiv c) c.env |>`
+  \\ qmatch_goalsub_abbrev_tac`mk_chu_morphism _ _ f`
+  \\ conj_asm1_tac
+  >- (
+    simp[mk_chu_morphism_def, maps_to_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[biextensional_collapse_def, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ conj_tac >- ( reverse(rw[]) >- metis_tac[] \\ simp[Abbr`f`] )
+    \\ conj_tac >- ( rw[Abbr`f`] \\ metis_tac[] )
+    \\ reverse(rw[]) >- metis_tac[]
+    \\ simp[Abbr`f`]
+    \\ DEP_REWRITE_TAC[equiv_class_min_elt_eq]
+    \\ simp[]
+    \\ qmatch_abbrev_tac`_ = c.eval a' _`
+    \\ `a' ∈ equiv_class (agent_equiv c) c.agent a` by ( simp[Abbr`a'`] )
+    \\ fs[agent_equiv_def] )
+  \\ simp[chu_iso_bij]
+  \\ fs[maps_to_in_def, pre_chu_def]
+  \\ fs[mk_chu_morphism_def]
+*)
 
 val _ = export_theory();

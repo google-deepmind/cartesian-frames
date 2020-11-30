@@ -68,5 +68,73 @@ Proof
   \\ metis_tac[]
 QED
 
+Definition hom_comb_def:
+  hom_comb m1 m2 =
+        <| dom := m1.dom; cod := m2.cod; map :=
+           <| map_agent := m1.map.map_agent; map_env := m2.map.map_env |> |>
+End
+
+Theorem hom_comb_id[simp]:
+  hom_comb m m = m
+Proof
+  rw[hom_comb_def, morphism_component_equality, chu_morphism_map_component_equality]
+QED
+
+Definition homotopic_def:
+  homotopic w m1 m2 ⇔
+    m1 ∈ (pre_chu w).mor ∧ m2 ∈ (pre_chu w).mor ∧
+    m1.dom = m2.dom ∧ m1.cod = m2.cod ∧
+    hom_comb m1 m2 ∈ (pre_chu w).mor
+End
+
+(* TODO: add example of two morphisms that are not homotopic *)
+
+Theorem homotopic_refl[simp]:
+  m ∈ (pre_chu w).mor ⇒ homotopic w m m
+Proof
+  rw[homotopic_def] \\ metis_tac[]
+QED
+
+Theorem homotopic_sym:
+  homotopic w m1 m2 ⇔ homotopic w m2 m1
+Proof
+  `∀m1 m2. homotopic w m1 m2 ⇒ homotopic w m2 m1` suffices_by metis_tac[]
+  \\ rw[homotopic_def]
+  \\ fs[hom_comb_def]
+  \\ fs[pre_chu_def]
+  \\ fs[is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem homotopic_trans:
+  homotopic w m1 m2 ∧ homotopic w m2 m3 ⇒ homotopic w m1 m3
+Proof
+  rw[homotopic_def]
+  \\ fs[hom_comb_def, pre_chu_def]
+  \\ fs[is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem homotopic_comp:
+  homotopic w ψ1 ψ2 ∧
+  homotopic w φ1 φ2 ∧
+  ψ1 ≈> φ1 -: chu w ∧
+  ψ2 ≈> φ2 -: chu w
+  ⇒
+  homotopic w (φ1 o ψ1 -: chu w) (φ2 o ψ2 -: chu w)
+Proof
+  simp[homotopic_def]
+  \\ strip_tac
+  \\ simp[comp_mor_dom_cod]
+  \\ rpt(conj_tac >- (imp_res_tac comp_mor_dom_cod \\ fs[]))
+  \\ fs[hom_comb_def]
+  \\ fs[pre_chu_def]
+  \\ fs[is_chu_morphism_def]
+  \\ rpt(conj_tac >- (imp_res_tac comp_mor_dom_cod \\ fs[]))
+  \\ DEP_REWRITE_TAC[compose_in_thm] \\ fs[]
+  \\ DEP_REWRITE_TAC[compose_thm] \\ fs[]
+  \\ fs[pre_chu_def, compose_in_def, restrict_def, extensional_def, composable_in_def]
+  \\ metis_tac[]
+QED
 
 val _ = export_theory();

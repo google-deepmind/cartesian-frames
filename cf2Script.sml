@@ -98,6 +98,20 @@ Proof
   \\ simp[char_lt_def]
 QED
 
+Theorem RC_REFL[simp]:
+  RC R x x
+Proof
+  rw[RC_DEF]
+QED
+
+Theorem BIJ_restrict:
+  BIJ (restrict f s) s t ⇔ BIJ f s t
+Proof
+  rw[BIJ_IFF_INV, restrict_def]
+  \\ rw[EQ_IMP_THM]
+  \\ metis_tac[]
+QED
+
 Theorem HD_QSORT_SET_TO_LIST_IN[simp]:
   FINITE s ∧ s ≠ ∅ ⇒
   HD (QSORT R (SET_TO_LIST s)) ∈ s
@@ -460,6 +474,13 @@ Proof
   rw[env_equiv_def] \\ metis_tac[]
 QED
 
+Theorem agent_env_equiv_refl[simp]:
+  agent_equiv c a a ∧
+  env_equiv c e e
+Proof
+  rw[agent_equiv_equiv, env_equiv_equiv]
+QED
+
 Definition min_elt_def:
   min_elt R s = @x. x ∈ s ∧ ∀y. y ∈ s ⇒R x y
 End
@@ -494,6 +515,12 @@ Definition biextensional_collapse_def:
        env := IMAGE (min_elt (RC (SHORTLEX char_lt)) o (equiv_class (env_equiv c) c.env)) c.env;
        eval := c.eval |>
 End
+
+val _ = add_rule { fixity = Suffix 2100,
+                   block_style = (AroundEachPhrase, (Portable.CONSISTENT, 0)),
+                   paren_style = OnlyIfNecessary,
+                   pp_elements = [TOK "^"],
+                   term_name = "biextensional_collapse" }
 
 Theorem agent_equiv_on[simp]:
   agent_equiv c equiv_on c.agent
@@ -681,7 +708,12 @@ Proof
   \\ fs[equiv_on_def]
 QED
 
-(*
+Theorem min_elt_sing[simp]:
+  R x x ⇒ min_elt R {x} = x
+Proof
+  rw[min_elt_def] \\ metis_tac[]
+QED
+
 Theorem biextensional_iff_iso_collapse:
   c ∈ chu_objects w ⇒
   (biextensional c ⇔ c ≅ (biextensional_collapse c) -: chu w)
@@ -716,6 +748,17 @@ Proof
   \\ simp[chu_iso_bij]
   \\ fs[maps_to_in_def, pre_chu_def]
   \\ fs[mk_chu_morphism_def]
-*)
+  \\ simp[BIJ_restrict]
+  \\ pop_assum kall_tac
+  \\ `∀x. x ∈ c.agent ⇒ equiv_class (agent_equiv c) c.agent x = {x}`
+  by ( rw[EXTENSION] \\ rw[agent_equiv_def] \\ metis_tac[] )
+  \\ `∀x. x ∈ c.env ⇒ equiv_class (env_equiv c) c.env x = {x}`
+  by ( rw[EXTENSION] \\ rw[env_equiv_def] \\ metis_tac[] )
+  \\ simp[BIJ_IFF_INV]
+  \\ simp[Abbr`f`, biextensional_collapse_def, PULL_EXISTS]
+  \\ qexists_tac`I` \\ qexists_tac`I`
+  \\ rw[]
+  \\ qexists_tac`x` \\ rw[]
+QED
 
 val _ = export_theory();

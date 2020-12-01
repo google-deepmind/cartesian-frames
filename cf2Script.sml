@@ -485,28 +485,7 @@ Definition min_elt_def:
   min_elt R s = @x. x ∈ s ∧ ∀y. y ∈ s ⇒R x y
 End
 
-Theorem min_elt_HD_QSORT_SET_TO_LIST:
-  FINITE s ∧ s ≠ ∅ ⇒
-    min_elt string_le s = HD (QSORT string_le (SET_TO_LIST s))
-Proof
-  rw[]
-  \\ qspec_then`string_le` mp_tac QSORT_SORTS
-  \\ impl_keep_tac >- (
-    simp[transitive_def, total_def, string_le_def]
-    \\ metis_tac[string_lt_cases, string_lt_trans] )
-  \\ rw[SORTS_DEF]
-  \\ first_x_assum(qspec_then`SET_TO_LIST s`mp_tac)
-  \\ rw[]
-  \\ Cases_on`SET_TO_LIST s` \\ fs[]
-  >- ( imp_res_tac SET_TO_LIST_CARD \\ rfs[] )
-  \\ Cases_on`QSORT string_le (SET_TO_LIST s)` \\ fs[]
-  \\ rfs[] \\ fs[]
-  \\ rfs[SORTED_EQ]
-  \\ simp[min_elt_def]
-  \\ SELECT_ELIM_TAC
-  \\ imp_res_tac MEM_PERM \\ fs[]
-  \\ metis_tac[MEM_SET_TO_LIST, string_lt_antisym, string_le_def, MEM]
-QED
+val _ = temp_overload_on("rep", ``min_elt (RC (SHORTLEX char_lt))``)
 
 Definition biextensional_collapse_def:
   biextensional_collapse c =
@@ -536,8 +515,8 @@ Proof
   \\ metis_tac[env_equiv_equiv]
 QED
 
-Theorem min_elt_char_lt_in:
-  s ≠ ∅ ⇒ min_elt (RC (SHORTLEX char_lt)) s ∈ s
+Theorem rep_in:
+  s ≠ ∅ ⇒ rep s ∈ s
 Proof
   rw[min_elt_def]
   \\ SELECT_ELIM_TAC
@@ -579,15 +558,15 @@ Proof
     \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
     \\ `a1 ∈ s1` by simp[Abbr`s1`, agent_equiv_equiv]
     \\ `a2 ∈ s2` by simp[Abbr`s2`, agent_equiv_equiv]
-    \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
-    \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+    \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
+    \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
     \\ `agent_equiv c x1 a1`
     by (
       rw[agent_equiv_def]
       \\ match_mp_tac eval_equiv
       \\ qunabbrev_tac`x1`
       \\ qunabbrev_tac`s1`
-      \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+      \\ DEP_REWRITE_TAC[rep_in]
       \\ simp[env_equiv_equiv]
       \\ simp[EXTENSION]
       \\ metis_tac[agent_equiv_equiv] )
@@ -598,7 +577,7 @@ Proof
       \\ qmatch_asmsub_abbrev_tac`c.eval x1 (min_elt _ t1)`
       \\ qmatch_asmsub_abbrev_tac`c.eval x1 y1`
       \\ `e ∈ t1` by simp[Abbr`t1`, env_equiv_equiv]
-      \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+      \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
       \\ `c.eval x1 e = c.eval x1 y1`
       by ( fs[Abbr`t1`, env_equiv_def, Abbr`s1`] )
       \\ `c.eval x2 e = c.eval x2 y1`
@@ -610,7 +589,7 @@ Proof
       \\ match_mp_tac eval_equiv
       \\ qunabbrev_tac`x2`
       \\ qunabbrev_tac`s2`
-      \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+      \\ DEP_REWRITE_TAC[rep_in]
       \\ simp[env_equiv_equiv]
       \\ simp[EXTENSION]
       \\ metis_tac[agent_equiv_equiv] )
@@ -621,15 +600,15 @@ Proof
   \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
   \\ `a1 ∈ s1` by simp[Abbr`s1`, env_equiv_equiv]
   \\ `a2 ∈ s2` by simp[Abbr`s2`, env_equiv_equiv]
-  \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
-  \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+  \\ `x1 ∈ s1` by (simp[Abbr`x1`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
+  \\ `x2 ∈ s2` by (simp[Abbr`x2`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
   \\ `env_equiv c x1 a1`
   by (
     rw[env_equiv_def]
     \\ match_mp_tac eval_equiv
     \\ qunabbrev_tac`x1`
     \\ qunabbrev_tac`s1`
-    \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+    \\ DEP_REWRITE_TAC[rep_in]
     \\ simp[agent_equiv_equiv]
     \\ simp[EXTENSION]
     \\ metis_tac[env_equiv_equiv] )
@@ -640,7 +619,7 @@ Proof
     \\ qmatch_asmsub_abbrev_tac`c.eval (min_elt _ t1) x1`
     \\ qmatch_asmsub_abbrev_tac`c.eval y1 x1`
     \\ `a ∈ t1` by simp[Abbr`t1`, agent_equiv_equiv]
-    \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,min_elt_char_lt_in])
+    \\ `y1 ∈ t1` by (simp[Abbr`y1`] \\ metis_tac[MEMBER_NOT_EMPTY,rep_in])
     \\ `c.eval a x1 = c.eval y1 x1`
     by ( fs[Abbr`t1`, agent_equiv_def, Abbr`s1`] )
     \\ `c.eval a x2 = c.eval y1 x2`
@@ -652,7 +631,7 @@ Proof
     \\ match_mp_tac eval_equiv
     \\ qunabbrev_tac`x2`
     \\ qunabbrev_tac`s2`
-    \\ DEP_REWRITE_TAC[min_elt_char_lt_in]
+    \\ DEP_REWRITE_TAC[rep_in]
     \\ simp[agent_equiv_equiv]
     \\ simp[EXTENSION]
     \\ metis_tac[env_equiv_equiv] )
@@ -678,31 +657,30 @@ Proof
   rw[chu_objects_def, biextensional_collapse_def]
   \\ fs[wf_def, PULL_EXISTS] \\ rw[]
   \\ first_x_assum match_mp_tac
-  \\ metis_tac[min_elt_char_lt_in, MEMBER_NOT_EMPTY, equiv_class_element,
+  \\ metis_tac[rep_in, MEMBER_NOT_EMPTY, equiv_class_element,
                agent_equiv_equiv, env_equiv_equiv]
 QED
 
-Theorem min_elt_in_equiv_class[simp]:
+Theorem rep_in_equiv_class[simp]:
   R equiv_on s ∧ x ∈ s ⇒
-  min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x) ∈ s ∧
-  min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x) ∈ equiv_class R s x
+  rep (equiv_class R s x) ∈ s ∧
+  rep (equiv_class R s x) ∈ equiv_class R s x
 Proof
   strip_tac
   \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
   \\ imp_res_tac MEMBER_NOT_EMPTY
-  \\ imp_res_tac min_elt_char_lt_in
+  \\ imp_res_tac rep_in
   \\ fs[]
 QED
 
-Theorem equiv_class_min_elt_eq:
+Theorem equiv_class_rep_eq:
   R equiv_on s ∧ x ∈ s⇒
-  (equiv_class R s (min_elt (RC (SHORTLEX char_lt)) (equiv_class R s x))) =
-  (equiv_class R s x)
+  (equiv_class R s (rep (equiv_class R s x))) = (equiv_class R s x)
 Proof
   strip_tac
   \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
   \\ imp_res_tac MEMBER_NOT_EMPTY
-  \\ imp_res_tac min_elt_char_lt_in
+  \\ imp_res_tac rep_in
   \\ DEP_REWRITE_TAC[equiv_class_eq]
   \\ fs[]
   \\ fs[equiv_on_def]
@@ -740,7 +718,7 @@ Proof
     \\ conj_tac >- ( rw[Abbr`f`] \\ metis_tac[] )
     \\ reverse(rw[]) >- metis_tac[]
     \\ simp[Abbr`f`]
-    \\ DEP_REWRITE_TAC[equiv_class_min_elt_eq]
+    \\ DEP_REWRITE_TAC[equiv_class_rep_eq]
     \\ simp[]
     \\ qmatch_abbrev_tac`_ = c.eval a' _`
     \\ `a' ∈ equiv_class (agent_equiv c) c.agent a` by ( simp[Abbr`a'`] )

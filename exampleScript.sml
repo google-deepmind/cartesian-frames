@@ -66,9 +66,10 @@ QED
 (* -- *)
 
 Definition runs_cf1_def:
-  runs_cf1 = <| agent := { "u"; "n" }; env := { "r"; "s" };
-                world := {"ur"; "us"; "nr"; "ns"};
-                eval := λa e. a ++ e |>
+  runs_cf1 = mk_cf
+    <| agent := { "u"; "n" }; env := { "r"; "s" };
+       world := {"ur"; "us"; "nr"; "ns"};
+       eval := λa e. a ++ e |>
 End
 
 Theorem sup_closure_example:
@@ -106,7 +107,7 @@ Theorem runs1_ensure:
   ensure runs_cf1 = sup_closure runs_cf1.world {{"ur"; "us"}; {"nr"; "ns"}}
 Proof
   rw[ensure_def, runs_cf1_def, sup_closure_example]
-  \\ rw[SET_EQ_SUBSET, SUBSET_DEF]
+  \\ rw[SET_EQ_SUBSET, SUBSET_DEF] \\ fs[mk_cf_def]
   \\ fsrw_tac[DNF_ss][] \\ metis_tac[]
 QED
 
@@ -116,7 +117,7 @@ Proof
   rw[prevent_def, runs_cf1_def, sub_closure_example]
   \\ rw[SUBSET_DEF]
   \\ rw[Once EXTENSION]
-  \\ EQ_TAC \\ rw[] \\ fsrw_tac[DNF_ss][]
+  \\ EQ_TAC \\ rw[] \\ fsrw_tac[DNF_ss][mk_cf_def]
   \\ Cases_on`x = {}` \\ fs[]
   \\ Cases_on`x` \\ fsrw_tac[DNF_ss][] \\ rw[INSERT_EQ_SING]
   \\ Cases_on`t` \\ fsrw_tac[DNF_ss][] \\ rw[INSERT_EQ_SING]
@@ -133,18 +134,19 @@ Proof
 QED
 
 Definition runs_cf2_def:
-  runs_cf2 = <| agent := {"u";"n";"run";"sun"};
-                env := {"r";"s"};
-                world := runs_cf1.world;
-                eval := λa e. (if LENGTH a < 2 then EL 0 a else
-                               if EL 0 e = EL 0 a then EL 1 a else EL 2 a)::e |>
+  runs_cf2 = mk_cf
+    <| agent := {"u";"n";"run";"sun"};
+       env := {"r";"s"};
+       world := runs_cf1.world;
+       eval := λa e. (if LENGTH a < 2 then EL 0 a else
+                      if EL 0 e = EL 0 a then EL 1 a else EL 2 a)::e |>
 End
 
 Theorem runs2_ctrl:
   ctrl runs_cf2 = {{"ur";"us"};{"nr";"ns"};{"ur";"ns"};{"nr";"us"}}
 Proof
   rw[ctrl_def, ensure_def, prevent_def, runs_cf2_def, runs_cf1_def, SUBSET_DEF]
-  \\ rw[Once EXTENSION]
+  \\ rw[Once EXTENSION, mk_cf_def]
   \\ EQ_TAC \\ rw[] \\ fs[]
   \\ spose_not_then strip_assume_tac
   \\ fsrw_tac[DNF_ss][]
@@ -153,16 +155,17 @@ Proof
 QED
 
 Definition runs_cf3_def:
-  runs_cf3 = runs_cf2 with <| env := "m" INSERT runs_cf2.env;
-                              world := "m" INSERT runs_cf2.world;
-                              eval := λa e. if e = "m" then "m" else runs_cf2.eval a e |>
+  runs_cf3 =
+    runs_cf2 with <| env := "m" INSERT runs_cf2.env;
+                     world := "m" INSERT runs_cf2.world;
+                     eval := λa e. if a ∈ runs_cf2.agent ∧ e = "m" then "m" else runs_cf2.eval a e |>
 End
 
 Theorem runs3_ensure:
   ensure runs_cf3 =
     sup_closure runs_cf3.world {{"ur";"us";"m"};{"nr";"ns";"m"};{"ur";"ns";"m"};{"nr";"us";"m"}}
 Proof
-  rw[ensure_def, runs_cf3_def, runs_cf2_def, runs_cf1_def]
+  rw[ensure_def, runs_cf3_def, runs_cf2_def, runs_cf1_def, mk_cf_def]
   \\ rw[sup_closure_def]
   \\ rw[Once EXTENSION]
   \\ qmatch_goalsub_abbrev_tac`x ⊆ w` \\ Cases_on`x ⊆ w` \\ fs[]
@@ -173,7 +176,7 @@ Theorem runs3_prevent:
   prevent runs_cf3 =
     sub_closure runs_cf3.world {{"ur";"us"};{"nr";"ns"};{"ur";"ns"};{"nr";"us"}}
 Proof
-  rw[prevent_def, runs_cf3_def, runs_cf2_def, runs_cf1_def]
+  rw[prevent_def, runs_cf3_def, runs_cf2_def, runs_cf1_def, mk_cf_def]
   \\ rw[sub_closure_def]
   \\ rw[Once EXTENSION]
   \\ qmatch_goalsub_abbrev_tac`x ⊆ w` \\ Cases_on`x ⊆ w` \\ fs[]
@@ -212,7 +215,7 @@ QED
 Theorem runs1_obs:
   obs runs_cf1 = union_closure {runs_cf1.world}
 Proof
-  rw[union_closure_sing, obs_def, EXTENSION, SUBSET_DEF, runs_cf1_def, ifs_def]
+  rw[union_closure_sing, obs_def, EXTENSION, SUBSET_DEF, runs_cf1_def, ifs_def, mk_cf_def]
   \\ rw[Once EQ_IMP_THM]
   \\ fsrw_tac[DNF_ss][]
   \\ metis_tac[]
@@ -221,13 +224,14 @@ QED
 Theorem wf_runs2[simp]:
   wf runs_cf2
 Proof
-  rw[wf_def, runs_cf2_def, runs_cf1_def]
+  rw[runs_cf2_def, image_def, SUBSET_DEF, runs_cf1_def]
 QED
 
 Theorem wf_runs3[simp]:
   wf runs_cf3
 Proof
-  rw[wf_def, runs_cf3_def, runs_cf2_def, runs_cf1_def]
+  rw[wf_def, runs_cf3_def, runs_cf2_def, runs_cf1_def, mk_cf_def]
+  \\ rw[]
 QED
 
 Theorem runs_cf2_world[simp]:
@@ -275,7 +279,7 @@ Proof
     \\ simp[Abbr`s`]
     \\ rw[obs_def] \\ TRY (rw[runs_cf2_def, runs_cf1_def, SUBSET_DEF] \\ NO_TAC)
     \\ rw[ifs_def]
-    \\ fs[runs_cf2_def, runs_cf1_def] \\ rw[]
+    \\ fs[runs_cf2_def, runs_cf1_def, mk_cf_def] \\ rw[]
     \\ TRY(qexists_tac`"u"` \\ rw[] \\ fs[] \\ NO_TAC)
     \\ TRY(qexists_tac`"n"` \\ rw[] \\ fs[] \\ NO_TAC)
     \\ TRY(qexists_tac`"run"` \\ rw[] \\ fs[] \\ NO_TAC)
@@ -286,6 +290,7 @@ Proof
   \\ rw[obs_def, runs_cf2_def]
   \\ Cases_on`x ⊆ runs_cf1.world` \\ fs[]
   \\ fs[Abbr`s`]
+  \\ simp[mk_cf_def]
   \\ Cases_on`x = {"ur"}`
   >- (
     qexists_tac`"n"` \\ qexists_tac`"run"`
@@ -465,8 +470,9 @@ Proof
       \\ rpt gen_tac \\ strip_tac
       \\ qexists_tac`a1` \\ simp[]
       \\ simp[ifs_def]
-      \\ simp[runs_cf3_def, runs_cf2_def]
-      \\ rw[] )
+      \\ ntac 2 (pop_assum mp_tac)
+      \\ EVAL_TAC
+      \\ rw[])
     \\ first_assum (mp_then Any mp_tac obs_compl)
     \\ simp[]
     \\ simp[Once runs_cf3_def, runs_cf2_def, runs_cf1_def, INSERT_COMM]
@@ -476,7 +482,7 @@ Proof
       simp[obs_def]
       \\ conj_tac >- EVAL_TAC
       \\ rpt gen_tac \\ strip_tac
-      \\ simp[ifs_def, runs_cf3_def, runs_cf2_def]
+      \\ simp[ifs_def, runs_cf3_def, runs_cf2_def, mk_cf_def]
       \\ fs[runs_cf3_def, runs_cf2_def, runs_cf1_def]
       \\ TRY(qexists_tac`"u"` \\ rw[] \\ fs[] \\ NO_TAC)
       \\ TRY(qexists_tac`"n"` \\ rw[] \\ fs[] \\ NO_TAC)
@@ -491,7 +497,7 @@ Proof
       simp[obs_def]
       \\ conj_tac >- EVAL_TAC
       \\ rpt gen_tac \\ strip_tac
-      \\ simp[ifs_def, runs_cf3_def, runs_cf2_def]
+      \\ simp[ifs_def, runs_cf3_def, runs_cf2_def, mk_cf_def]
       \\ fs[runs_cf3_def, runs_cf2_def, runs_cf1_def]
       \\ TRY(qexists_tac`"u"` \\ rw[] \\ fs[] \\ NO_TAC)
       \\ TRY(qexists_tac`"n"` \\ rw[] \\ fs[] \\ NO_TAC)
@@ -503,7 +509,7 @@ Proof
   \\ rw[SUBSET_DEF]
   \\ CCONTR_TAC \\ fs[]
   \\ qpat_x_assum`x ∈ _`mp_tac
-  \\ rw[obs_def, runs_cf3_def, runs_cf2_def, runs_cf1_def]
+  \\ rw[obs_def, runs_cf3_def, runs_cf2_def, runs_cf1_def, mk_cf_def]
   \\ simp[Once (GSYM IMP_DISJ_THM)]
   \\ simp[GSYM IN_POW]
   \\ simp[POW_EQNS]
@@ -704,11 +710,13 @@ Proof
 QED
 
 Definition runs_cf4_def:
-  runs_cf4 = <| world := runs_cf1.world; agent := {""}; env := runs_cf1.world; eval := λa e. e |>
+  runs_cf4 = mk_cf
+    <| world := runs_cf1.world; agent := {""}; env := runs_cf1.world; eval := λa e. e |>
 End
 
 Definition runs_cf5_def:
-  runs_cf5 = <| world := runs_cf1.world; env := {""}; agent := runs_cf1.world; eval := λa e. a |>
+  runs_cf5 = mk_cf
+    <| world := runs_cf1.world; env := {""}; agent := runs_cf1.world; eval := λa e. a |>
 End
 
 (* TODO: facts about runs_cf4, runs_cf5 *)
@@ -720,26 +728,29 @@ End
 Theorem test_world_eq = EVAL ``test_world``
 
 Definition test_today_def:
-  test_today = <| world := test_world;
-                  env := {"t";"d";"o"};
-                  agent := {"s";"i"};
-                  eval := λa e. if a = "i" then "C+" else
-                                if e = "t" then "A-" else
-                                if e = "d" then "B+" else "D-" |>
+  test_today = mk_cf
+    <| world := test_world;
+       env := {"t";"d";"o"};
+       agent := {"s";"i"};
+       eval := λa e. if a = "i" then "C+" else
+                     if e = "t" then "A-" else
+                     if e = "d" then "B+" else "D-" |>
 End
 
 Definition test_yesterday_def:
-  test_yesterday = <| world := test_world;
-                      env := test_today.env;
-                      agent := "c" INSERT test_today.agent;
-                      eval := λa e. if a = "c" then "A+" else test_today.eval a e |>
+  test_yesterday = mk_cf
+    <| world := test_world;
+       env := test_today.env;
+       agent := "c" INSERT test_today.agent;
+       eval := λa e. if a = "c" then "A+" else test_today.eval a e |>
 End
 
 Definition test_demanding_def:
-  test_demanding = <| world := test_world;
-                      env := test_today.env DELETE "t";
-                      agent := test_today.agent;
-                      eval := test_today.eval |>
+  test_demanding = mk_cf
+    <| world := test_world;
+       env := test_today.env DELETE "t";
+       agent := test_today.agent;
+       eval := test_today.eval |>
 End
 
 Theorem morphism_today_yesterday:
@@ -748,7 +759,7 @@ Theorem morphism_today_yesterday:
 Proof
   simp[is_chu_morphism_def]
   \\ simp[mk_chu_morphism_def]
-  \\ rw[test_today_def, test_yesterday_def, categoryTheory.restrict_def]
+  \\ rw[test_today_def, test_yesterday_def, categoryTheory.restrict_def, mk_cf_def]
 QED
 
 Theorem morphism_today_demanding:
@@ -757,7 +768,7 @@ Theorem morphism_today_demanding:
 Proof
   simp[is_chu_morphism_def]
   \\ simp[mk_chu_morphism_def]
-  \\ rw[test_today_def, test_demanding_def, categoryTheory.restrict_def]
+  \\ rw[test_today_def, test_demanding_def, categoryTheory.restrict_def, mk_cf_def]
 QED
 
 Theorem no_morphisms_yesterday_demanding:
@@ -775,29 +786,31 @@ Proof
   \\ (qmatch_abbrev_tac`a ∨ b` \\ Cases_on`a = T` \\ fs[Abbr`a`, Abbr`b`]
       >- metis_tac[] \\ disj2_tac)
   \\ fs[GSYM IMP_DISJ_THM]
-  \\ fs[test_yesterday_def, test_demanding_def, test_today_def]
+  \\ fs[test_yesterday_def, test_demanding_def, test_today_def, mk_cf_def]
   >- (
     qexists_tac`"c"` \\ simp[]
     \\ qexists_tac`"d"` \\ rw[] )
   \\ qexists_tac`if f "i" = "i" then "s" else "i"`
   \\ qexists_tac`"t"`
   \\ simp[]
-  \\ IF_CASES_TAC \\ simp[]
-  \\ rw[]
+  \\ IF_CASES_TAC \\ simp[] \\ rw[] \\ fs[]
+  \\ metis_tac[]
 QED
 
 Definition handshake_def:
-  handshake = <| world := {""; "*"};
-                 agent := {""; "*"};
-                 env := {""; "*"};
-                 eval := λa e. DROP 1 (a ++ e) |>
+  handshake = mk_cf
+    <| world := {""; "*"};
+       agent := {""; "*"};
+       env := {""; "*"};
+       eval := λa e. DROP 1 (a ++ e) |>
 End
 
 Definition bothsing_def:
-  bothsing = <| world := {""};
-                agent := {""};
-                env := {""};
-                eval := K (K "") |>
+  bothsing = mk_cf
+    <| world := {""};
+       agent := {""};
+       env := {""};
+       eval := K (K "") |>
 End
 
 Theorem morphism_handshake_bothsing:
@@ -817,17 +830,19 @@ Proof
 QED
 
 Definition sum_exc_def:
-  sum_exc = <| world := IMAGE toString (count 13);
-               agent := IMAGE toString (count 2);
-               env := IMAGE toString (count 2);
-               eval := λa e. toString (toNum (a) * 2 + toNum(e)) |>
+  sum_exc = mk_cf
+    <| world := IMAGE toString (count 13);
+       agent := IMAGE toString (count 2);
+       env := IMAGE toString (count 2);
+       eval := λa e. toString (toNum (a) * 2 + toNum(e)) |>
 End
 
 Definition sum_exd_def:
-  sum_exd = <| world := IMAGE toString (count 13);
-               agent := IMAGE toString (count 3);
-               env := IMAGE toString (count 3);
-               eval := λa e. toString (4 + toNum(a) * 3 + toNum(e)) |>
+  sum_exd = mk_cf
+    <| world := IMAGE toString (count 13);
+       agent := IMAGE toString (count 3);
+       env := IMAGE toString (count 3);
+       eval := λa e. toString (4 + toNum(a) * 3 + toNum(e)) |>
 End
 
 Definition cf_matrix_def:
@@ -891,7 +906,7 @@ Proof
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
-  \\ simp[QSORT_string_le_SET_TO_LIST_init]
+  \\ simp[QSORT_string_le_SET_TO_LIST_init, mk_cf_def]
   \\ EVAL_TAC
 QED
 
@@ -905,6 +920,7 @@ Proof
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
+  \\ simp[mk_cf_def]
   \\ qsort_set_to_list_tac
   \\ EVAL_TAC
 QED
@@ -923,7 +939,7 @@ Proof
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
-  \\ simp[INSERT_UNION]
+  \\ simp[INSERT_UNION, mk_cf_def]
   \\ qsort_set_to_list_tac
   \\ EVAL_TAC
 QED
@@ -943,7 +959,7 @@ Proof
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
-  \\ simp[INSERT_UNION]
+  \\ simp[INSERT_UNION, mk_cf_def]
   \\ qsort_set_to_list_tac
   \\ EVAL_TAC
 QED
@@ -963,23 +979,27 @@ Proof
 QED
 
 Definition run_cf_def:
-  run_cf = <| world := runs_cf1.world;
-              agent := {"u"; "n"};
-              env := {"r"};
-              eval := (++) |>
+  run_cf = mk_cf
+    <| world := runs_cf1.world;
+       agent := {"u"; "n"};
+       env := {"r"};
+       eval := (++) |>
 End
 
 Definition sun_cf_def:
-  sun_cf = <| world := runs_cf1.world;
-              agent := {"u"; "n"};
-              env := {"s"};
-              eval := (++) |>
+  sun_cf = mk_cf
+    <| world := runs_cf1.world;
+       agent := {"u"; "n"};
+       env := {"s"};
+       eval := (++) |>
 End
 
 Theorem wf_run_sun[simp]:
   wf run_cf ∧ wf sun_cf
 Proof
-  rw[wf_def, run_cf_def, sun_cf_def, runs_cf1_def]
+  rw[run_cf_def, sun_cf_def, image_def]
+  \\ rw[SUBSET_DEF]
+  \\ EVAL_TAC
 QED
 
 Theorem run_sun_world[simp]:

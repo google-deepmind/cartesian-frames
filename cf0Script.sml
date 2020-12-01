@@ -27,12 +27,34 @@ Datatype:
 End
 
 Definition wf_def:
-  wf c ⇔ ∀a e. a ∈ c.agent ∧ e ∈ c.env ⇒ c.eval a e ∈ c.world
+  wf c ⇔
+    (∀a e. a ∈ c.agent ∧ e ∈ c.env ⇒ c.eval a e ∈ c.world) ∧
+    (∀a e. a ∉ c.agent ∨ e ∉ c.env ⇒ c.eval a e = ARB)
 End
 
 Definition image_def:
-  image c = { w | w ∈ c.world ∧ ∃a e. a ∈ c.agent ∧ e ∈ c.env ∧ c.eval a e = w }
+  image c = { w | ∃a e. a ∈ c.agent ∧ e ∈ c.env ∧ c.eval a e = w }
 End
+
+Definition mk_cf_def:
+  mk_cf c = c with eval := λa e. if a ∈ c.agent ∧ e ∈ c.env then c.eval a e else ARB
+End
+
+Theorem mk_cf_components[simp]:
+  (mk_cf c).world = c.world ∧
+  (mk_cf c).agent = c.agent ∧
+  (mk_cf c).env = c.env
+Proof
+  rw[mk_cf_def]
+QED
+
+Theorem wf_mk_cf[simp]:
+  wf (mk_cf c) ⇔ image c ⊆ c.world
+Proof
+  rw[wf_def, SUBSET_DEF, image_def, mk_cf_def]
+  \\ rw[EQ_IMP_THM] \\ rw[]
+  \\ metis_tac[]
+QED
 
 (* Initial definition of controllables *)
 

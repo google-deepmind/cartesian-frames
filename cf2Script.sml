@@ -556,7 +556,7 @@ End
 val _ = temp_overload_on("rep", ``min_elt (RC (SHORTLEX char_lt))``)
 
 Definition biextensional_collapse_def:
-  biextensional_collapse c =
+  biextensional_collapse c = mk_cf
     <| world := c.world;
        agent := IMAGE (min_elt (RC (SHORTLEX char_lt)) o (equiv_class (agent_equiv c) c.agent)) c.agent;
        env := IMAGE (min_elt (RC (SHORTLEX char_lt)) o (equiv_class (env_equiv c) c.env)) c.env;
@@ -602,6 +602,18 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem rep_in_equiv_class[simp]:
+  R equiv_on s ∧ x ∈ s ⇒
+  rep (equiv_class R s x) ∈ s ∧
+  rep (equiv_class R s x) ∈ equiv_class R s x
+Proof
+  strip_tac
+  \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
+  \\ imp_res_tac MEMBER_NOT_EMPTY
+  \\ imp_res_tac rep_in
+  \\ fs[]
+QED
+
 Theorem eval_equiv:
   a ∈ c.agent ∧ e ∈ c.env ∧
   a' ∈ equiv_class (agent_equiv c) c.agent a ∧
@@ -614,7 +626,7 @@ QED
 Theorem image_biextensional_collapse[simp]:
   image (biextensional_collapse c) = image c
 Proof
-  rw[biextensional_collapse_def, image_def, EXTENSION]
+  rw[biextensional_collapse_def, image_def, EXTENSION, mk_cf_def]
   \\ metis_tac[eval_equiv, rep_in_equiv_class, MEMBER_NOT_EMPTY, agent_equiv_on, env_equiv_on]
 QED
 
@@ -622,14 +634,15 @@ Theorem biextensional_collapse_biextensional:
   biextensional (biextensional_collapse c)
 Proof
   rw[biextensional_def]
-  \\ fs[biextensional_collapse_def, PULL_EXISTS] \\ rw[]
+  \\ fs[biextensional_collapse_def, mk_cf_def, PULL_EXISTS] \\ rw[]
   \\ AP_TERM_TAC
   \\ DEP_REWRITE_TAC[equiv_class_eq]
   \\ simp[]
   >- (
     qmatch_rename_tac`agent_equiv c a1 a2`
-    \\ qmatch_asmsub_abbrev_tac`c.eval x1 _ = c.eval x2 _`
+    \\ qmatch_asmsub_abbrev_tac`c.eval x1 _`
     \\ qmatch_asmsub_abbrev_tac`x1 = min_elt _ s1`
+    \\ qmatch_asmsub_abbrev_tac`_ = COND _ (c.eval x2 _) _`
     \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
     \\ `a1 ∈ s1` by simp[Abbr`s1`, agent_equiv_equiv]
     \\ `a2 ∈ s2` by simp[Abbr`s2`, agent_equiv_equiv]
@@ -648,7 +661,12 @@ Proof
     \\ `agent_equiv c x1 x2`
     by (
       simp[agent_equiv_def] \\ rw[]
-      \\ first_x_assum(qspec_then`e`mp_tac) \\ rw[]
+      \\ first_x_assum(qspec_then`e`mp_tac)
+      \\ simp[]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ ntac 2 (pop_assum kall_tac)
+      \\ rw[]
       \\ qmatch_asmsub_abbrev_tac`c.eval x1 (min_elt _ t1)`
       \\ qmatch_asmsub_abbrev_tac`c.eval x1 y1`
       \\ `e ∈ t1` by simp[Abbr`t1`, env_equiv_equiv]
@@ -670,8 +688,9 @@ Proof
       \\ metis_tac[agent_equiv_equiv] )
     \\ metis_tac[agent_equiv_equiv])
   \\ qmatch_rename_tac`env_equiv c a1 a2`
-  \\ qmatch_asmsub_abbrev_tac`c.eval _ x1 = c.eval _ x2`
+  \\ qmatch_asmsub_abbrev_tac`c.eval _ x1`
   \\ qmatch_asmsub_abbrev_tac`x1 = min_elt _ s1`
+  \\ qmatch_asmsub_abbrev_tac`_ = COND _ (c.eval _ x2) _`
   \\ qmatch_asmsub_abbrev_tac`x2 = min_elt _ s2`
   \\ `a1 ∈ s1` by simp[Abbr`s1`, env_equiv_equiv]
   \\ `a2 ∈ s2` by simp[Abbr`s2`, env_equiv_equiv]
@@ -690,7 +709,12 @@ Proof
   \\ `env_equiv c x1 x2`
   by (
     simp[env_equiv_def] \\ rw[]
-    \\ first_x_assum(qspec_then`a`mp_tac) \\ rw[]
+    \\ first_x_assum(qspec_then`a`mp_tac)
+    \\ simp[]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ ntac 2 (pop_assum kall_tac)
+    \\ rw[]
     \\ qmatch_asmsub_abbrev_tac`c.eval (min_elt _ t1) x1`
     \\ qmatch_asmsub_abbrev_tac`c.eval y1 x1`
     \\ `a ∈ t1` by simp[Abbr`t1`, agent_equiv_equiv]
@@ -729,23 +753,8 @@ QED
 Theorem biextensional_collapse_in_chu_objects[simp]:
   c ∈ chu_objects w ⇒ biextensional_collapse c ∈ chu_objects w
 Proof
-  rw[chu_objects_def, biextensional_collapse_def]
-  \\ fs[wf_def, PULL_EXISTS] \\ rw[]
-  \\ first_x_assum match_mp_tac
-  \\ metis_tac[rep_in, MEMBER_NOT_EMPTY, equiv_class_element,
-               agent_equiv_equiv, env_equiv_equiv]
-QED
-
-Theorem rep_in_equiv_class[simp]:
-  R equiv_on s ∧ x ∈ s ⇒
-  rep (equiv_class R s x) ∈ s ∧
-  rep (equiv_class R s x) ∈ equiv_class R s x
-Proof
-  strip_tac
-  \\ `x ∈ equiv_class R s x` by ( simp[equiv_class_element] \\ fs[equiv_on_def] )
-  \\ imp_res_tac MEMBER_NOT_EMPTY
-  \\ imp_res_tac rep_in
-  \\ fs[]
+  rw[chu_objects_def, biextensional_collapse_def, image_def, SUBSET_DEF]
+  \\ fs[wf_def]
 QED
 
 Theorem equiv_class_rep_eq:
@@ -788,11 +797,13 @@ Proof
     simp[mk_chu_morphism_def, maps_to_in_def, pre_chu_def]
     \\ simp[is_chu_morphism_def]
     \\ simp[biextensional_collapse_def, PULL_EXISTS]
-    \\ simp[restrict_def]
+    \\ simp[restrict_def, mk_cf_def]
     \\ conj_tac >- ( reverse(rw[]) >- metis_tac[] \\ simp[Abbr`f`] )
     \\ conj_tac >- ( rw[Abbr`f`] \\ metis_tac[] )
-    \\ reverse(rw[]) >- metis_tac[]
+    \\ rpt gen_tac \\ strip_tac
+    \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ simp[Abbr`f`]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ DEP_REWRITE_TAC[equiv_class_rep_eq]
     \\ simp[]
     \\ qmatch_abbrev_tac`_ = c.eval a' _`
@@ -830,7 +841,7 @@ Proof
     \\ simp[maps_to_in_def]
     \\ simp[pre_chu_def]
     \\ simp[is_chu_morphism_def]
-    \\ simp[biextensional_collapse_def, PULL_EXISTS, restrict_def]
+    \\ simp[biextensional_collapse_def, PULL_EXISTS, restrict_def, mk_cf_def]
     \\ rw[Abbr`f`]
     \\ metis_tac[rep_in_equiv_class, equiv_class_element, agent_equiv_def,
                  agent_equiv_on, env_equiv_on, env_equiv_def] )
@@ -852,13 +863,12 @@ Proof
   \\ simp[is_chu_morphism_def, chu_id_morphism_map_def]
   \\ simp[restrict_def]
   \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
-  \\ simp[biextensional_collapse_def, PULL_EXISTS]
+  \\ simp[biextensional_collapse_def, PULL_EXISTS, mk_cf_def]
   \\ rw[]
   \\ simp[equiv_class_rep_eq]
   \\ metis_tac[rep_in_equiv_class, equiv_class_element, agent_equiv_def,
                agent_equiv_on, env_equiv_on, env_equiv_def]
 QED
-
 
 Theorem homotopy_equiv_iff_iso_collapse:
   c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
@@ -892,7 +902,8 @@ QED
 Theorem biextensional_collapse_swap:
   biextensional_collapse (swap c) = swap (biextensional_collapse c)
 Proof
-  rw[cf_component_equality, biextensional_collapse_def, swap_def]
+  rw[cf_component_equality, biextensional_collapse_def, swap_def, mk_cf_def]
+  \\ rw[FUN_EQ_THM] \\ rw[] \\ fs[] \\ metis_tac[]
 QED
 
 Theorem homotopy_equiv_swap[simp]:
@@ -950,7 +961,7 @@ Proof
     \\ simp[is_chu_morphism_def]
     \\ simp[sum_def, PULL_EXISTS, restrict_def, EXISTS_PROD]
     \\ strip_tac \\ fs[]
-    \\ rw[] \\ rw[] \\ rw[sum_eval_def] )
+    \\ rw[] \\ rw[] \\ rw[sum_eval_def, mk_cf_def] )
   \\ `G c2 c1 d g :- sum c2 d → sum c1 d -: chu w`
   by (
     qpat_x_assum`g :- _ → _ -: _`mp_tac
@@ -959,7 +970,7 @@ Proof
     \\ simp[is_chu_morphism_def]
     \\ simp[sum_def, PULL_EXISTS, restrict_def, EXISTS_PROD]
     \\ strip_tac \\ fs[]
-    \\ rw[] \\ rw[] \\ rw[sum_eval_def] )
+    \\ rw[] \\ rw[] \\ rw[sum_eval_def, mk_cf_def] )
   \\ simp[Abbr`P2`]
   \\ qpat_x_assum`homotopic _ _ (id c1 -: _)`mp_tac
   \\ `g o f -: chu w :- c1 → c1 -: chu w` by metis_tac[maps_to_comp, is_category_chu]
@@ -981,7 +992,7 @@ Proof
   \\ DEP_REWRITE_TAC[chu_comp] \\ simp[]
   \\ simp[Abbr`G`, pre_chu_def, restrict_def, extensional_def, sum_def, PULL_EXISTS, EXISTS_PROD]
   \\ rw[mk_chu_morphism_def, restrict_def] \\ rw[] \\ rw[] \\ fs[pre_chu_def, is_chu_morphism_def]
-  \\ rw[sum_eval_def]
+  \\ rw[sum_eval_def, mk_cf_def]
   \\ metis_tac[]
 QED
 
@@ -1014,9 +1025,9 @@ Definition null_def:
 End
 
 Theorem biextensional_collapse_idem[simp]:
-  biextensional c ⇒ biextensional_collapse c = c
+  wf c ∧ biextensional c ⇒ biextensional_collapse c = c
 Proof
-  simp[cf_component_equality, biextensional_collapse_def]
+  simp[cf_component_equality, biextensional_collapse_def, mk_cf_def]
   \\ strip_tac
   \\ `∀x. x ∈ c.agent ⇒ equiv_class (agent_equiv c) c.agent x = {x}`
   by ( rw[EXTENSION] \\ fs[biextensional_def] \\ rw[agent_equiv_def] \\ metis_tac[] )
@@ -1025,10 +1036,14 @@ Proof
   \\ simp[EXTENSION, PULL_EXISTS, PULL_FORALL]
   \\ qx_gen_tac`a`
   \\ qx_gen_tac`e`
-  \\ rw[EQ_IMP_THM]
+  \\ rw[EQ_IMP_THM, FUN_EQ_THM] \\ rw[]
   \\ TRY (qexists_tac`a` \\ simp[] \\ NO_TAC)
   \\ TRY (qexists_tac`e` \\ simp[] \\ NO_TAC)
-  \\ metis_tac[rep_in_equiv_class, agent_equiv_on, env_equiv_on]
+  \\ fs[wf_def]
+  \\ fs[biextensional_def]
+  \\ first_x_assum match_mp_tac
+  \\ CCONTR_TAC \\ fs[]
+  \\ metis_tac[rep_in_equiv_class, agent_equiv_on, env_equiv_on, IN_SING]
 QED
 
 Theorem biextensional_cf0[simp]:
@@ -1084,7 +1099,12 @@ Proof
                    <| map_env := ARB; map_agent := K "" |>`
   \\ rw[maps_to_in_def, pre_chu_def, mk_chu_morphism_def, restrict_def,
         is_chu_morphism_def, extensional_def]
-  \\ fs[cfT_agent_env, biextensional_collapse_def] \\ rfs[]
+  \\ fs[cfT_agent_env, biextensional_collapse_def] \\ rfs[cf_component_equality, cfT_agent_env]
+  >- (
+    rw[mk_cf_def, cfT_def, swap_def, cf0_def, FUN_EQ_THM]
+    \\ qmatch_abbrev_tac`rep s = ""`
+    \\ `s = {""}` suffices_by rw[]
+    \\ simp[Abbr`s`, EXTENSION, agent_equiv_def] )
   \\ rw[BIJ_IFF_INV]
   \\ qexists_tac`K (rep c.agent)` \\ rw[]
   \\ metis_tac[CHOICE_DEF]

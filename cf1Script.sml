@@ -570,10 +570,11 @@ Definition sum_eval_def:
 End
 
 Definition sum_def:
-  sum c1 c2 = <| world := c1.world ∪ c2.world;
-                 agent := IMAGE encode_sum (IMAGE INL c1.agent ∪ IMAGE INR c2.agent);
-                 env := IMAGE encode_pair (c1.env × c2.env);
-                 eval := sum_eval c1.eval c2.eval |>
+  sum c1 c2 = mk_cf
+    <| world := c1.world ∪ c2.world;
+       agent := IMAGE encode_sum (IMAGE INL c1.agent ∪ IMAGE INR c2.agent);
+       env := IMAGE encode_pair (c1.env × c2.env);
+       eval := sum_eval c1.eval c2.eval |>
 End
 
 val _ = overload_on("⊕", ``sum``);
@@ -582,9 +583,8 @@ val _ = set_fixity "⊕" (Infix (LEFT, 500))
 Theorem wf_sum[simp]:
   wf c1 ∧ wf c2 ⇒ wf (sum c1 c2)
 Proof
-  rw[wf_def]
-  \\ fs[sum_def]
-  \\ fs[sum_eval_def]
+  rw[sum_def, SUBSET_DEF, image_def, sum_eval_def]
+  \\ rw[] \\ fs[wf_def]
 QED
 
 Theorem sum_in_chu_objects[simp]:
@@ -612,7 +612,7 @@ Proof
   \\ simp[restrict_def]
   \\ simp[sum_def, comm_sum_def, EXISTS_PROD]
   \\ rw[] \\ fs[]
-  \\ simp[sum_eval_def]
+  \\ simp[sum_eval_def, mk_cf_def]
 QED
 
 Theorem sum_comm:
@@ -676,7 +676,7 @@ Theorem assoc_sum_is_chu_morphism[simp]:
 Proof
   simp[is_chu_morphism_def]
   \\ rw[mk_chu_morphism_def, sum_def, PULL_EXISTS, FORALL_PROD, EXISTS_PROD]
-  \\ rw[restrict_def, assoc_sum_def, sum_eval_def]
+  \\ rw[restrict_def, assoc_sum_def, sum_eval_def, mk_cf_def]
 QED
 
 Theorem sum_assoc:
@@ -713,7 +713,7 @@ Proof
 QED
 
 Definition cf0_def:
-  cf0 w = <| world := w; agent := ∅; env := {""}; eval := K (K (CHOICE w)) |>
+  cf0 w = <| world := w; agent := ∅; env := {""}; eval := K (K ARB) |>
 End
 
 Theorem wf_cf0[simp]:
@@ -750,7 +750,7 @@ Proof
   rw[is_chu_morphism_def, mk_chu_morphism_def]
   \\ fs[restrict_def]
   \\ fs[sum_def, FORALL_PROD, EXISTS_PROD, cf0_def, add_cf0_def, remove_cf0_def]
-  \\ rw[] \\ fs[] \\ rw[sum_eval_def]
+  \\ rw[] \\ fs[] \\ rw[sum_eval_def, mk_cf_def]
 QED
 
 Theorem sum_cf0:
@@ -827,7 +827,7 @@ Proof
     \\ simp[Abbr`p1`]
     \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
     \\ simp[restrict_def]
-    \\ simp[sum_eval_def] )
+    \\ simp[sum_eval_def, mk_cf_def] )
   \\ conj_asm1_tac
   >- (
     simp[maps_to_in_def, pre_chu_def]
@@ -835,7 +835,7 @@ Proof
     \\ simp[Abbr`p2`]
     \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
     \\ simp[restrict_def]
-    \\ simp[sum_eval_def] )
+    \\ simp[sum_eval_def, mk_cf_def] )
   \\ qx_gen_tac`c`
   \\ qx_genl_tac[`m1`,`m2`]
   \\ strip_tac
@@ -856,7 +856,7 @@ Proof
       \\ simp[is_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
-      \\ simp[sum_eval_def]
+      \\ simp[sum_eval_def, mk_cf_def]
       \\ fs[maps_to_in_def, pre_chu_def, is_chu_morphism_def, restrict_def]
       \\ rw[] \\ rw[] \\ fs[] )
     \\ DEP_REWRITE_TAC[compose_in_thm]
@@ -962,10 +962,11 @@ Proof
 QED
 
 Definition prod_def:
-  prod c1 c2 =  <| world := c1.world ∪ c2.world;
-                   agent := IMAGE encode_pair (c1.agent × c2.agent);
-                   env := IMAGE encode_sum (IMAGE INL c1.env ∪ IMAGE INR c2.env);
-                   eval := flip (sum_eval (flip c1.eval) (flip c2.eval)) |>
+  prod c1 c2 = mk_cf
+    <| world := c1.world ∪ c2.world;
+       agent := IMAGE encode_pair (c1.agent × c2.agent);
+       env := IMAGE encode_sum (IMAGE INL c1.env ∪ IMAGE INR c2.env);
+       eval := flip (sum_eval (flip c1.eval) (flip c2.eval)) |>
 End
 
 val _ = overload_on("&&", ``prod``)
@@ -976,7 +977,9 @@ Theorem swap_sum_prod:
 Proof
   rw[cf_component_equality]
   \\ rw[prod_def, sum_def]
+  \\ rw[mk_cf_def]
   \\ rw[swap_def, FUN_EQ_THM]
+  \\ rw[EQ_IMP_THM] \\ fs[]
 QED
 
 Theorem swap_prod_sum:
@@ -984,8 +987,10 @@ Theorem swap_prod_sum:
 Proof
   rw[cf_component_equality]
   \\ rw[prod_def, sum_def]
+  \\ rw[mk_cf_def]
   \\ rw[swap_def, FUN_EQ_THM]
-  \\ srw_tac[boolSimps.ETA_ss][C_DEF]
+  \\ rw[EQ_IMP_THM] \\ fs[]
+  \\ fsrw_tac[boolSimps.ETA_ss][C_DEF]
 QED
 
 Theorem has_binary_products_chu:
@@ -1094,7 +1099,8 @@ Theorem wf_prod[simp]:
 Proof
   rw[wf_def]
   \\ fs[prod_def]
-  \\ fs[sum_eval_def]
+  \\ fs[sum_eval_def, mk_cf_def]
+  \\ rw[] \\ rw[] \\ fs[]
 QED
 
 Theorem prod_in_chu_objects[simp]:

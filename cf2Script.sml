@@ -789,4 +789,72 @@ Proof
   \\ qexists_tac`x` \\ rw[]
 QED
 
+Theorem homotopy_equiv_collapse:
+  c ∈ chu_objects w ⇒ c ≃ c ^ -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism c c^ <| map_agent := rep o equiv_class (agent_equiv c) c.agent;
+                                         map_env := I |>`
+  \\ qmatch_goalsub_abbrev_tac`mk_chu_morphism _ _ f`
+  \\ qexists_tac`mk_chu_morphism c^ c <| map_agent := I;
+                                         map_env := rep o equiv_class (env_equiv c) c.env |>`
+  \\ simp[Once CONJ_ASSOC]
+  \\ conj_asm1_tac
+  >- (
+    simp[mk_chu_morphism_def]
+    \\ simp[maps_to_in_def]
+    \\ simp[pre_chu_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[biextensional_collapse_def, PULL_EXISTS, restrict_def]
+    \\ rw[Abbr`f`]
+    \\ metis_tac[rep_in_equiv_class, equiv_class_element, agent_equiv_def,
+                 agent_equiv_on, env_equiv_on, env_equiv_def] )
+  \\ qunabbrev_tac`f`
+  \\ qmatch_asmsub_abbrev_tac`f :- c → c^ -: _`
+  \\ qmatch_asmsub_abbrev_tac`g :- c^ → c -: _`
+  \\ fs[]
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ imp_res_tac maps_to_in_def
+  \\ imp_res_tac maps_to_obj
+  \\ conj_tac
+  \\ fs[homotopic_def]
+  \\ (conj_tac >- metis_tac[id_mor, chu_mor, chu_obj, is_category_chu])
+  \\ simp[hom_comb_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ imp_res_tac maps_to_composable
+  \\ simp[pre_chu_def]
+  \\ simp[is_chu_morphism_def, chu_id_morphism_map_def]
+  \\ simp[restrict_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
+  \\ simp[biextensional_collapse_def, PULL_EXISTS]
+  \\ rw[]
+  \\ simp[equiv_class_rep_eq]
+  \\ metis_tac[rep_in_equiv_class, equiv_class_element, agent_equiv_def,
+               agent_equiv_on, env_equiv_on, env_equiv_def]
+QED
+
+
+Theorem homotopy_equiv_iff_iso_collapse:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  (c ≃ d -: w ⇔ c^ ≅ d^ -: chu w)
+Proof
+  metis_tac[biextensional_homotopy_equiv_iso, biextensional_collapse_biextensional,
+            homotopy_equiv_trans, homotopy_equiv_sym, homotopy_equiv_collapse]
+QED
+
+Theorem homotopy_equiv_class_unique_biextensional:
+  c ∈ chu_objects w ⇒
+  ∀x. biextensional x ∧ x ∈ equiv_class (homotopy_equiv w) (chu_objects w) c ⇔ x ≅ c ^ -: chu w
+Proof
+  rw[EQ_IMP_THM]
+  \\ imp_res_tac iso_objs_objs \\ fs[]
+  \\ metis_tac[biextensional_iff_iso_collapse, biextensional_collapse_biextensional,
+               iso_objs_sym, is_category_chu, biextensional_iso, iso_objs_trans,
+               homotopy_equiv_collapse, homotopy_equiv_trans, homotopy_equiv_sym,
+               homotopy_equiv_iff_iso_collapse]
+QED
+
+(* TODO: example of homotopy equivalent cfs proved via isomorphic collapse *)
+
 val _ = export_theory();

@@ -238,6 +238,24 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem image_iso[simp]:
+  c1 ≅ c2 -: chu w ⇒ image c1 = image c2
+Proof
+  rw[image_def, EXTENSION]
+  \\ `c1.world = w ∧ c2.world = w` by (
+    fs[iso_objs_thm, chu_iso_bij, maps_to_in_def, chu_objects_def] \\ rfs[] )
+  \\ Cases_on`x ∈ w` \\ fs[]
+  \\ ntac 3 (pop_assum kall_tac)
+  \\ pop_assum mp_tac
+  \\ `∀c1 c2 a1 e1. c1 ≅ c2 -: chu w ∧ a1 ∈ c1.agent ∧ e1 ∈ c1.env ⇒
+        ∃a2 e2. a2 ∈ c2.agent ∧ e2 ∈ c2.env ∧ c2.eval a2 e2 = c1.eval a1 e1`
+     suffices_by metis_tac[iso_objs_sym, is_category_chu]
+  \\ rw[iso_objs_thm, chu_iso_bij, is_chu_morphism_def]
+  \\ fs[maps_to_in_def] \\ rfs[]
+  \\ fs[BIJ_IFF_INV]
+  \\ metis_tac[]
+QED
+
 Definition hom_comb_def:
   hom_comb m1 m2 =
         <| dom := m1.dom; cod := m2.cod; map :=
@@ -593,6 +611,13 @@ Proof
   rw[agent_equiv_def, env_equiv_def]
 QED
 
+Theorem image_biextensional_collapse[simp]:
+  image (biextensional_collapse c) = image c
+Proof
+  rw[biextensional_collapse_def, image_def, EXTENSION]
+  \\ metis_tac[eval_equiv, rep_in_equiv_class, MEMBER_NOT_EMPTY, agent_equiv_on, env_equiv_on]
+QED
+
 Theorem biextensional_collapse_biextensional:
   biextensional (biextensional_collapse c)
 Proof
@@ -880,6 +905,15 @@ Proof
   \\ `c1^ ≅ c2^ -: chu w` by simp[GSYM homotopy_equiv_iff_iso_collapse]
   \\ simp[homotopy_equiv_iff_iso_collapse]
   \\ simp[biextensional_collapse_swap]
+QED
+
+Theorem homotopy_equiv_image[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧
+  c1 ≃ c2 -: w ⇒ image c1 = image c2
+Proof
+  rw[]
+  \\ rfs[homotopy_equiv_iff_iso_collapse]
+  \\ imp_res_tac image_iso \\ fs[]
 QED
 
 val _ = export_theory();

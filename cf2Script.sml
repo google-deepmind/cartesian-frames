@@ -15,7 +15,7 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-     pred_setTheory helperSetTheory relationTheory listTheory sortingTheory stringTheory
+     pred_setTheory helperSetTheory pairTheory relationTheory listTheory sortingTheory stringTheory
      categoryTheory cf0Theory cf1Theory
 
 val _ = new_theory"cf2";
@@ -914,6 +914,99 @@ Proof
   rw[]
   \\ rfs[homotopy_equiv_iff_iso_collapse]
   \\ imp_res_tac image_iso \\ fs[]
+QED
+
+Theorem homotopy_equiv_sum_right:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+  c1 ≃ c2 -: w ⇒
+  sum c1 d ≃ sum c2 d -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism (sum c1 d) (sum c2 d)
+        <| map_agent := λa. encode_sum (sum_CASE (decode_sum a) (INL o f.map.map_agent) (INR o I));
+           map_env := λe. encode_pair (f.map.map_env (FST (decode_pair e)), SND (decode_pair e)) |>`
+  \\ qmatch_goalsub_abbrev_tac`m :- _ → _ -: _`
+  \\ pop_assum mp_tac
+  \\ qho_match_abbrev_tac`Abbrev (m = G c1 c2 d f) ⇒ _`
+  \\ strip_tac
+  \\ qexists_tac`G c2 c1 d g`
+  \\ qunabbrev_tac`m`
+  \\ qho_match_abbrev_tac`P1 c1 c2 f ∧ P1 c2 c1 g ∧ P2 c1 c2 f g ∧ P2 c2 c1 g f`
+  \\ rpt(first_x_assum(fn th =>
+        if List.null(Lib.intersect(map (#1 o dest_var) (free_vars (concl th)))["c1","c2","f","g"])
+        then NO_TAC
+        else mp_tac th))
+  \\ rewrite_tac[AND_IMP_INTRO]
+  \\ qho_match_abbrev_tac`H c1 c2 f g ⇒ _`
+  \\ `∀c1 c2 f g. H c1 c2 f g ⇒ P1 c1 c2 f ∧ P2 c1 c2 f g` suffices_by metis_tac[]
+  \\ simp[Abbr`H`, GSYM CONJ_ASSOC]
+  \\ rpt gen_tac \\ strip_tac
+  \\ simp[Abbr`P1`]
+  \\ conj_asm1_tac
+  >- (
+    qpat_x_assum`f :- _ → _ -: _`mp_tac
+    \\ simp[maps_to_in_def, pre_chu_def]
+    \\ simp[Abbr`G`, mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[sum_def, PULL_EXISTS, restrict_def, EXISTS_PROD]
+    \\ strip_tac \\ fs[]
+    \\ rw[] \\ rw[] \\ rw[sum_eval_def] )
+  \\ `G c2 c1 d g :- sum c2 d → sum c1 d -: chu w`
+  by (
+    qpat_x_assum`g :- _ → _ -: _`mp_tac
+    \\ simp[maps_to_in_def, pre_chu_def]
+    \\ simp[Abbr`G`, mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[sum_def, PULL_EXISTS, restrict_def, EXISTS_PROD]
+    \\ strip_tac \\ fs[]
+    \\ rw[] \\ rw[] \\ rw[sum_eval_def] )
+  \\ simp[Abbr`P2`]
+  \\ qpat_x_assum`homotopic _ _ (id c1 -: _)`mp_tac
+  \\ `g o f -: chu w :- c1 → c1 -: chu w` by metis_tac[maps_to_comp, is_category_chu]
+  \\ `G c2 c1 d g o G c1 c2 d f -: chu w :- sum c1 d → sum c1 d -: chu w`
+    by metis_tac[maps_to_comp, is_category_chu]
+  \\ simp[homotopic_def]
+  \\ imp_res_tac maps_to_in_def \\ fs[]
+  \\ strip_tac
+  \\ conj_tac >- metis_tac[id_mor, maps_to_obj, is_category_chu, chu_obj, chu_mor]
+  \\ pop_assum mp_tac
+  \\ simp[pre_chu_def]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[hom_comb_def]
+  \\ simp[chu_id_morphism_map_def, restrict_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ simp[]
+  \\ conj_asm1_tac >- (imp_res_tac maps_to_composable \\ fs[])
+  \\ DEP_REWRITE_TAC[chu_comp] \\ simp[]
+  \\ simp[Abbr`G`, pre_chu_def, restrict_def, extensional_def, sum_def, PULL_EXISTS, EXISTS_PROD]
+  \\ rw[mk_chu_morphism_def, restrict_def] \\ rw[] \\ rw[] \\ fs[pre_chu_def, is_chu_morphism_def]
+  \\ rw[sum_eval_def]
+  \\ metis_tac[]
+QED
+
+Theorem homotopy_equiv_sum:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧
+  d1 ∈ chu_objects w ∧ d2 ∈ chu_objects w ∧
+  c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w ⇒
+  sum c1 d1 ≃ sum c2 d2 -: w
+Proof
+  metis_tac[homotopy_equiv_refl, homotopy_equiv_trans, sum_comm,
+            iso_homotopy_equiv, homotopy_equiv_sum_right]
+QED
+
+Theorem homotopy_equiv_prod:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧
+  d1 ∈ chu_objects w ∧ d2 ∈ chu_objects w ∧
+  c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w ⇒
+  prod c1 d1 ≃ prod c2 d2 -: w
+Proof
+  strip_tac
+  \\ rewrite_tac[GSYM swap_sum_prod]
+  \\ DEP_REWRITE_TAC[homotopy_equiv_swap]
+  \\ DEP_REWRITE_TAC[homotopy_equiv_sum]
+  \\ DEP_REWRITE_TAC[homotopy_equiv_swap]
+  \\ simp[]
 QED
 
 val _ = export_theory();

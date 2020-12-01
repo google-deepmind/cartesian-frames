@@ -1110,4 +1110,27 @@ Proof
   \\ metis_tac[CHOICE_DEF]
 QED
 
+Theorem empty_image:
+  c ∈ chu_objects w ∧ biextensional c ∧ image c = ∅ ⇒
+  c ≅ cf0 w -: chu w ∨ c ≅ cfT w -: chu w ∨ c = null w
+Proof
+  rw[]
+  \\ Cases_on`c.env ≠ ∅ ∧ c.agent ≠ ∅`
+  >- (
+    `F` suffices_by rw[]
+    \\ qpat_x_assum`image _ = _`mp_tac
+    \\ fs[GSYM MEMBER_NOT_EMPTY]
+    \\ simp[image_def]
+    \\ metis_tac[] )
+  \\ Cases_on`c.env = ∅ ∧ c.agent = ∅`
+  >- (
+    rpt disj2_tac
+    \\ rw[cf_component_equality, null_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ simp[FUN_EQ_THM] )
+  \\ metis_tac[biextensional_homotopy_equiv_iso,
+               biextensional_cfT, biextensional_cf0,
+               empty_agent_nonempty_env, empty_env_nonempty_agent]
+QED
+
 val _ = export_theory();

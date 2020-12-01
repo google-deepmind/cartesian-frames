@@ -470,6 +470,29 @@ Proof
   rw[]
 QED
 
+Theorem swap_iso[simp]:
+  swap c1 ≅ swap c2 -: chu w ⇔ c1 ≅ c2 -: chu w
+Proof
+  `∀c1 c2. c1 ≅ c2 -: chu w ⇒ swap c1 ≅ swap c2 -: chu w` suffices_by metis_tac[swap_swap]
+  \\ rw[iso_objs_thm]
+  \\ `∃g. g :- c2 → c1 -:chu w ∧ iso (chu w) g`
+  by (
+    fs[iso_def, iso_pair_def, PULL_EXISTS]
+    \\ map_every qexists_tac [`g`,`f`] \\ simp[]
+    \\ imp_res_tac maps_to_obj
+    \\ rfs[compose_in_thm, compose_thm, composable_in_def] \\ fs[]
+    \\ fs[morphism_component_equality, maps_to_in_def] )
+  \\ mp_then Any (first_assum o mp_then Any mp_tac) functor_preserves_iso is_functor_swap
+  \\ disch_then(qspec_then`w`mp_tac) \\ simp[]
+  \\ simp[Once swap_functor_def]
+  \\ simp[Once swap_functor_def]
+  \\ simp[op_cat_iso]
+  \\ disch_then(goal_assum o C (mp_then Any mp_tac))
+  \\ simp[maps_to_in_def, pre_chu_def]
+  \\ imp_res_tac maps_to_obj
+  \\ fs[maps_to_in_def, pre_chu_def] \\ fs[]
+QED
+
 Definition encode_pair_def:
   encode_pair (s1, s2) =
     toString (LENGTH s1) ++ ":" ++ s1 ++ s2

@@ -857,4 +857,29 @@ QED
 
 (* TODO: example of homotopy equivalent cfs proved via isomorphic collapse *)
 
+Theorem agent_env_equiv_swap[simp]:
+  agent_equiv (swap c) = env_equiv c ∧
+  env_equiv (swap c) = agent_equiv c
+Proof
+  rw[FUN_EQ_THM, agent_equiv_def, env_equiv_def]
+QED
+
+Theorem biextensional_collapse_swap:
+  biextensional_collapse (swap c) = swap (biextensional_collapse c)
+Proof
+  rw[cf_component_equality, biextensional_collapse_def, swap_def]
+QED
+
+Theorem homotopy_equiv_swap[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒
+  (swap c1 ≃ swap c2 -: w ⇔ c1 ≃ c2 -: w)
+Proof
+  `∀c1 c2. c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c1 ≃ c2 -: w ⇒ swap c1 ≃ swap c2 -: w`
+  suffices_by metis_tac[swap_swap, swap_in_chu_objects]
+  \\ rw[]
+  \\ `c1^ ≅ c2^ -: chu w` by simp[GSYM homotopy_equiv_iff_iso_collapse]
+  \\ simp[homotopy_equiv_iff_iso_collapse]
+  \\ simp[biextensional_collapse_swap]
+QED
+
 val _ = export_theory();

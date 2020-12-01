@@ -1009,4 +1009,85 @@ Proof
   \\ simp[]
 QED
 
+Definition null_def:
+  null w = <| world := w; agent := ∅; env := ∅; eval := K (K ARB)|>
+End
+
+Theorem biextensional_collapse_idem[simp]:
+  biextensional c ⇒ biextensional_collapse c = c
+Proof
+  simp[cf_component_equality, biextensional_collapse_def]
+  \\ strip_tac
+  \\ `∀x. x ∈ c.agent ⇒ equiv_class (agent_equiv c) c.agent x = {x}`
+  by ( rw[EXTENSION] \\ fs[biextensional_def] \\ rw[agent_equiv_def] \\ metis_tac[] )
+  \\ `∀x. x ∈ c.env ⇒ equiv_class (env_equiv c) c.env x = {x}`
+  by ( rw[EXTENSION] \\ fs[biextensional_def] \\ rw[env_equiv_def] \\ metis_tac[] )
+  \\ simp[EXTENSION, PULL_EXISTS, PULL_FORALL]
+  \\ qx_gen_tac`a`
+  \\ qx_gen_tac`e`
+  \\ rw[EQ_IMP_THM]
+  \\ TRY (qexists_tac`a` \\ simp[] \\ NO_TAC)
+  \\ TRY (qexists_tac`e` \\ simp[] \\ NO_TAC)
+  \\ metis_tac[rep_in_equiv_class, agent_equiv_on, env_equiv_on]
+QED
+
+Theorem biextensional_cf0[simp]:
+  biextensional (cf0 w)
+Proof
+  rw[biextensional_def, cf0_def]
+QED
+
+Theorem biextensional_swap[simp]:
+  biextensional (swap c) ⇔ biextensional c
+Proof
+  rw[biextensional_def]
+  \\ metis_tac[]
+QED
+
+Theorem biextensional_cfT[simp]:
+  biextensional (cfT w)
+Proof
+  rw[cfT_def]
+QED
+
+Theorem empty_agent_nonempty_env:
+  c ∈ chu_objects w ∧
+  c.agent = ∅ ∧ c.env ≠ ∅ ⇒ c ≃ cf0 w -: w
+Proof
+  rw[]
+  \\ rw[homotopy_equiv_iff_iso_collapse]
+  \\ rw[iso_objs_thm]
+  \\ rw[chu_iso_bij]
+  \\ `∀x. x ∈ c.env ⇒ equiv_class (env_equiv c) c.env x = c.env`
+  by ( rw[EXTENSION, env_equiv_def] )
+  \\ `CHOICE c.env ∈ c.env` by metis_tac[CHOICE_DEF]
+  \\ qexists_tac`mk_chu_morphism (biextensional_collapse c) (cf0 w)
+                   <| map_agent := ARB; map_env := K (rep c.env) |>`
+  \\ rw[maps_to_in_def, pre_chu_def, mk_chu_morphism_def, restrict_def,
+        is_chu_morphism_def, extensional_def]
+  \\ fs[cf0_def, biextensional_collapse_def] \\ rfs[]
+  \\ rw[BIJ_IFF_INV, PULL_EXISTS, PULL_FORALL]
+  \\ TRY(qexists_tac`K ""` \\ rw[])
+  \\ metis_tac[CHOICE_DEF]
+QED
+
+Theorem empty_env_nonempty_agent:
+  c ∈ chu_objects w ∧ c.env = ∅ ∧ c.agent  ≠ ∅ ⇒ c ≃ cfT w -: w
+Proof
+  rw[]
+  \\ rw[homotopy_equiv_iff_iso_collapse]
+  \\ rw[iso_objs_thm]
+  \\ rw[chu_iso_bij]
+  \\ `∀x. x ∈ c.agent ⇒ equiv_class (agent_equiv c) c.agent x = c.agent`
+  by ( rw[EXTENSION, agent_equiv_def] )
+  \\ qexists_tac`mk_chu_morphism (biextensional_collapse c) (cfT w)
+                   <| map_env := ARB; map_agent := K "" |>`
+  \\ rw[maps_to_in_def, pre_chu_def, mk_chu_morphism_def, restrict_def,
+        is_chu_morphism_def, extensional_def]
+  \\ fs[cfT_agent_env, biextensional_collapse_def] \\ rfs[]
+  \\ rw[BIJ_IFF_INV]
+  \\ qexists_tac`K (rep c.agent)` \\ rw[]
+  \\ metis_tac[CHOICE_DEF]
+QED
+
 val _ = export_theory();

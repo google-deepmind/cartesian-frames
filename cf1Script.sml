@@ -814,72 +814,81 @@ Proof
   \\ metis_tac[]
 QED
 
-Theorem has_binary_products_chu_op:
-  has_binary_products (chu w)°
+Definition inj1_def:
+  inj1 a b = mk_chu_morphism a (sum a b)
+                <| map_agent := encode_sum o INL;
+                   map_env := FST o decode_pair |>
+End
+
+Definition inj2_def:
+  inj2 a b = mk_chu_morphism b (sum a b)
+                <| map_agent := encode_sum o INR;
+                   map_env := SND o decode_pair |>
+End
+
+Theorem inj_dom_cod[simp]:
+  (inj1 a b).dom = a ∧
+  (inj1 a b).cod = sum a b ∧
+  (inj2 a b).dom = b ∧
+  (inj2 a b).cod = sum a b
 Proof
-  simp[has_binary_products_thm, is_binary_product_thm]
-  \\ rpt strip_tac
-  \\ qexists_tac`sum a b`
-  \\ qexists_tac`<| dom := (sum a b); cod := a; map :=
-      <| map_agent := restrict (encode_sum o INL) a.agent;
-         map_env := restrict (FST o decode_pair) (sum a b).env |> |>`
-  \\ qexists_tac`<| dom := (sum a b); cod := b; map :=
-      <| map_agent := restrict (encode_sum o INR) b.agent;
-         map_env := restrict (SND o decode_pair) (sum a b).env |> |>`
-  \\ qmatch_goalsub_abbrev_tac`p1 ° :- a → _ -: _`
-  \\ qmatch_goalsub_abbrev_tac`p2 ° :- b → _ -: _`
-  \\ conj_asm1_tac
-  >- (
-    simp[maps_to_in_def, pre_chu_def]
-    \\ simp[is_chu_morphism_def]
-    \\ simp[Abbr`p1`]
-    \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
-    \\ simp[restrict_def]
-    \\ simp[sum_eval_def, mk_cf_def] )
-  \\ conj_asm1_tac
-  >- (
-    simp[maps_to_in_def, pre_chu_def]
-    \\ simp[is_chu_morphism_def]
-    \\ simp[Abbr`p2`]
-    \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
-    \\ simp[restrict_def]
-    \\ simp[sum_eval_def, mk_cf_def] )
-  \\ qx_gen_tac`c`
-  \\ qx_genl_tac[`m1`,`m2`]
-  \\ strip_tac
+  rw[inj1_def, inj2_def]
+QED
+
+Theorem inj_is_chu_morphism[simp]:
+  is_chu_morphism a (sum a b) (inj1 a b).map ∧
+  is_chu_morphism b (sum a b) (inj2 a b).map
+Proof
+  rw[is_chu_morphism_def, extensional_def, inj1_def, inj2_def, mk_chu_morphism_def, restrict_def]
+  \\ fs[sum_def, mk_cf_def, EXISTS_PROD]
+  \\ rw[sum_eval_def]
+QED
+
+Theorem inj_maps_to[simp]:
+  a ∈ chu_objects w ∧ b ∈ chu_objects w ⇒
+  inj1 a b :- a → sum a b -: chu w ∧
+  inj2 a b :- b → sum a b -: chu w
+Proof
+  rw[maps_to_in_def, pre_chu_def]
+QED
+
+Theorem sum_is_sum:
+  ∀s i1 i2.
+    i1 :- a → s -: chu w ∧
+    i2 :- b → s -: chu w ⇒
+    ∃!m. m :- sum a b → s -: chu w ∧
+         m o inj1 a b -: chu w = i1 ∧
+         m o inj2 a b -: chu w = i2
+Proof
+  rw[]
   \\ imp_res_tac maps_to_obj \\ fs[]
   \\ simp[EXISTS_UNIQUE_THM]
   \\ conj_tac
   >- (
-    qexists_tac`<| dom := c; cod := sum a b; map :=
-      <| map_agent := restrict (λs. sum_CASE (decode_sum s) m1.map.map_agent m2.map.map_agent)
-                        (sum a b).agent;
-         map_env := restrict (λe. encode_pair (m1.map.map_env e, m2.map.map_env e)) c.env |> |>`
-    \\ qmatch_goalsub_abbrev_tac`op_mor m`
+    qexists_tac`mk_chu_morphism (sum a b) s
+      <| map_agent := (λs. sum_CASE (decode_sum s) i1.map.map_agent i2.map.map_agent);
+         map_env := (λe. encode_pair (i1.map.map_env e, i2.map.map_env e)) |>`
     \\ conj_asm1_tac
     >- (
       simp[maps_to_in_def]
       \\ simp[pre_chu_def]
-      \\ simp[Abbr`m`]
-      \\ simp[is_chu_morphism_def]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[sum_def, EXISTS_PROD, PULL_EXISTS]
       \\ simp[sum_eval_def, mk_cf_def]
       \\ fs[maps_to_in_def, pre_chu_def, is_chu_morphism_def, restrict_def]
       \\ rw[] \\ rw[] \\ fs[] )
     \\ DEP_REWRITE_TAC[compose_in_thm]
-    \\ conj_tac >- ( fs[maps_to_in_def, composable_in_def] )
+    \\ conj_tac >- ( fs[maps_to_in_def, composable_in_def, pre_chu_def] )
     \\ DEP_REWRITE_TAC[compose_thm]
     \\ conj_tac >- ( fs[maps_to_in_def, composable_in_def] )
     \\ simp[morphism_component_equality]
     \\ fs[maps_to_in_def]
     \\ DEP_REWRITE_TAC[chu_comp]
     \\ simp[composable_in_def]
-    \\ simp[pre_chu_def]
+    \\ simp[pre_chu_def, mk_chu_morphism_def]
     \\ simp[chu_morphism_map_component_equality]
-    \\ simp[Abbr`m`, restrict_def]
-    \\ simp[Abbr`p1`, Abbr`p2`]
-    \\ simp[sum_def, restrict_def, FUN_EQ_THM]
+    \\ simp[sum_def, restrict_def, FUN_EQ_THM, inj1_def, inj2_def, mk_chu_morphism_def]
     \\ fs[pre_chu_def, is_chu_morphism_def, extensional_def]
     \\ rw[] )
   \\ qx_genl_tac[`p`,`q`]
@@ -889,16 +898,18 @@ Proof
   \\ simp[chu_morphism_map_component_equality]
   \\ rpt(qpat_x_assum`_ o _ -: _ = _`mp_tac)
   \\ DEP_REWRITE_TAC[compose_in_thm]
-  \\ simp[composable_in_def]
+  \\ rpt(qpat_x_assum`_ ∈ (pre_chu _).mor`mp_tac)
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ ntac 4 strip_tac
   \\ disch_then (SUBST1_TAC o GSYM)
   \\ disch_then (SUBST1_TAC o GSYM)
-  \\ simp[pre_chu_def]
-  \\ simp[Abbr`p1`, Abbr`p2`]
-  \\ simp[FUN_EQ_THM, restrict_def]
+  \\ simp[morphism_component_equality]
+  \\ simp[FUN_EQ_THM]
+  \\ fs[is_chu_morphism_def, extensional_def,
+        inj1_def, inj2_def, mk_chu_morphism_def,
+        restrict_def, sum_def, EXISTS_PROD, PULL_EXISTS]
   \\ strip_tac
   \\ strip_tac
-  \\ fs[pre_chu_def, is_chu_morphism_def, extensional_def, restrict_def]
-  \\ fs[sum_def, EXISTS_PROD, PULL_EXISTS]
   \\ conj_tac
   >- (
     qx_gen_tac`z`
@@ -920,6 +931,35 @@ Proof
     \\ first_x_assum(fn th =>
          qspec_then`z`mp_tac th \\ simp[] \\ disch_then(qx_choose_then`_1`strip_assume_tac))
     \\ simp[] )
+QED
+
+Theorem has_binary_products_chu_op:
+  has_binary_products (chu w)°
+Proof
+  simp[has_binary_products_thm, is_binary_product_thm]
+  \\ rpt strip_tac
+  \\ qexists_tac`sum a b`
+  \\ qexists_tac`op_mor(inj1 a b)`
+  \\ qexists_tac`op_mor(inj2 a b)`
+  \\ rw[]
+  \\ last_assum (mp_then Any mp_tac sum_is_sum)
+  \\ disch_then (first_assum o mp_then Any mp_tac)
+  \\ simp[EXISTS_UNIQUE_ALT]
+  \\ strip_tac
+  \\ qexists_tac`m°`
+  \\ qx_gen_tac`n`
+  \\ first_x_assum(qspec_then`n°`strip_assume_tac)
+  \\ `m° = n ⇔ m = n°` by metis_tac[op_mor_idem]
+  \\ pop_assum SUBST1_TAC
+  \\ pop_assum (SUBST1_TAC o GSYM)
+  \\ Cases_on`n° :- sum a b → p -: chu w` \\ simp[]
+  \\ DEP_REWRITE_TAC[op_cat_compose_in]
+  \\ simp[]
+  \\ conj_tac
+  >- (
+    fs[composable_in_def, pre_chu_def, maps_to_in_def]
+    \\ rw[] \\ fs[] )
+  \\ metis_tac[op_mor_idem]
 QED
 
 Definition cfT_def:
@@ -976,6 +1016,12 @@ Definition prod_def:
        env := IMAGE encode_sum (IMAGE INL c1.env ∪ IMAGE INR c2.env);
        eval := flip (sum_eval (flip c1.eval) (flip c2.eval)) |>
 End
+
+Theorem prod_world[simp]:
+  (prod c1 c2).world = c1.world ∪ c2.world
+Proof
+  rw[prod_def]
+QED
 
 val _ = overload_on("&&", ``prod``)
 val _ = set_fixity "&&" (Infix (LEFT, 500))

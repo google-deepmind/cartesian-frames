@@ -1133,4 +1133,150 @@ Proof
                empty_agent_nonempty_env, empty_env_nonempty_agent]
 QED
 
+Definition cf1_def:
+  cf1 w s = mk_cf <| world := w; agent := {""}; env := s; eval := λa e. e |>
+End
+
+Definition cfbot_def:
+  cfbot w s = swap (cf1 w s)
+End
+
+Theorem cf1_components[simp]:
+  (cf1 w s).world = w ∧
+  (cf1 w s).agent = {""} ∧
+  (cf1 w s).env = s
+Proof
+  rw[cf1_def]
+QED
+
+Theorem cf1_empty:
+  cf1 w ∅ = cfT w
+Proof
+  rw[cf1_def, cf_component_equality, cfT_agent_env]
+  \\ rw[cfT_def, cf0_def, mk_cf_def, swap_def, FUN_EQ_THM]
+QED
+
+Theorem cfbot_empty:
+  cfbot w ∅ = cf0 w
+Proof
+  rw[cfbot_def, cf_component_equality, cf1_def, cf0_def]
+  \\ EVAL_TAC \\ simp[FUN_EQ_THM]
+QED
+
+Theorem biextensional_cf1[simp]:
+  biextensional (cf1 w s)
+Proof
+  rw[biextensional_def, cf1_def, mk_cf_def] \\ rfs[]
+QED
+
+Theorem biextensional_cfbot[simp]:
+  biextensional (cfbot w s)
+Proof
+  rw[cfbot_def]
+QED
+
+Theorem wf_cf1[simp]:
+  s ⊆ w ⇒ wf (cf1 w s)
+Proof
+  rw[cf1_def, image_def]
+QED
+
+Theorem wf_cfbot[simp]:
+  s ⊆ w ⇒ wf (cfbot w s)
+Proof
+  rw[cfbot_def]
+QED
+
+Theorem cf1_in_chu_objects[simp]:
+  s ⊆ w ⇒ cf1 w s ∈ chu_objects w
+Proof
+  rw[chu_objects_def] \\ rw[cf1_def]
+QED
+
+Theorem cfbot_in_chu_objects[simp]:
+  s ⊆ w ⇒ cfbot w s ∈ chu_objects w
+Proof
+  rw[cfbot_def]
+QED
+
+Theorem sing_agent:
+  c ∈ chu_objects w ∧ SING (c.agent) ⇒ c ≃ cf1 w (image c) -: w
+Proof
+  rw[SING_DEF]
+  \\ `image c ⊆ w` by (
+    fs[chu_objects_def, wf_def, image_def, SUBSET_DEF, PULL_EXISTS] \\ rw[] )
+  \\ `c ^ ≅ cf1 w (image c) -: chu w` suffices_by
+     metis_tac[homotopy_equiv_iff_iso_collapse,
+               cf1_in_chu_objects, homotopy_equiv_sym,
+               biextensional_collapse_idem, wf_cf1,
+               biextensional_cf1]
+  \\ rw[iso_objs_thm, chu_iso_bij]
+  \\ qexists_tac`mk_chu_morphism (biextensional_collapse c) (cf1 w (image c))
+       <| map_agent := K ""; map_env := λs. rep { e | e ∈ c.env ∧ c.eval x e = s } |>`
+  \\ simp[mk_chu_morphism_def]
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def, restrict_def, extensional_def]
+    \\ simp[cf1_def, mk_cf_def]
+    \\ simp[biextensional_collapse_def, mk_cf_def]
+    \\ simp[image_def, PULL_EXISTS]
+    \\ simp[env_equiv_def]
+    \\ rw[]
+    \\ TRY (
+      TRY (`F` suffices_by rw[] \\ qpat_x_assum`¬_`mp_tac \\ simp[])
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ AP_TERM_TAC \\ rw[EXTENSION] \\ metis_tac[] )
+    \\ qmatch_abbrev_tac`c.eval x1 y1 = _`
+    \\ `x1 = rep {x}`
+    by (
+      qunabbrev_tac`x1`
+      \\ AP_TERM_TAC
+      \\ simp[EXTENSION, agent_equiv_def]
+      \\ metis_tac[] )
+    \\ qmatch_asmsub_abbrev_tac`y1 = rep s`
+    \\ `y1 ∈ s` by (
+      qunabbrev_tac`y1`
+      \\ match_mp_tac rep_in
+      \\ simp[Abbr`s`,GSYM MEMBER_NOT_EMPTY]
+      \\ metis_tac[] )
+    \\ pop_assum mp_tac
+    \\ simp[Abbr`s`] )
+  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism _ _ f`
+  \\ imp_res_tac maps_to_in_def
+  \\ fs[pre_chu_def]
+  \\ conj_tac
+  >- (
+    simp[BIJ_IFF_INV, restrict_def]
+    \\ simp[biextensional_collapse_def]
+    \\ qmatch_goalsub_abbrev_tac`_ "" = xx`
+    \\ qexists_tac`K xx` \\ rw[] )
+  \\ simp[BIJ_IFF_INV, restrict_def]
+  \\ simp[biextensional_collapse_def, PULL_EXISTS]
+  \\ simp[image_def, PULL_EXISTS]
+  \\ simp[env_equiv_def]
+  \\ qexists_tac`c.eval x`
+  \\ rw[]
+  \\ (qmatch_goalsub_abbrev_tac`_ = (rep s)` ORELSE qmatch_goalsub_abbrev_tac`rep s`)
+  \\ `rep s ∈ s` by ( match_mp_tac rep_in \\ rw[EXTENSION, Abbr`s`] \\ metis_tac[] )
+  \\ fs[Abbr`s`]
+  \\ TRY (goal_assum(first_assum o mp_then Any mp_tac))
+  \\ TRY (AP_TERM_TAC \\ simp[EXTENSION])
+  \\ metis_tac[]
+QED
+
+Theorem sing_env:
+  c ∈ chu_objects w ∧ SING (c.env) ⇒ c ≃ cfbot w (image c) -: w
+Proof
+  rw[]
+  \\ `image c ⊆ w` by (
+    fs[chu_objects_def, wf_def, image_def, SUBSET_DEF, PULL_EXISTS] \\ rw[] )
+  \\ `swap c ≃ cf1 w (image c) -: w` suffices_by
+        metis_tac[swap_swap, homotopy_equiv_swap, swap_in_chu_objects,
+                  cf1_in_chu_objects, cfbot_def]
+  \\ rewrite_tac[Once (GSYM image_swap)]
+  \\ irule sing_agent
+  \\ simp[]
+QED
+
 val _ = export_theory();

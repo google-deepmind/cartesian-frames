@@ -172,6 +172,12 @@ Proof
   rw[swap_def]
 QED
 
+Theorem wf_swap[simp]:
+  wf (swap c) ⇔ wf c
+Proof
+  rw[wf_def] \\ metis_tac[]
+QED
+
 Theorem swap_in_chu_objects[simp]:
   swap c ∈ chu_objects w ⇔ c ∈ chu_objects w
 Proof
@@ -184,6 +190,13 @@ Theorem swap_swap[simp]:
 Proof
   rw[swap_def, cf_component_equality]
   \\ rw[FUN_EQ_THM]
+QED
+
+Theorem image_swap[simp]:
+  image (swap c) = image c
+Proof
+  rw[image_def, EXTENSION]
+  \\ metis_tac[]
 QED
 
 Definition swap_morphism_map_def:

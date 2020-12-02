@@ -20,10 +20,11 @@ val _ = new_theory"cf0";
 
 (* Cartesian Frames *)
 
-val _ = type_abbrev("act", ``:string``)
-
 Datatype:
-  cf = <| agent: act set; env: act set; world: 'w set; eval: act -> act -> 'w |>
+  cf = <| world: string set;
+          agent: string set;
+          env: string set;
+          eval: string -> string -> string |>
 End
 
 Definition wf_def:

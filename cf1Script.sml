@@ -21,7 +21,7 @@ open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory limi
 val _ = new_theory"cf1";
 
 Datatype:
-  chu_morphism_map = <| map_agent: act -> act; map_env: act -> act |>
+  chu_morphism_map = <| map_agent: string -> string; map_env: string -> string |>
 End
 
 val chu_morphism_map_component_equality = theorem"chu_morphism_map_component_equality";
@@ -66,7 +66,7 @@ Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
 
-Type chu_morphism[pp] = ``:('w cf, 'w cf, chu_morphism_map) morphism``;
+Type chu_morphism[pp] = ``:(cf, cf, chu_morphism_map) morphism``;
 
 Definition pre_chu_def:
   pre_chu w =

@@ -153,6 +153,22 @@ Proof
   rw[composable_in_def, chu_def, mk_cat_def, restrict_def]
 QED
 
+Theorem maps_to_in_chu:
+  f :- c → d -: chu w ⇔
+    c ∈ chu_objects w ∧ d ∈ chu_objects w ∧ is_chu_morphism c d f.map ∧
+    f.dom = c ∧ f.cod = d
+Proof
+  rw[maps_to_in_def, pre_chu_def]
+  \\ metis_tac[]
+QED
+
+Theorem is_chu_morphism_maps_to:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧ is_chu_morphism c d m ⇒
+    <| dom := c; cod := d; map := m |> :- c → d -: chu w
+Proof
+  rw[maps_to_in_def, pre_chu_def]
+QED
+
 Definition swap_def:
   swap c = <| world := c.world; agent := c.env; env := c.agent;
               eval := flip c.eval |>

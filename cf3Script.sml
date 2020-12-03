@@ -15,7 +15,7 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse
-     pred_setTheory categoryTheory
+     pred_setTheory pairTheory categoryTheory
      cf0Theory cf1Theory cf2Theory
 
 val _ = new_theory"cf3";
@@ -99,6 +99,118 @@ Proof
   by ( simp[maps_to_in_def, pre_chu_def] )
   \\ `∃p. p :- cf1 w x → c && d -: chu w` by metis_tac[prod_is_prod, EXISTS_UNIQUE_THM]
   \\ fs[maps_to_in_def, pre_chu_def]
+  \\ metis_tac[]
+QED
+
+Theorem ensure_sum:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧ c ≠ null w ∧ d ≠ null w ⇒
+  ensure (sum c d) = ensure c ∪ ensure d
+Proof
+  strip_tac
+  \\ Cases_on`c.env = ∅`
+  >- (
+    Cases_on`c.agent = ∅`
+    >- (
+      `c = null w` by (
+        simp_tac std_ss [cf_component_equality]
+        \\ simp[null_def]
+        \\ fs[chu_objects_def, wf_def]
+        \\ simp[FUN_EQ_THM] )
+      \\ fs[] )
+    \\ `ensure c ∪ ensure d = POW w`
+    by (
+      simp[EXTENSION, IN_POW]
+      \\ simp[ensure_def]
+      \\ fs[chu_objects_def]
+      \\ metis_tac[MEMBER_NOT_EMPTY] )
+    \\ `ensure (sum c d) = POW w`
+    by (
+      simp[EXTENSION, IN_POW]
+      \\ simp[ensure_def, PULL_EXISTS]
+      \\ simp[sum_def]
+      \\ fs[chu_objects_def]
+      \\ metis_tac[MEMBER_NOT_EMPTY] )
+    \\ simp[] )
+  \\ Cases_on`d.env = ∅`
+  >- (
+    Cases_on`d.agent = ∅`
+    >- (
+      `d = null w` by (
+        simp_tac std_ss [cf_component_equality]
+        \\ simp[null_def]
+        \\ fs[chu_objects_def, wf_def]
+        \\ simp[FUN_EQ_THM] )
+      \\ fs[] )
+    \\ `ensure c ∪ ensure d = POW w`
+    by (
+      simp[EXTENSION, IN_POW]
+      \\ simp[ensure_def]
+      \\ fs[chu_objects_def]
+      \\ metis_tac[MEMBER_NOT_EMPTY] )
+    \\ `ensure (sum c d) = POW w`
+    by (
+      simp[EXTENSION, IN_POW]
+      \\ simp[ensure_def, PULL_EXISTS]
+      \\ simp[sum_def]
+      \\ fs[chu_objects_def]
+      \\ metis_tac[MEMBER_NOT_EMPTY] )
+    \\ simp[] )
+  \\ once_rewrite_tac[SET_EQ_SUBSET]
+  \\ `c.world = w ∧ d.world = w ∧ (sum c d).world = w`
+  by ( simp[sum_def] \\ fs[chu_objects_def] )
+  \\ reverse conj_tac
+  >- (
+    simp[Once SUBSET_DEF, ensure_cf1_morphism]
+    \\ simp[Once SUBSET_DEF, SimpR``(/\)``]
+    \\ simp[ensure_cf1_morphism]
+    \\ conj_tac \\ gen_tac \\ strip_tac
+    \\ pop_assum(mp_then Any mp_tac is_chu_morphism_maps_to)
+    \\ disch_then(qspec_then`w`mp_tac) \\ simp[] \\ strip_tac
+    \\ metis_tac[cf1_in_chu_objects, inj_maps_to, maps_to_comp,
+                 is_category_chu, maps_to_in_chu] )
+  \\ simp[SUBSET_DEF]
+  \\ simp[ensure_cf1_morphism]
+  \\ gen_tac \\ strip_tac
+  \\ fs[is_chu_morphism_def, extensional_def]
+  \\ qpat_x_assum`_ ∈ _.agent`mp_tac
+  \\ simp[Once sum_def]
+  \\ simp[PULL_EXISTS]
+  \\ strip_tac
+  \\ qmatch_assum_rename_tac`z ∈ _.agent`
+  >- (
+    disj1_tac
+    \\ fs[sum_def, mk_cf_def, EXISTS_PROD, sum_eval_def, PULL_EXISTS]
+    \\ qexists_tac`<| map_agent := restrict (K z) {""};
+                      map_env := restrict (m.map_env o (λp1. encode_pair (p1, CHOICE d.env))) c.env |>`
+    \\ simp[restrict_def]
+    \\ metis_tac[CHOICE_DEF])
+  \\ disj2_tac
+  \\ fs[sum_def, mk_cf_def, EXISTS_PROD, sum_eval_def, PULL_EXISTS]
+  \\ qexists_tac`<| map_agent := restrict (K z) {""};
+                    map_env := restrict (m.map_env o (λp2. encode_pair (CHOICE c.env, p2))) d.env |>`
+  \\ simp[restrict_def]
+  \\ metis_tac[CHOICE_DEF]
+QED
+
+(* TODO: prove counterxample ensure_sum if c or d is null? *)
+
+Theorem homotopy_equiv_ensure:
+  c ≃ d -: w  ⇒ ensure c = ensure d
+Proof
+  rw[homotopy_equiv_def]
+  \\ simp[EXTENSION, ensure_cf1_morphism]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def] \\ fs[]
+  \\ gen_tac \\ EQ_TAC \\ strip_tac \\ simp[]
+  \\ pop_assum(mp_then Any (qspec_then`w`mp_tac) is_chu_morphism_maps_to)
+  \\ simp[]
+  \\ metis_tac[maps_to_in_chu, maps_to_comp, cf1_in_chu_objects, is_category_chu]
+QED
+
+Theorem ensure_prevent_swap_disjoint:
+  DISJOINT (ensure c) (prevent (swap c))
+Proof
+  rw[ensure_def, prevent_def, IN_DISJOINT]
   \\ metis_tac[]
 QED
 

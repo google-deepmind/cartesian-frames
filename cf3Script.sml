@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-open HolKernel boolLib bossLib Parse
+open HolKernel boolLib bossLib Parse dep_rewrite
      pred_setTheory pairTheory categoryTheory
      cf0Theory cf1Theory cf2Theory
 
@@ -212,6 +212,76 @@ Theorem ensure_prevent_swap_disjoint:
 Proof
   rw[ensure_def, prevent_def, IN_DISJOINT]
   \\ metis_tac[]
+QED
+
+Definition cf2_def:
+  cf2 w s = sum (cf1 w s) (cf1 w (w DIFF s))
+End
+
+(* TODO: example of cf2 for a particular w and s *)
+
+Theorem ctrl_cf2_morphism:
+  c ∈ chu_objects w ⇒
+  (s ∈ ctrl c ⇔ s ⊆ w ∧ ∃m. is_chu_morphism (cf2 w s) c m)
+Proof
+  rw[ctrl_def, ensure_cf1_morphism]
+  \\ rw[UNDISCH prevent_cf1_morphism]
+  \\ `c.world = w` by fs[chu_objects_def] \\ fs[]
+  \\ simp[cf2_def]
+  \\ Cases_on`s ⊆ w` \\ simp[]
+  \\ EQ_TAC \\ strip_tac
+  \\ rpt(first_x_assum(mp_then (Pos(el 3)) (qspec_then`w`mp_tac) is_chu_morphism_maps_to))
+  \\ simp[]
+  \\ PROVE_TAC[sum_is_sum, inj_maps_to, cf1_in_chu_objects, DIFF_SUBSET,
+               is_category_chu, EXISTS_UNIQUE_THM, maps_to_comp, maps_to_in_chu]
+QED
+
+Theorem ctrl_ensure_compl:
+  c ∈ chu_objects w ⇒
+  (s ∈ ctrl c ⇔ s ∈ ensure c ∧ (w DIFF s) ∈ ensure c)
+Proof
+  rw[ctrl_def, prevent_def]
+  \\ rw[ensure_def]
+  \\ fs[chu_objects_def]
+  \\ fs[wf_def, SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
+Theorem ctrl_morphism_mono:
+  m :- c → d -: chu w ⇒ ctrl c ⊆ ctrl d
+Proof
+  rw[SUBSET_DEF]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ rpt(first_x_assum (mp_then Any strip_assume_tac ctrl_ensure_compl))
+  \\ fs[]
+  \\ imp_res_tac ensure_morphism_mono
+  \\ fs[SUBSET_DEF]
+QED
+
+Theorem ctrl_prod:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  ctrl (c && d) = ctrl c ∩ ctrl d
+Proof
+  rw[EXTENSION]
+  \\ last_assum (mp_then Any (first_assum o mp_then Any strip_assume_tac) prod_in_chu_objects)
+  \\ EVERY_ASSUM (mp_then Any strip_assume_tac ctrl_ensure_compl)
+  \\ fs[]
+  \\ DEP_REWRITE_TAC[ensure_prod]
+  \\ simp[]
+  \\ metis_tac[]
+QED
+
+Theorem homotopy_equiv_ctrl:
+  c ≃ d -: w ⇒ ctrl c = ctrl d
+Proof
+  rw[EXTENSION]
+  \\ `c ∈ chu_objects w ∧ d ∈ chu_objects w` by (
+    fs[homotopy_equiv_def]
+    \\ imp_res_tac maps_to_obj
+    \\ fs[] )
+  \\ DEP_REWRITE_TAC[ctrl_ensure_compl]
+  \\ simp[]
+  \\ metis_tac[homotopy_equiv_ensure]
 QED
 
 val _ = export_theory();

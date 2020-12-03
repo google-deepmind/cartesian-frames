@@ -68,4 +68,38 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem ensure_prod:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  (ensure (c && d) = ensure c ∩ ensure d)
+Proof
+  strip_tac
+  \\ simp[EXTENSION]
+  \\ simp[ensure_cf1_morphism]
+  \\ gen_tac
+  \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def]
+  \\ Cases_on`x ⊆ c.world` \\ rfs[]
+  \\ simp[EQ_IMP_THM]
+  \\ conj_tac
+  >- (
+    strip_tac
+    \\ `<| dom := cf1 w x; cod := c && d; map := m|> :- cf1 w x → c && d -: chu w`
+    by ( simp[maps_to_in_def, pre_chu_def] )
+    \\ qspecl_then[`c`,`d`]mp_tac(Q.GENL[`a`,`b`]proj_maps_to)
+    \\ impl_tac >- simp[] \\ strip_tac
+    \\ imp_res_tac maps_to_comp
+    \\ rpt(first_x_assum(qspec_then`ARB`kall_tac)) \\ fs[]
+    \\ fs[maps_to_in_def, pre_chu_def]
+    \\ metis_tac[] )
+  \\ simp[PULL_EXISTS]
+  \\ qx_genl_tac[`m1`,`m2`]
+  \\ strip_tac
+  \\ `<| dom := cf1 w x; cod := c; map := m1|> :- cf1 w x → c -: chu w`
+  by ( simp[maps_to_in_def, pre_chu_def] )
+  \\ `<| dom := cf1 w x; cod := d; map := m2|> :- cf1 w x → d -: chu w`
+  by ( simp[maps_to_in_def, pre_chu_def] )
+  \\ `∃p. p :- cf1 w x → c && d -: chu w` by metis_tac[prod_is_prod, EXISTS_UNIQUE_THM]
+  \\ fs[maps_to_in_def, pre_chu_def]
+  \\ metis_tac[]
+QED
+
 val _ = export_theory();

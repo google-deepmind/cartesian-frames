@@ -285,6 +285,13 @@ Proof
   \\ fs[FUN_EQ_THM]
 QED
 
+Theorem swap_morphism_maps_to:
+  swap_morphism f :- (swap a) → (swap b) -: (op_cat (chu w)) ⇔ f :- a → b -: chu w
+Proof
+  rw[maps_to_in_def, pre_chu_def]
+  \\ metis_tac[swap_swap]
+QED
+
 Theorem op_mor_swap_morphism:
   op_mor (swap_morphism m) = swap_morphism (op_mor m)
 Proof
@@ -1047,105 +1054,100 @@ Proof
   \\ fsrw_tac[boolSimps.ETA_ss][C_DEF]
 QED
 
+Definition proj1_def:
+  proj1 a b = op_mor (swap_morphism (inj1 (swap a) (swap b)))
+End
+
+Definition proj2_def:
+  proj2 a b = op_mor (swap_morphism (inj2 (swap a) (swap b)))
+End
+
+Theorem proj_maps_to[simp]:
+  a ∈ chu_objects w ∧ b ∈ chu_objects w ⇒
+  proj1 a b :- a && b → a -: chu w ∧
+  proj2 a b :- a && b → b -: chu w
+Proof
+  rw[proj1_def, proj2_def]
+  \\ once_rewrite_tac[GSYM swap_morphism_maps_to]
+  \\ simp[op_mor_swap_morphism]
+  \\ simp[Once(GSYM(swap_sum_prod))]
+QED
+
+Theorem FORALL_op_mor:
+  (!) P = (!) (P o op_mor)
+Proof
+  CONV_TAC(LAND_CONV(RAND_CONV(REWR_CONV(GSYM ETA_AX))))
+  \\ rw[o_DEF, EQ_IMP_THM]
+  \\ first_x_assum(qspec_then`op_mor x`mp_tac)
+  \\ rw[]
+QED
+
+Theorem FORALL_swap_morphism:
+  (!) P = (!) (P o swap_morphism)
+Proof
+  CONV_TAC(LAND_CONV(RAND_CONV(REWR_CONV(GSYM ETA_AX))))
+  \\ rw[o_DEF, EQ_IMP_THM]
+  \\ first_x_assum(qspec_then`swap_morphism x`mp_tac)
+  \\ rw[]
+QED
+
+Theorem prod_is_prod:
+  ∀p p1 p2.
+    p1 :- p → a -: chu w ∧ p2 :- p → b -: chu w ⇒
+    ∃!m.
+      m :- p → a && b -: chu w ∧
+      proj1 a b o m -: chu w = p1 ∧
+      proj2 a b o m -: chu w = p2
+Proof
+  rw[]
+  \\ imp_res_tac swap_morphism_maps_to
+  \\ fs[]
+  \\ first_assum(mp_then Any mp_tac (GEN_ALL sum_is_sum))
+  \\ disch_then(last_assum o mp_then Any mp_tac)
+  \\ rewrite_tac[GSYM swap_sum_prod]
+  \\ simp[EXISTS_UNIQUE_ALT]
+  \\ strip_tac
+  \\ simp[proj1_def, proj2_def]
+  \\ CONV_TAC(QUANT_CONV(REWR_CONV FORALL_op_mor))
+  \\ simp[o_DEF]
+  \\ CONV_TAC(QUANT_CONV(REWR_CONV FORALL_swap_morphism))
+  \\ simp[o_DEF]
+  \\ qexists_tac`op_mor (swap_morphism m)`
+  \\ simp[Once(GSYM swap_morphism_maps_to)]
+  \\ simp[Once op_mor_swap_morphism]
+  \\ pop_assum mp_tac
+  \\ CONV_TAC(LAND_CONV(ONCE_REWRITE_CONV[GSYM op_mor_inj]))
+  \\ CONV_TAC(LAND_CONV(REWRITE_CONV[op_mor_idem]))
+  \\ CONV_TAC(LAND_CONV(ONCE_REWRITE_CONV[GSYM swap_morphism_inj]))
+  \\ CONV_TAC(LAND_CONV(REWRITE_CONV[swap_morphism_idem]))
+  \\ simp[]
+  \\ simp[GSYM op_mor_swap_morphism]
+  \\ strip_tac
+  \\ gen_tac
+  \\ first_x_assum(qspec_then`x`mp_tac)
+  \\ disch_then(SUBST1_TAC o SYM)
+  \\ Cases_on`x :- sum(swap a)(swap b) → swap p -: chu w` \\ simp[]
+  \\ DEP_REWRITE_TAC[swap_morphism_comp]
+  \\ DEP_REWRITE_TAC[op_cat_compose_in]
+  \\ simp[]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ imp_res_tac maps_to_in_def \\ fs[pre_chu_def]
+  \\ metis_tac[is_chu_morphism_swap, swap_swap, inj_is_chu_morphism]
+QED
+
 Theorem has_binary_products_chu:
   has_binary_products (chu w)
 Proof
-  assume_tac has_binary_products_chu_op
-  \\ fs[has_binary_products_thm]
-  \\ fs[is_binary_product_thm]
-  \\ rpt gen_tac \\ strip_tac
-  \\ first_x_assum(qspecl_then[`swap a`,`swap b`]mp_tac)
-  \\ simp[] \\ strip_tac
-  \\ qexists_tac`swap ab`
-  \\ qexists_tac`(op_swap_functor w) ## $π1`
-  \\ qexists_tac`(op_swap_functor w) ## $π2`
-  \\ rewrite_tac[CONJ_ASSOC]
-  \\ conj_asm1_tac
-  >- (
-    conj_tac
-    \\ match_mp_tac morf_maps_to \\ simp[]
-    \\ simp[Once op_swap_functor_def]
-    \\ simp[Once op_swap_functor_def]
-    \\ imp_res_tac maps_to_obj
-    \\ goal_assum(first_assum o mp_then Any mp_tac)
-    \\ fs[] )
-  \\ rpt gen_tac \\ strip_tac
-  \\ first_x_assum(qspecl_then[`swap p`,`swap_functor w ## p1`,`swap_functor w ## p2`]mp_tac)
-  \\ impl_keep_tac
-  >- (
-    conj_tac
-    \\ rewrite_tac[GSYM op_cat_maps_to_in]
-    \\ match_mp_tac morf_maps_to \\ simp[]
-    \\ simp[Once swap_functor_def]
-    \\ simp[Once swap_functor_def]
-    \\ goal_assum(first_assum o mp_then Any mp_tac)
-    \\ imp_res_tac maps_to_obj
-    \\ fs[] )
-  \\ CHANGED_TAC(simp[GSYM CONJ_ASSOC])
-  \\ Ho_Rewrite.REWRITE_TAC[EXISTS_UNIQUE_THM]
-  \\ strip_tac
-  \\ conj_tac
-  >- (
-    first_x_assum(qspec_then`ARB`kall_tac)
-    \\ qexists_tac`op_swap_functor w ## m`
-    \\ conj_asm1_tac
-    >- (
-      match_mp_tac morf_maps_to \\ simp[]
-      \\ simp[Once op_swap_functor_def]
-      \\ simp[Once op_swap_functor_def]
-      \\ goal_assum(first_assum o mp_then Any mp_tac)
-      \\ imp_res_tac maps_to_obj
-      \\ fs[] )
-    \\ qmatch_goalsub_abbrev_tac`(G ## g) o (G ## f) -: chu w`
-    \\ qspecl_then[`G`,`op_cat(chu w)`]mp_tac morf_comp
-    \\ disch_then(fn th=> DEP_REWRITE_TAC[GSYM th])
-    \\ simp[Abbr`G`,Abbr`f`,Abbr`g`]
-    \\ simp[Once op_swap_functor_def]
-    \\ simp[Once op_swap_functor_def]
-    \\ conj_tac
-    >- (
-      conj_tac
-      \\ match_mp_tac maps_to_composable
-      \\ metis_tac[] )
-    \\ fs[]
-    \\ metis_tac[swap_functor_morf, maps_to_in_def, chu_mor,
-                 op_cat_maps_to_in, swap_morphism_idem])
-  \\ qx_genl_tac[`s`,`t`]
-  \\ strip_tac
-  \\ `swap_functor w ## s = swap_functor w ## t` suffices_by (
-    metis_tac[swap_functor_morf, maps_to_in_def, chu_mor, swap_morphism_inj] )
-  \\ first_x_assum match_mp_tac
-  \\ CONV_TAC(markerLib.move_conj_left(Lib.mem"t" o List.map (#1 o dest_var) o free_vars))
-  \\ simp[GSYM CONJ_ASSOC]
-  \\ simp[Once CONJ_ASSOC]
-  \\ conj_asm1_tac
-  >- (
-    conj_tac
-    \\ once_rewrite_tac[GSYM op_cat_maps_to_in]
-    \\ match_mp_tac morf_maps_to \\ simp[]
-    \\ simp[Once swap_functor_def]
-    \\ simp[Once swap_functor_def]
-    \\ goal_assum(first_assum o mp_then Any mp_tac)
-    \\ imp_res_tac maps_to_obj \\ fs[] )
-  \\ fs[]
-  \\ qpat_x_assum`_ o s -: _ = p1`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
-  \\ qpat_x_assum`_ o s -: _ = p2`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
-  \\ qpat_x_assum`_ o t -: _ = p1`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
-  \\ qpat_x_assum`_ o t -: _ = p2`(mp_tac o Q.AP_TERM`morf (swap_functor w )`)
-  \\ qspecl_then[`swap_functor w`,`chu w`,`op_cat(chu w)`](fn th => DEP_REWRITE_TAC[th])morf_comp
+  simp[has_binary_products_thm, is_binary_product_thm]
+  \\ rpt strip_tac
+  \\ qexists_tac`prod a b`
+  \\ qexists_tac`proj1 a b`
+  \\ qexists_tac`proj2 a b`
+  \\ rw[]
+  \\ last_assum (mp_then Any mp_tac prod_is_prod)
+  \\ disch_then (first_assum o mp_then Any mp_tac)
   \\ simp[]
-  \\ reverse conj_asm1_tac
-  >- (
-    fs[]
-    \\ imp_res_tac maps_to_composable
-    \\ fs[composable_in_def, maps_to_in_def]
-    \\ DEP_REWRITE_TAC[swap_functor_morf]
-    \\ fs[]
-    \\ metis_tac[op_mor_idem] )
-  \\ simp[]
-  \\ simp[swap_functor_def]
-  \\ simp[composable_in_def]
-  \\ fs[maps_to_in_def]
 QED
 
 Theorem wf_prod[simp]:

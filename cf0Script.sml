@@ -240,6 +240,13 @@ Proof
   \\ fs[env_for_def] \\ fs[ifs_def] \\ metis_tac[]
 QED
 
+Theorem env_for_compl_disjoint:
+  c.agent ≠ ∅ ⇒
+  DISJOINT (env_for c s) (env_for c (c.world DIFF s))
+Proof
+  rw[IN_DISJOINT, env_for_def] \\ metis_tac[MEMBER_NOT_EMPTY]
+QED
+
 Theorem ctrl_obs_disjoint:
   wf c ∧ c.env ≠ {} ⇒ DISJOINT (ctrl c) (obs c)
 Proof

@@ -1181,6 +1181,13 @@ Proof
   rw[chu_objects_def] \\ rw[prod_def]
 QED
 
+Theorem prod_comm:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒
+  prod c1 c2 ≅ prod c2 c1 -: chu w
+Proof
+  rw[GSYM swap_sum_prod, sum_comm]
+QED
+
 (* Scott proves this in the next post (i.e. our cf2Theory).
    We prove here since we'll sometimes prove isomorphism instead of equality in
    cf1 examples (ex1Theory). *)

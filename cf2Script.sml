@@ -970,6 +970,24 @@ Definition null_def:
   null w = <| world := w; agent := ∅; env := ∅; eval := K (K ARB)|>
 End
 
+Theorem null_prod_null[simp]:
+  null w && null w = null w
+Proof
+  rw[null_def, prod_def, mk_cf_def, FUN_EQ_THM]
+QED
+
+Theorem wf_null[simp]:
+  wf (null w)
+Proof
+  rw[wf_def, null_def]
+QED
+
+Theorem null_in_chu_objects[simp]:
+  null w ∈ chu_objects w
+Proof
+  rw[chu_objects_def] \\ rw[null_def]
+QED
+
 Theorem biextensional_collapse_idem[simp]:
   wf c ∧ biextensional c ⇒ biextensional_collapse c = c
 Proof
@@ -1221,6 +1239,15 @@ Proof
   \\ rewrite_tac[Once (GSYM image_swap)]
   \\ irule sing_agent
   \\ simp[]
+QED
+
+Theorem cf0_prod_cf0:
+  cf0 w && cf0 w ≃ cf0 w -: w
+Proof
+  match_mp_tac empty_agent_nonempty_env
+  \\ simp[]
+  \\ simp[prod_def]
+  \\ simp[cf0_def]
 QED
 
 val _ = export_theory();

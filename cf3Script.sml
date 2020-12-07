@@ -284,4 +284,222 @@ Proof
   \\ metis_tac[homotopy_equiv_ensure]
 QED
 
+Theorem obs_homotopy_equiv:
+  c ≃ d -: w ⇒ obs c = obs d
+Proof
+  `∀c d. c ≃ d -: w ⇒ obs c ⊆ obs d`
+    suffices_by metis_tac[homotopy_equiv_sym, SET_EQ_SUBSET]
+  \\ rw[homotopy_equiv_def, SUBSET_DEF]
+  \\ fs[obs_def]
+  \\ imp_res_tac maps_to_obj \\ fs[]
+  \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def] \\ fs[]
+  \\ rpt gen_tac \\ strip_tac
+  \\ first_x_assum(qspecl_then[`g.map.map_agent a0`,`g.map.map_agent a1`]mp_tac)
+  \\ impl_keep_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ disch_then(qx_choose_then`a`strip_assume_tac)
+  \\ qexists_tac`f.map.map_agent a`
+  \\ fs[ifs_def]
+  \\ conj_asm1_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ qx_gen_tac`e` \\ strip_tac
+  \\ first_x_assum(qspec_then`f.map.map_env e`mp_tac)
+  \\ impl_keep_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ strip_tac
+  \\ qabbrev_tac`fA = f.map.map_agent`
+  \\ qabbrev_tac`fE = f.map.map_env`
+  \\ qabbrev_tac`gA = g.map.map_agent`
+  \\ qabbrev_tac`gE = g.map.map_env`
+  \\ rpt(qhdtm_x_assum`homotopic`mp_tac)
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ imp_res_tac (#1(EQ_IMP_RULE maps_to_in_chu)) \\ fs[]
+  \\ simp[hom_comb_def]
+  \\ simp[chu_id_morphism_map_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ simp[is_chu_morphism_def]
+  \\ strip_tac
+  \\ pop_assum(strip_assume_tac o GSYM)
+  \\ strip_tac
+  \\ pop_assum(strip_assume_tac o GSYM)
+  \\ fs[restrict_def]
+  \\ qhdtm_x_assum`is_chu_morphism`mp_tac
+  \\ qhdtm_x_assum`is_chu_morphism`mp_tac
+  \\ simp[is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem image_compl_obs_prod:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ s ⊆ w ∧
+  image c1 ⊆ s ∧ image c2 ⊆ w DIFF s ⇒ s ∈ obs (c1 && c2)
+Proof
+  rw[obs_def]
+  >- fs[chu_objects_def]
+  \\ simp[ifs_def]
+  \\ qexists_tac`encode_pair (FST(decode_pair a0), SND(decode_pair a1))`
+  \\ conj_asm1_tac >- fs[prod_def]
+  \\ gen_tac
+  \\ simp[Once prod_def, PULL_EXISTS]
+  \\ fs[image_def, SUBSET_DEF, PULL_EXISTS]
+  \\ pop_assum mp_tac
+  \\ simp[prod_def, mk_cf_def, EXISTS_PROD, PULL_EXISTS]
+  \\ strip_tac
+  \\ simp[sum_eval_def]
+  \\ strip_tac \\ rw[]
+  \\ rfs[prod_def, EXISTS_PROD]
+  \\ metis_tac[]
+QED
+
+Theorem obs_homotopy_equiv_prod:
+  c ∈ chu_objects w ⇒
+  (s ∈ obs c ⇔ s ⊆ w ∧
+   ∃c1 c2. c1 ∈ chu_objects w ∧
+           c2 ∈ chu_objects w ∧
+           image c1 ⊆ s ∧ image c2 ⊆ w DIFF s ∧
+           c ≃ c1 && c2 -: w)
+Proof
+  strip_tac
+  \\ EQ_TAC
+  >- (
+    strip_tac
+    \\ qabbrev_tac`c1 = mk_cf (c with env := env_for c s)`
+    \\ qabbrev_tac`c2 = mk_cf (c with env := env_for c (w DIFF s))`
+    \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
+    by (
+      fs[chu_objects_def, Abbr`c1`, Abbr`c2`, env_for_def]
+      \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
+      \\ fs[wf_def] )
+    \\ conj_asm1_tac
+    >- ( fs[obs_def, chu_objects_def] \\ rfs[] )
+    \\ map_every qexists_tac[`c1`,`c2`] \\ simp[]
+    \\ conj_asm1_tac
+    >- (simp[image_def, Abbr`c1`, SUBSET_DEF, PULL_EXISTS, mk_cf_def, env_for_def])
+    \\ conj_asm1_tac
+    >- (simp[image_def, Abbr`c2`, SUBSET_DEF, PULL_EXISTS, mk_cf_def, env_for_def]
+        \\ fs[chu_objects_def, wf_def])
+    \\ Cases_on`c.agent = ∅`
+    >- (
+      `c1 = c2 ∧ c2 = c`
+      by (
+        simp[Abbr`c1`,Abbr`c2`,mk_cf_def, env_for_def]
+        \\ fs[chu_objects_def, wf_def]
+        \\ simp[cf_component_equality, FUN_EQ_THM])
+      \\ simp[]
+      \\ Cases_on`c.env = ∅`
+      >- (
+        `c = null w` by (
+          simp[null_def, cf_component_equality]
+          \\ fs[chu_objects_def, wf_def]
+          \\ simp[FUN_EQ_THM] )
+        \\ simp[] )
+      \\ `c ≃ cf0 w -: w` by metis_tac[empty_agent_nonempty_env]
+      \\ `c ≃ cf0 w && cf0 w -: w` by metis_tac[cf0_prod_cf0, homotopy_equiv_trans, homotopy_equiv_sym]
+      \\ `c && c ≃ cf0 w && cf0 w -: w` by metis_tac[homotopy_equiv_prod, cf0_in_chu_objects]
+      \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym] )
+    \\ simp[homotopy_equiv_def]
+    \\ qexists_tac`mk_chu_morphism c (c1 && c2)
+                     <| map_agent := W (CURRY encode_pair);
+                        map_env := λe. sum_CASE (decode_sum e) I I |>`
+    \\ qexists_tac`mk_chu_morphism (c1 && c2) c
+                     <| map_agent := λp. @a. a ∈ UNCURRY (ifs c s) (decode_pair p);
+                        map_env := λe. encode_sum ((if e ∈ c1.env then INL else INR) e) |>`
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[prod_def, PULL_EXISTS, mk_cf_def]
+      \\ simp[Abbr`c1`, Abbr`c2`, mk_cf_def, PULL_EXISTS, env_for_def]
+      \\ rw[] \\ rw[]
+      \\ rw[sum_eval_def] )
+    \\ `(c1 && c2).env = IMAGE (encode_sum o (λe. (if e ∈ env_for c s then INL else INR) e)) c.env`
+    by (
+      simp[Abbr`c1`, Abbr`c2`, prod_def, mk_cf_def, IMAGE_COMPOSE]
+      \\ rewrite_tac[GSYM IMAGE_UNION]
+      \\ AP_TERM_TAC
+      \\ imp_res_tac env_for_compl_disjoint
+      \\ pop_assum(qspec_then`s`mp_tac)
+      \\ simp[IN_DISJOINT]
+      \\ simp[EXTENSION, PULL_EXISTS]
+      \\ `∀s e. e ∈ env_for c s ⇒ e ∈ c.env` by simp[env_for_def]
+      \\ `wf c ∧ c.world = w` by fs[chu_objects_def]
+      \\ metis_tac[obs_env_for] )
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[GSYM FORALL_AND_THM]
+      \\ simp[PULL_FORALL]
+      \\ rpt gen_tac
+      \\ conj_tac >- (simp[Abbr`c1`] \\ metis_tac[])
+      \\ Cases_on`a ∈ (c1 && c2).agent` \\ simp[]
+      \\ SELECT_ELIM_TAC
+      \\ pop_assum mp_tac
+      \\ simp[Once prod_def, EXISTS_PROD]
+      \\ strip_tac \\ simp[]
+      \\ conj_tac >- fs[obs_def, Abbr`c1`, Abbr`c2`]
+      \\ simp[prod_def, mk_cf_def, Abbr`c1`, Abbr`c2`]
+      \\ rw[] \\ rfs[] \\ fs[] \\ rw[]
+      \\ fs[ifs_def]
+      \\ rw[sum_eval_def]
+      \\ TRY(fs[env_for_def] \\ NO_TAC)
+      \\ imp_res_tac env_for_compl_disjoint
+      \\ pop_assum(qspec_then`s`mp_tac)
+      \\ simp[IN_DISJOINT]
+      \\ fs[chu_objects_def]
+      \\ metis_tac[obs_env_for])
+    \\ qmatch_abbrev_tac`homotopic w (f o g -: _) _ ∧ homotopic w (g o f -: _) _`
+    \\ imp_res_tac maps_to_comp \\ fs[]
+    \\ imp_res_tac (#1(EQ_IMP_RULE maps_to_in_chu))
+    \\ simp[homotopic_def, pre_chu_def]
+    \\ simp[hom_comb_def, chu_id_morphism_map_def]
+    \\ qpat_x_assum`is_chu_morphism _ _ (_ o _ -: _).map`mp_tac
+    \\ qpat_x_assum`is_chu_morphism _ _ (_ o _ -: _).map`mp_tac
+    \\ DEP_REWRITE_TAC[compose_in_thm]
+    \\ DEP_REWRITE_TAC[compose_thm]
+    \\ simp[composable_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ ntac 2 strip_tac
+    \\ conj_tac
+    >- (
+      simp[Abbr`f`,Abbr`g`,mk_chu_morphism_def,restrict_def]
+      \\ simp[prod_def]
+      \\ rpt gen_tac
+      \\ strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ simp[ifs_def]
+      \\ conj_tac >- metis_tac[]
+      \\ simp[Abbr`c1`, Abbr`c2`]
+      \\ metis_tac[] )
+    \\ rpt gen_tac
+    \\ strip_tac
+    \\ simp[Abbr`g`, Abbr`f`, mk_chu_morphism_def, restrict_def]
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac
+    >- (
+      qpat_x_assum`a ∈ _`mp_tac
+      \\ simp[prod_def, EXISTS_PROD]
+      \\ strip_tac
+      \\ simp[]
+      \\ qpat_x_assum`_ ∈ obs _`mp_tac
+      \\ simp[obs_def]
+      \\ fs[Abbr`c1`, Abbr`c2`] )
+    \\ gen_tac
+    \\ qpat_x_assum`a ∈ _`mp_tac
+    \\ simp[Once prod_def, EXISTS_PROD]
+    \\ strip_tac \\ simp[]
+    \\ simp[ifs_def]
+    \\ strip_tac
+    \\ simp[prod_def, mk_cf_def, Abbr`c1`, Abbr`c2`, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[] \\ rw[sum_eval_def] \\ qpat_x_assum`(COND _ _ _) _ = _`mp_tac \\ rw[]
+    \\ TRY(fs[env_for_def] \\ NO_TAC)
+    \\ fs[chu_objects_def]
+    \\ metis_tac[obs_env_for] )
+  \\ strip_tac
+  \\ `s ∈ obs (c1 && c2)` by metis_tac[image_compl_obs_prod]
+  \\ metis_tac[obs_homotopy_equiv]
+QED
+
 val _ = export_theory();

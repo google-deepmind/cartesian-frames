@@ -1241,13 +1241,20 @@ Proof
   \\ simp[]
 QED
 
-Theorem cf0_prod_cf0:
+Theorem cf0_prod_cf0[simp]:
   cf0 w && cf0 w ≃ cf0 w -: w
 Proof
   match_mp_tac empty_agent_nonempty_env
   \\ simp[]
   \\ simp[prod_def]
   \\ simp[cf0_def]
+QED
+
+Theorem prod_cfT[simp]:
+  c ∈ chu_objects w ⇒ cfT w && c ≅ c -: chu w ∧ c && cfT w ≅ c -: chu w
+Proof
+  rw[cfT_def, GSYM swap_sum_prod]
+  \\ metis_tac[sum_cf0, swap_in_chu_objects, swap_swap, iso_objs_trans, swap_iso, is_category_chu]
 QED
 
 val _ = export_theory();

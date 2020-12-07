@@ -236,15 +236,20 @@ Proof
                is_category_chu, EXISTS_UNIQUE_THM, maps_to_comp, maps_to_in_chu]
 QED
 
+Theorem prevent_ensure_compl:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒ (s ∈ prevent c ⇔ w DIFF s ∈  ensure c)
+Proof
+  rw[prevent_def, chu_objects_def, wf_def, ensure_def, SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
 Theorem ctrl_ensure_compl:
   c ∈ chu_objects w ⇒
   (s ∈ ctrl c ⇔ s ∈ ensure c ∧ (w DIFF s) ∈ ensure c)
 Proof
-  rw[ctrl_def, prevent_def]
-  \\ rw[ensure_def]
-  \\ fs[chu_objects_def]
-  \\ fs[wf_def, SUBSET_DEF]
-  \\ metis_tac[]
+  rw[ctrl_def]
+  \\ reverse(Cases_on`s ⊆ w`) >- fs[ensure_def, chu_objects_def]
+  \\ metis_tac[prevent_ensure_compl]
 QED
 
 Theorem ctrl_morphism_mono:
@@ -500,6 +505,72 @@ Proof
   \\ strip_tac
   \\ `s ∈ obs (c1 && c2)` by metis_tac[image_compl_obs_prod]
   \\ metis_tac[obs_homotopy_equiv]
+QED
+
+Theorem prod_ensure_prevent_equiv_cfT:
+  c ∈ chu_objects w ∧ c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ s ⊆ w ∧
+  c ≃ c1 && c2 -: w ∧ image c1 ⊆ s ∧ image c2 ⊆ w DIFF s ⇒
+    (s ∈ prevent c ⇒ c1 ≃ cfT w -: w) ∧
+    (s ∈ ensure c ⇒ c2 ≃ cfT w -: w)
+Proof
+  qho_match_abbrev_tac `P c c1 c2 s ⇒ Q c c1 c2 s ∧ R c c1 c2 s`
+  \\ `∀c c1 c2 s. P c c1 c2 s ⇒ R c c1 c2 s` suffices_by (
+    simp[Abbr`P`, Abbr`R`, Abbr`Q`]
+    \\ reverse(rw[]) \\ first_x_assum irule \\ simp[]
+    >- metis_tac[]
+    \\ qexists_tac`c`
+    \\ qexists_tac`c2`
+    \\ qexists_tac`w DIFF s`
+    \\ simp[GSYM prevent_ensure_compl]
+    \\ simp[DIFF_DIFF_SUBSET]
+    \\ metis_tac[homotopy_equiv_trans, prod_comm, iso_homotopy_equiv] )
+  \\ rw[Abbr`P`, Abbr`R`, Abbr`Q`]
+  \\ rfs[ensure_cf1_morphism]
+  \\ `c.world = w` by fs[chu_objects_def]
+  \\ first_assum(mp_then Any (qspec_then`w`mp_tac) is_chu_morphism_maps_to)
+  \\ simp[] \\ strip_tac
+  \\ `∃f. f :- c → c1 && c2 -: chu w` by metis_tac[homotopy_equiv_def]
+  \\ last_assum(mp_then Any mp_tac maps_to_comp)
+  \\ simp[]
+  \\ disch_then(first_assum o mp_then Any strip_assume_tac)
+  \\ first_assum(mp_then Any (qspecl_then[`proj2 c1 c2`,`c2`]mp_tac) maps_to_comp)
+  \\ simp[] \\ strip_tac
+  \\ first_assum(mp_then Any mp_tac (#1(EQ_IMP_RULE(maps_to_in_chu))))
+  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism _ _ g.map`
+  \\ simp[is_chu_morphism_def] \\ strip_tac
+  \\ reverse(Cases_on`c2.env = ∅`)
+  >- (
+    fs[GSYM MEMBER_NOT_EMPTY]
+    \\ `c2.eval (g.map.map_agent "") x ∈ w DIFF s`
+    by ( fs[image_def, SUBSET_DEF] \\ metis_tac[] )
+    \\ `(cf1 w s).eval "" (g.map.map_env x) ∈ s`
+    by ( rewrite_tac[cf1_def] \\ simp[mk_cf_def] )
+    \\ metis_tac[IN_DIFF] )
+  \\ `c2.agent ≠ ∅` by metis_tac[MEMBER_NOT_EMPTY]
+  \\ metis_tac[empty_env_nonempty_agent]
+QED
+
+Theorem cfT_ctrl_obs_disjoint:
+  c ∈ chu_objects w ∧ ¬(c ≃ cfT w -: w) ⇒ DISJOINT (ctrl c) (obs c)
+Proof
+  CCONTR_TAC \\ fs[IN_DISJOINT]
+  \\ fs[UNDISCH(obs_homotopy_equiv_prod)]
+  \\ fs[ctrl_def]
+  \\ `c1 ≃ cfT w -: w ∧ c2 ≃ cfT w -: w` by metis_tac[prod_ensure_prevent_equiv_cfT]
+  \\ PROVE_TAC[homotopy_equiv_prod, homotopy_equiv_trans,
+               iso_homotopy_equiv, prod_cfT, cfT_in_chu_objects]
+QED
+
+Theorem image_subset_ensure_inter_obs_alt:
+  c ∈ chu_objects w ∧ s ∈ ensure c ∩ obs c ⇒ image c ⊆ s
+Proof
+  rw[]
+  \\ fs[UNDISCH(obs_homotopy_equiv_prod)]
+  \\ `c2 ≃ cfT w -: w` by metis_tac[prod_ensure_prevent_equiv_cfT]
+  \\ `c ≃ c1 -: w` by metis_tac[homotopy_equiv_trans, prod_cfT,
+                                homotopy_equiv_prod, iso_homotopy_equiv,
+                                cfT_in_chu_objects, homotopy_equiv_refl]
+  \\ metis_tac[homotopy_equiv_image]
 QED
 
 val _ = export_theory();

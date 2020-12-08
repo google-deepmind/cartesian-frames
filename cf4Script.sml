@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
    pairTheory pred_setTheory categoryTheory functorTheory
-   cf0Theory cf1Theory cf2Theory
+   cf0Theory cf1Theory cf2Theory cf3Theory
 
 val _ = new_theory"cf4";
 
@@ -162,6 +162,13 @@ Proof
   rw[move_functor_def, mk_functor_def, morf_def, restrict_def]
 QED
 
+Theorem image_move:
+  image (move p v c) = IMAGE p (image c)
+Proof
+  rw[image_def, move_def, EXTENSION, PULL_EXISTS]
+  \\ metis_tac[]
+QED
+
 Theorem move_sum:
   move p v (sum c d) = sum (move p v c) (move p v d)
 Proof
@@ -250,6 +257,24 @@ Proof
   rw[ensure_def, ctrl_def, prevent_def, SUBSET_DEF, PULL_EXISTS, EQ_IMP_THM,
      chu_objects_def, wf_def, move_def]
   \\ metis_tac[]
+QED
+
+Theorem obs_move:
+  IMAGE p w ⊆ v ∧ c ∈ chu_objects w ∧ s ⊆ w ∧ t ⊆ v ∧ (∀x. x ∈ w ⇒ (p x ∈ t ⇔ x ∈ s)) ∧ s ∈ obs c ⇒
+  t ∈ obs (move p v c)
+Proof
+  strip_tac
+  \\ rfs[UNDISCH(obs_homotopy_equiv_prod)]
+  \\ imp_res_tac homotopy_equiv_move
+  \\ fs[move_prod]
+  \\ DEP_REWRITE_TAC[Q.SPEC`v`(Q.GEN`w`obs_homotopy_equiv_prod)]
+  \\ simp[]
+  \\ conj_asm1_tac >- metis_tac[move_in_chu_objects]
+  \\ map_every qexists_tac[`move p v c1`, `move p v c2`]
+  \\ conj_asm1_tac >- metis_tac[move_in_chu_objects]
+  \\ conj_asm1_tac >- metis_tac[move_in_chu_objects]
+  \\ simp[image_move]
+  \\ fs[SUBSET_DEF, PULL_EXISTS]
 QED
 
 val _ = export_theory();

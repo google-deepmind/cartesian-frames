@@ -65,6 +65,15 @@ Proof
   rw[is_chu_morphism_def]
 QED
 
+Theorem move_morphism_maps_to[simp]:
+  IMAGE p w ⊆ v ∧ m :- c → d -: chu w ⇒
+  (move_morphism p v m :- move p v c → move p v d -: chu v)
+Proof
+  simp[maps_to_in_chu]
+  \\ strip_tac
+  \\ metis_tac[move_in_chu_objects, is_chu_morphism_move]
+QED
+
 Definition pre_move_functor_def:
   pre_move_functor p w v =
     <| dom := chu w;
@@ -200,6 +209,47 @@ Theorem move_null[simp]:
 Proof
   rw[cf_component_equality, null_def]
   \\ rw[FUN_EQ_THM, move_def]
+QED
+
+(* TODO: proof about getting cf1 and cfbot from 1 and ⊥ via functors? *)
+
+Theorem homotopy_equiv_move:
+  IMAGE p w ⊆ v ∧ c ≃ d -: w ⇒ move p v c ≃ move p v d -: v
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`move_morphism p v f`
+  \\ qexists_tac`move_morphism p v g`
+  \\ conj_asm1_tac >- metis_tac[move_morphism_maps_to]
+  \\ conj_asm1_tac >- metis_tac[move_morphism_maps_to]
+  \\ rpt(qhdtm_x_assum`homotopic`mp_tac)
+  \\ imp_res_tac(#1(EQ_IMP_RULE maps_to_in_chu))
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ simp[]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[homotopic_def, pre_chu_def, hom_comb_def]
+  \\ fs[]
+  \\ simp[chu_id_morphism_map_def]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[composable_in_def, pre_chu_def]
+QED
+
+Theorem ensure_move:
+  IMAGE p w ⊆ v ∧ s ⊆ w ∧ s ∈ ensure c ⇒ IMAGE p s ∈ ensure (move p v c)
+Proof
+  rw[ensure_def, SUBSET_DEF, PULL_EXISTS]
+  \\ rw[move_def]
+  \\ metis_tac[]
+QED
+
+Theorem ensure_ctrl_move_iff:
+  IMAGE p w ⊆ v ∧ c ∈ chu_objects w ∧ s ⊆ w ∧ t ⊆ v ∧ (∀x. x ∈ w ⇒ (p x ∈ t ⇔  x ∈ s)) ⇒
+    (s ∈ ensure c ⇔ t ∈ ensure (move p v c)) ∧
+    (s ∈ ctrl c ⇔ t ∈ ctrl (move p v c))
+Proof
+  rw[ensure_def, ctrl_def, prevent_def, SUBSET_DEF, PULL_EXISTS, EQ_IMP_THM,
+     chu_objects_def, wf_def, move_def]
+  \\ metis_tac[]
 QED
 
 val _ = export_theory();

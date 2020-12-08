@@ -150,6 +150,7 @@ Theorem cf_matrix_sum_exc:
       ["2"; "3"] ]
 Proof
   rw[cf_matrix_def, sum_exc_def]
+  >- (pop_assum mp_tac \\ EVAL_TAC)
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
@@ -164,6 +165,7 @@ Theorem cf_matrix_sum_exd:
       ["10"; "11"; "12"] ]
 Proof
   rw[cf_matrix_def, sum_exd_def]
+  >- (pop_assum mp_tac \\ EVAL_TAC)
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
@@ -187,6 +189,7 @@ Proof
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
   \\ simp[INSERT_UNION, mk_cf_def]
+  \\ IF_CASES_TAC >- ( pop_assum mp_tac \\ EVAL_TAC )
   \\ qsort_set_to_list_tac
   \\ EVAL_TAC
 QED
@@ -207,6 +210,7 @@ Proof
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
   \\ simp[INSERT_UNION, mk_cf_def]
+  \\ IF_CASES_TAC >- ( pop_assum mp_tac \\ EVAL_TAC )
   \\ qsort_set_to_list_tac
   \\ EVAL_TAC
 QED

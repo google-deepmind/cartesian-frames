@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-open HolKernel boolLib bossLib Parse cf0Theory categoryTheory functorTheory limitTheory
-     dep_rewrite combinTheory sumTheory pairTheory pred_setTheory
-     listTheory rich_listTheory ASCIInumbersTheory
+open HolKernel boolLib bossLib Parse dep_rewrite
+     combinTheory sumTheory pairTheory pred_setTheory
+     sortingTheory listTheory rich_listTheory ASCIInumbersTheory
+     categoryTheory functorTheory limitTheory cf0Theory matrixTheory
 
 val _ = new_theory"cf1";
 
@@ -208,6 +209,30 @@ Theorem image_swap[simp]:
 Proof
   rw[image_def, EXTENSION]
   \\ metis_tac[]
+QED
+
+Theorem transpose_swap:
+  FINITE c.agent ∧ FINITE c.env ⇒
+  transpose (cf_matrix c) = cf_matrix (swap c)
+Proof
+  rw[cf_matrix_def, transpose_def, NULL_EQ] \\ fs[]
+  >- (
+    qpat_x_assum`_ = []` mp_tac
+    \\ rw[]
+    >- EVAL_TAC
+    \\ imp_res_tac SET_TO_LIST_THM
+    \\ fs[] \\ rfs[QSORT_DEF, UNCURRY] )
+  >- ( qpat_x_assum`_ ≠ []` mp_tac \\ EVAL_TAC )
+  \\ simp[Once LIST_EQ_REWRITE]
+  \\ conj_asm1_tac
+  >- (
+    qmatch_goalsub_abbrev_tac`HD (MAP _ ls)`
+    \\ Cases_on`ls` \\ fs[] )
+  \\ rw[]
+  \\ simp[EL_MAP]
+  \\ simp[swap_def]
+  \\ simp[MAP_MAP_o]
+  \\ simp[o_DEF, EL_MAP, C_DEF]
 QED
 
 Definition swap_morphism_map_def:

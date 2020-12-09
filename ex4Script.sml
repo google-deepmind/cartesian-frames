@@ -68,8 +68,8 @@ End
 
 Theorem prime_world_coarse_eq = CONV_RULE(RAND_CONV EVAL) prime_world_coarse_def
 
-Theorem move_prime_cf_matrix:
-  cf_matrix (move (TAKE 2) prime_world_coarse prime_cf) =
+Theorem move_fn_prime_cf_matrix:
+  cf_matrix (move_fn (TAKE 2) prime_world_coarse prime_cf) =
              (* N *) (* P *)
     (* AH *) [["NA"; "PA"];
     (* IH *)  ["NI"; "PI"];
@@ -84,8 +84,8 @@ Proof
   \\ EVAL_TAC
 QED
 
-Theorem biextensional_collapse_move_prime_cf_matrix:
-  cf_matrix (biextensional_collapse (move (TAKE 2) prime_world_coarse prime_cf)) =
+Theorem biextensional_collapse_move_fn_prime_cf_matrix:
+  cf_matrix (biextensional_collapse (move_fn (TAKE 2) prime_world_coarse prime_cf)) =
             (* N *) (* P *)
     (* A *) [["NA"; "PA"];
     (* I *)  ["NI"; "PI"];
@@ -161,8 +161,8 @@ Proof
   \\ EVAL_TAC
 QED
 
-(* TODO: observable set in move but not in base *)
+(* TODO: observable set in move_fn but not in base *)
 
-(* TODO: move as a product *)
+(* TODO: move_fn as a product *)
 
 val _ = export_theory();

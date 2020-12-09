@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
      pred_setTheory helperSetTheory pairTheory relationTheory listTheory sortingTheory stringTheory
-     categoryTheory cf0Theory cf1Theory
+     categoryTheory cf0Theory matrixTheory cf1Theory
 
 val _ = new_theory"cf2";
 
@@ -444,7 +444,55 @@ Definition biextensional_def:
       ⇒ e1 = e2)
 End
 
-(* TODO: prove biextensional iff matrix row/cols all distinct *)
+Theorem biextensional_distinct_matrix:
+  FINITE c.agent ∧ FINITE c.env ⇒
+    (biextensional c ⇔ ALL_DISTINCT (cf_matrix c) ∧ ALL_DISTINCT (cf_matrix (swap c)))
+Proof
+  rw[biextensional_def, cf_matrix_def]
+  \\ qmatch_goalsub_abbrev_tac`(MAP f (QSORT R L))`
+  \\ qspecl_then[`MAP f (QSORT R L)`, `MAP f L`]mp_tac ALL_DISTINCT_PERM
+  \\ impl_tac >- metis_tac[QSORT_PERM, PERM_SYM, PERM_MAP]
+  \\ disch_then SUBST1_TAC
+  \\ qmatch_goalsub_abbrev_tac`_ ∧ _ (MAP f2 (QSORT R L2))`
+  \\ qspecl_then[`MAP f2 (QSORT R L2)`, `MAP f2 L2`]mp_tac ALL_DISTINCT_PERM
+  \\ impl_tac >- metis_tac[QSORT_PERM, PERM_SYM, PERM_MAP]
+  \\ disch_then SUBST1_TAC
+  \\ simp[Abbr`f`, Abbr`f2`, Abbr`L`, Abbr`L2`]
+  \\ EQ_TAC
+  >- (
+    strip_tac
+    \\ conj_tac
+    \\ irule ALL_DISTINCT_MAP_INJ
+    \\ simp[MAP_EQ_f, QSORT_MEM]
+    \\ ntac 2 (pop_assum mp_tac) \\ rewrite_tac[agent_equiv_def, env_equiv_def]
+    \\ metis_tac[])
+  \\ simp[EL_ALL_DISTINCT_EL_EQ, EL_MAP]
+  \\ strip_tac
+  \\ conj_tac
+  >- (
+    rw[agent_equiv_def]
+    \\ `MEM a1 (SET_TO_LIST c.agent) ∧ MEM a2 (SET_TO_LIST c.agent)` by fs[]
+    \\ fs[MEM_EL]
+    \\ first_x_assum(first_assum o mp_then Any mp_tac)
+    \\ disch_then(last_assum o mp_then Any mp_tac)
+    \\ simp[MAP_EQ_f, QSORT_MEM]
+    \\ metis_tac[])
+  \\ rw[env_equiv_def]
+  \\ `MEM e1 (SET_TO_LIST c.env) ∧ MEM e2 (SET_TO_LIST c.env)` by fs[]
+  \\ fs[MEM_EL]
+  \\ last_x_assum(first_assum o mp_then Any mp_tac)
+  \\ disch_then(last_assum o mp_then Any mp_tac)
+  \\ simp[MAP_EQ_f, QSORT_MEM]
+  \\ metis_tac[]
+QED
+
+Theorem biextensional_swap[simp]:
+  biextensional (swap c) ⇔ biextensional c
+Proof
+  rw[biextensional_def]
+  \\ rw[agent_equiv_def, env_equiv_def]
+  \\ metis_tac[]
+QED
 
 Theorem biextensional_homotopy_equiv_iso:
   biextensional c ∧ biextensional d ⇒

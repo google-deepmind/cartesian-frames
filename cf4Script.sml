@@ -445,4 +445,74 @@ Proof
   rw[move_def, null_def, mk_cf_def, FUN_EQ_THM]
 QED
 
+(* we don't have equality here because our encodings
+   of sums and products do not commute *)
+Theorem move_prod:
+  c ∈ chu_objects w ∧ d1 ∈ chu_objects v ∧ d2 ∈ chu_objects v ∧ c.agent = v ⇒
+  move c (d1 && d2) ≅ move c d1 && move c d2 -: chu w
+Proof
+  rw[iso_objs_thm]
+  \\ rw[maps_to_in_chu]
+  \\ qexists_tac`mk_chu_morphism (move c (d1 && d2)) (move c d1 && move c d2)
+                   <| map_agent := I;
+                      map_env := λx.
+                        sum_CASE (decode_sum x)
+                          (λp. encode_pair (encode_sum(INL(FST(decode_pair p))),
+                                            SND(decode_pair p)))
+                          (λp. encode_pair (encode_sum(INR(FST(decode_pair p))),
+                                            SND(decode_pair p))) |>`
+  \\ simp[]
+  \\ conj_asm1_tac
+  >- (
+    simp[mk_chu_morphism_def, is_chu_morphism_def]
+    \\ simp[prod_def, restrict_def, mk_cf_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[move_def, mk_cf_def, restrict_def] \\ rw[sum_eval_def] \\ fs[] )
+  \\ simp[chu_iso_bij]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[prod_def, restrict_def, PULL_EXISTS]
+  \\ conj_tac >- ( simp[BIJ_IFF_INV] \\ qexists_tac`I` \\ simp[] )
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS, EXISTS_PROD]
+  \\ qexists_tac`λp. sum_CASE (decode_sum(FST(decode_pair p)))
+                              (λx. encode_sum(INL(encode_pair(x, SND(decode_pair p)))))
+                              (λx. encode_sum(INR(encode_pair(x, SND(decode_pair p)))))`
+  \\ rw[] \\ fs[]
+QED
+
+Theorem homotopy_equiv_move:
+  c ∈ chu_objects w ∧ c.agent = v ∧
+  d1 ≃ d2 -: v ⇒ move c d1 ≃ move c d2 -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`move_morphism c f`
+  \\ qexists_tac`move_morphism c g`
+  \\ simp[]
+  \\ ntac 4 (pop_assum mp_tac)
+  \\ simp[AND_IMP_INTRO]
+  \\ qho_match_abbrev_tac`A f g d1 d2 ⇒ Q f g d1 d2 ∧ Q g f d2 d1`
+  \\ map_every qid_spec_tac[`f`,`g`,`d1`,`d2`]
+  \\ `∀f g d1 d2. A f g d1 d2 ⇒ Q f g d1 d2` suffices_by ( rw[Abbr`A`, Abbr`Q`] \\ metis_tac[] )
+  \\ rw[Abbr`A`, Abbr`Q`]
+  \\ first_assum(mp_then Any (qspecl_then[`c`,`w`]mp_tac) move_morphism_maps_to)
+  \\ last_assum(mp_then Any (qspecl_then[`c`,`w`]mp_tac) move_morphism_maps_to)
+  \\ impl_tac >- simp[] \\ strip_tac
+  \\ impl_tac >- simp[] \\ strip_tac
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ imp_res_tac (#1(EQ_IMP_RULE maps_to_in_chu))
+  \\ rpt (qhdtm_x_assum`homotopic`mp_tac)
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ simp[hom_comb_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[CONJ_ASSOC]
+  \\ conj_tac
+  >- (simp[composable_in_def, pre_chu_def]
+      \\ metis_tac[is_chu_morphism_move])
+  \\ simp[pre_chu_def]
+  \\ fs[is_chu_morphism_def, EXISTS_PROD, PULL_EXISTS, restrict_def]
+  \\ rw[] \\ fs[chu_id_morphism_map_def]
+  \\ fs[restrict_def, extensional_def]
+  \\ fs[move_morphism_def, mk_chu_morphism_def, restrict_def, move_morphism_map_def]
+QED
+
 val _ = export_theory();

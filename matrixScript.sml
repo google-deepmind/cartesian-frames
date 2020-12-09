@@ -20,13 +20,9 @@ open HolKernel boolLib bossLib boolSimps Parse dep_rewrite
 val _ = new_theory"matrix";
 
 Definition cf_matrix_def:
-  cf_matrix c = if c.env = ∅ then [] else
+  cf_matrix c =
    MAP (λa. MAP (c.eval a) (QSORT $<= (SET_TO_LIST c.env)))
        (QSORT $<= (SET_TO_LIST c.agent))
-End
-
-Definition transpose_def:
-  transpose m = if NULL m then [] else GENLIST (λn. MAP (EL n) m) (LENGTH (HD m))
 End
 
 Theorem QSORT_string_le_SET_TO_LIST:

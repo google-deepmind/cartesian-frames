@@ -277,4 +277,172 @@ Proof
   \\ fs[SUBSET_DEF, PULL_EXISTS]
 QED
 
+Definition move_def:
+  move c d = mk_cf
+    <| world := c.world;
+       agent := d.agent;
+       env := IMAGE encode_pair (d.env × c.env);
+       eval := λa e. c.eval (d.eval a (FST (decode_pair e))) (SND (decode_pair e)) |>
+End
+
+Theorem move_components[simp]:
+  (move c d).world = c.world ∧
+  (move c d).agent = d.agent ∧
+  (move c d).env = IMAGE encode_pair (d.env × c.env) ∧
+  (∀a p. a ∈ d.agent ∧ FST p ∈ d.env ∧ SND p ∈ c.env ⇒
+    (move c d).eval a (encode_pair p) = c.eval (d.eval a (FST p)) (SND p))
+Proof
+  rw[move_def] \\ rw[mk_cf_def]
+QED
+
+Theorem move_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ d ∈ chu_objects v ∧ c.agent = v ⇒
+  move c d ∈ chu_objects w
+Proof
+  rw[chu_objects_def]
+  \\ fs[wf_def, PULL_EXISTS]
+  \\ rw[move_def, mk_cf_def]
+  \\ rw[] \\ fs[]
+QED
+
+Definition move_morphism_map_def:
+  move_morphism_map m =
+    <| map_agent := m.map_agent;
+       map_env := λp. encode_pair (m.map_env (FST (decode_pair p)), SND (decode_pair p)) |>
+End
+
+Definition move_morphism_def:
+  move_morphism c m =
+    mk_chu_morphism (move c m.dom) (move c m.cod)
+      (move_morphism_map m.map)
+End
+
+Theorem move_morphism_components[simp]:
+  (move_morphism c m).dom = move c m.dom ∧
+  (move_morphism c m).cod = move c m.cod
+Proof
+  rw[move_morphism_def]
+QED
+
+Theorem is_chu_morphism_move[simp]:
+  is_chu_morphism m.dom m.cod m.map ⇒
+  is_chu_morphism (move c m.dom) (move c m.cod) (move_morphism c m).map
+Proof
+  rw[is_chu_morphism_def]
+  \\ rw[move_morphism_def, mk_chu_morphism_def, move_morphism_map_def]
+  \\ fs[extensional_def, FORALL_PROD, restrict_def]
+QED
+
+Theorem move_morphism_maps_to[simp]:
+  x ∈ chu_objects w ∧ x.agent = v ∧ m :- c → d -: chu v ⇒
+  (move_morphism x m :- move x c → move x d -: chu w)
+Proof
+  simp[maps_to_in_chu]
+  \\ strip_tac
+  \\ metis_tac[is_chu_morphism_move]
+QED
+
+Definition pre_move_functor_def:
+  pre_move_functor c = <| dom := chu c.agent; cod := chu c.world; map := move_morphism c |>
+End
+
+Theorem pre_move_functor_components[simp]:
+  (pre_move_functor c).dom = chu c.agent ∧
+  (pre_move_functor c).cod = chu c.world ∧
+  (pre_move_functor c).map = move_morphism c
+Proof
+  rw[pre_move_functor_def]
+QED
+
+Theorem pre_move_functor_objf[simp]:
+  c ∈ chu_objects w ∧ d ∈ chu_objects v ∧ c.agent = v ⇒
+  (pre_move_functor c) @@ d = move c d
+Proof
+  rw[objf_def, morf_def, pre_move_functor_def]
+  \\ SELECT_ELIM_TAC
+  \\ `c.world = w` by fs[chu_objects_def]
+  \\ conj_tac
+  >- (
+    qexists_tac`move c d`
+    \\ conj_asm1_tac >- metis_tac[move_in_chu_objects]
+    \\ simp[morphism_component_equality, move_morphism_def, mk_chu_morphism_def]
+    \\ simp[chu_morphism_map_component_equality, chu_id_morphism_map_def]
+    \\ simp[restrict_def, FUN_EQ_THM, move_morphism_map_def]
+    \\ rw[] \\ rw[] \\ fs[])
+  \\ gen_tac \\ strip_tac
+  \\ rfs[morphism_component_equality]
+QED
+
+Definition move_functor_def:
+  move_functor c = mk_functor (pre_move_functor c)
+End
+
+Theorem is_functor_move:
+  c ∈ chu_objects w ⇒
+  is_functor (move_functor c)
+Proof
+  rw[move_functor_def]
+  \\ simp[functor_axioms_def]
+  \\ simp[morf_def]
+  \\ `c.world = w` by fs[chu_objects_def]
+  \\ conj_tac
+  >- (
+    rpt gen_tac \\ strip_tac
+    \\ imp_res_tac(#1(EQ_IMP_RULE(maps_to_in_chu)))
+    \\ DEP_REWRITE_TAC[Q.GEN`v`pre_move_functor_objf]
+    \\ simp[])
+  \\ conj_tac
+  >- (
+    rpt gen_tac \\ strip_tac
+    \\ qexists_tac`move c x`
+    \\ simp[morphism_component_equality]
+    \\ simp[chu_morphism_map_component_equality, chu_id_morphism_map_def]
+    \\ simp[move_morphism_def, mk_chu_morphism_def, restrict_def, FUN_EQ_THM]
+    \\ rw[chu_id_morphism_map_def, restrict_def, move_morphism_map_def]
+    \\ fs[])
+  \\ rpt gen_tac \\ strip_tac
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[]
+  \\ fs[composable_in_def]
+  \\ fs[pre_chu_def]
+  \\ conj_asm1_tac >- metis_tac[is_chu_morphism_move]
+  \\ conj_asm1_tac >- metis_tac[is_chu_morphism_move]
+  \\ simp[morphism_component_equality]
+  \\ simp[move_morphism_def, mk_chu_morphism_def, move_morphism_map_def]
+  \\ simp[restrict_def, FUN_EQ_THM]
+  \\ rw[]
+  \\ fs[is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem move_functor_objf[simp]:
+  c ∈ chu_objects w ∧ d ∈ chu_objects v ∧ c.agent = v ⇒
+  (move_functor c) @@ d = move c d
+Proof
+  rw[move_functor_def]
+  \\ metis_tac[pre_move_functor_objf]
+QED
+
+Theorem move_fn_functor_morf[simp]:
+  m ∈ (pre_chu v).mor ∧ c.agent = v ⇒
+  (move_functor c) ## m = move_morphism c m
+Proof
+  rw[move_functor_def, mk_functor_def, morf_def, restrict_def]
+QED
+
+Theorem move_cfT[simp]:
+  move c (cfT w) = cfT c.world
+Proof
+  rw[move_def, mk_cf_def, cf_component_equality, cfT_def, cf0_def]
+  \\ rw[swap_def, FUN_EQ_THM]
+QED
+
+Theorem move_null[simp]:
+  move c (null w) = null c.world
+Proof
+  rw[move_def, null_def, mk_cf_def, FUN_EQ_THM]
+QED
+
 val _ = export_theory();

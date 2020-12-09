@@ -15,7 +15,8 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-   pairTheory pred_setTheory categoryTheory functorTheory
+   listTheory rich_listTheory alistTheory pairTheory
+   pred_setTheory categoryTheory functorTheory
    cf0Theory cf1Theory cf2Theory cf3Theory
 
 val _ = new_theory"cf4";
@@ -513,6 +514,244 @@ Proof
   \\ rw[] \\ fs[chu_id_morphism_map_def]
   \\ fs[restrict_def, extensional_def]
   \\ fs[move_morphism_def, mk_chu_morphism_def, restrict_def, move_morphism_map_def]
+QED
+
+Definition encode_list_def:
+  encode_list [] = "" ∧
+  encode_list (h::t) = encode_pair (h, encode_list t)
+End
+
+Definition decode_list_def:
+  decode_list s =
+    if NULL s then [] else
+    FST (decode_pair s) :: decode_list (SND (decode_pair s))
+Termination
+  WF_REL_TAC`measure LENGTH`
+  \\ reverse(rw[decode_pair_def, UNCURRY, NULL_EQ])
+  >- ( Cases_on`s` \\ fs[] )
+  \\ qmatch_goalsub_abbrev_tac`SPLITP P s`
+  \\ qspec_then`s`(SUBST1_TAC o GSYM) SPLITP_LENGTH
+  \\ Cases_on`SND (SPLITP P s)` \\ fs[]
+  \\ Cases_on`SPLITP P s` \\ rfs[]
+  \\ fs[SPLITP_NIL_SND_EVERY]
+  \\ Cases_on`s` \\ fs[]
+End
+
+Theorem decode_encode_list[simp]:
+  decode_list (encode_list l) = l
+Proof
+  Induct_on`l`
+  \\ simp[Once decode_list_def, encode_list_def]
+  \\ rw[]
+  \\ fs[encode_pair_def]
+QED
+
+Definition encode_function_def:
+  encode_function d f =
+  encode_list (MAP (λx. encode_pair (x, f x)) (SET_TO_LIST d))
+End
+
+Definition decode_function_def:
+  decode_function s =
+    λx. option_CASE (ALOOKUP (MAP decode_pair (decode_list s)) x) ARB I
+End
+
+Theorem decode_encode_function[simp]:
+  FINITE d ∧ extensional f d ⇒
+  decode_function (encode_function d f) = f
+Proof
+  rw[decode_function_def, FUN_EQ_THM, extensional_def]
+  \\ rw[encode_function_def, MAP_MAP_o, combinTheory.o_DEF]
+  \\ qmatch_goalsub_abbrev_tac`ALOOKUP ls x`
+  \\ Cases_on`ALOOKUP ls x` \\ simp[]
+  >- ( fs[ALOOKUP_FAILS, Abbr`ls`, MEM_MAP] \\ rfs[] )
+  \\ imp_res_tac ALOOKUP_MEM
+  \\ fs[Abbr`ls`, MEM_MAP]
+QED
+
+Definition cf_def:
+  cf p e w = mk_cf
+    <| world := w; agent := IMAGE (encode_function e) p;
+       env := e; eval := decode_function |>
+End
+
+Theorem cf_components[simp]:
+  (cf p e w).world = w ∧
+  (cf p e w).agent = IMAGE (encode_function e) p ∧
+  (cf p e w).env = e
+Proof
+  rw[cf_def]
+QED
+
+Theorem cf_in_chu_objects:
+  FINITE e ∧ (∀f. f ∈ p ⇒extensional f e ∧ IMAGE f e ⊆ w) ⇒
+  cf p e w ∈ chu_objects w
+Proof
+  rw[chu_objects_def]
+  \\ rw[wf_def, cf_def, mk_cf_def] \\ rw[]
+  \\ fs[SUBSET_DEF, PULL_EXISTS]
+  \\ metis_tac[decode_encode_function]
+QED
+
+Theorem exists_homotopy_equiv_cf:
+  c ∈ chu_objects w ∧ FINITE e ∧ c.env = e ⇒
+  ∃p. (∀f. f ∈ p ⇒ extensional f e ∧ IMAGE f e ⊆ w) ∧
+      c ≃ cf p e w -: w
+Proof
+  rw[]
+  \\ qexists_tac`{f | extensional f c.env ∧ IMAGE f c.env ⊆ w ∧
+                      ∃a. a ∈ c.agent ∧ ∀e. e ∈ c.env ⇒ f e = c.eval a e}`
+  \\ simp[]
+  \\ qmatch_goalsub_abbrev_tac`cf p e`
+  \\ `cf p e w ∈ chu_objects w` by ( irule cf_in_chu_objects \\ simp[Abbr`p`] )
+  \\ simp[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism c (cf p e w)
+                   <| map_agent := encode_function c.env o c.eval; map_env := I |>`
+  \\ qexists_tac`mk_chu_morphism (cf p e w) c
+                   <| map_agent := λf. @a. a ∈ c.agent ∧
+                                           ∀e. e ∈ c.env ⇒ decode_function f e = c.eval a e;
+                      map_env := I |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[cf_def, mk_cf_def]
+    \\ simp[Abbr`p`]
+    \\ conj_asm1_tac
+    >- (
+      fs[chu_objects_def, wf_def]
+      \\ rw[]
+      \\ qexists_tac`c.eval a`
+      \\ simp[extensional_def, SUBSET_DEF, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ rw[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ fs[chu_objects_def, wf_def]
+    \\ rw[extensional_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def, PULL_EXISTS]
+    \\ CONV_TAC(RAND_CONV(SWAP_FORALL_CONV))
+    \\ simp[GSYM FORALL_AND_THM]
+    \\ gen_tac
+    \\ Cases_on`x ∈ p` \\ simp[]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ conj_asm1_tac >- fs[Abbr`p`]
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- (fs[Abbr`p`] \\ metis_tac[])
+    \\ rw[]
+    \\ simp[cf_def, mk_cf_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ conj_tac >- (fs[Abbr`p`] \\ metis_tac[])
+    \\ fs[Abbr`p`]
+    \\ metis_tac[decode_encode_function] )
+  \\ qmatch_goalsub_abbrev_tac`f o g -: _`
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ fs[maps_to_in_chu]
+  \\ simp[hom_comb_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[]
+  \\ conj_tac >- ( fs[composable_in_def, pre_chu_def] )
+  \\ conj_tac >- ( fs[composable_in_def, pre_chu_def] )
+  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism c c idc`
+  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism (cf _ _ _) _ idf`
+  \\ simp[is_chu_morphism_def, GSYM CONJ_ASSOC]
+  \\ conj_tac >- ( simp[Abbr`idc`, pre_chu_def] )
+  \\ conj_tac >- ( simp[Abbr`idc`, chu_id_morphism_map_def] )
+  \\ conj_tac >- ( simp[Abbr`idc`, chu_id_morphism_map_def, restrict_def] )
+  \\ conj_tac >- (
+    simp[Abbr`idc`, pre_chu_def, restrict_def]
+    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
+    \\ rpt strip_tac
+    \\ reverse IF_CASES_TAC >- (
+      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ SELECT_ELIM_TAC \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ simp[extensional_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ metis_tac[] )
+  \\ conj_tac >- (
+    simp[Abbr`idc`, chu_id_morphism_map_def, pre_chu_def]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
+    \\ rpt strip_tac
+    \\ reverse IF_CASES_TAC >- (
+      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ SELECT_ELIM_TAC \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ simp[extensional_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ metis_tac[] )
+  \\ conj_tac >- ( simp[Abbr`idf`, pre_chu_def] )
+  \\ conj_tac >- ( simp[Abbr`idf`, chu_id_morphism_map_def] )
+  \\ conj_tac >- ( simp[Abbr`idf`, chu_id_morphism_map_def, restrict_def] )
+  \\ conj_tac >- (
+    simp[Abbr`idf`, pre_chu_def, restrict_def]
+    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
+    \\ rpt strip_tac
+    \\ SELECT_ELIM_TAC \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ conj_tac >- (
+      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
+    \\ conj_tac >- ( fs[Abbr`p`] \\ metis_tac[] )
+    \\ fs[Abbr`p`] \\ rw[]
+    \\ fs[chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
+    \\ metis_tac[] )
+  \\ simp[Abbr`idf`, chu_id_morphism_map_def, pre_chu_def]
+  \\ simp[restrict_def]
+  \\ simp[Abbr`g`, Abbr`f`, cf_def, mk_chu_morphism_def, mk_cf_def, PULL_EXISTS]
+  \\ rpt strip_tac
+  \\ DEP_REWRITE_TAC[decode_encode_function]
+  \\ conj_asm1_tac >- (
+    fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
+  \\ simp[restrict_def]
+  \\ DEP_REWRITE_TAC[decode_encode_function]
+  \\ simp[]
+  \\ reverse CASE_TAC >- metis_tac[]
+  \\ SELECT_ELIM_TAC
+  \\ conj_tac >- ( fs[Abbr`p`] \\ metis_tac[] )
+  \\ rpt strip_tac \\ simp[]
+  \\ DEP_REWRITE_TAC[decode_encode_function]
+  \\ conj_tac >- (
+    fs[chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
+  \\ rw[]
+  \\ fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
+  \\ metis_tac[]
+QED
+
+Definition cf_swap_def:
+  cf_swap p a w = mk_cf
+    <| world := w; agent := a; env := IMAGE (encode_function a) p;
+       eval := flip decode_function |>
+End
+
+Theorem cf_swap_components[simp]:
+  (cf_swap p a w).world = w ∧
+  (cf_swap p a w).env = IMAGE (encode_function a) p ∧
+  (cf_swap p a w).agent = a
+Proof
+  rw[cf_swap_def]
+QED
+
+Theorem cf_swap_swap_cf:
+  swap (cf p x w) = cf_swap p x w
+Proof
+  rw[cf_component_equality]
+  \\ rw[cf_def, cf_swap_def]
+  \\ rw[mk_cf_def, swap_def, FUN_EQ_THM]
+  \\ rw[] \\ fs[]
+  \\ metis_tac[]
 QED
 
 val _ = export_theory();

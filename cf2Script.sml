@@ -564,16 +564,7 @@ Proof
   rw[]
   \\ qmatch_goalsub_abbrev_tac`QSORT R`
   \\ qspec_then`R` mp_tac QSORT_SORTS
-  \\ impl_keep_tac >- (
-    qunabbrev_tac`R`
-    \\ conj_tac
-    >- (
-      irule transitive_RC
-      \\ irule SHORTLEX_transitive
-      \\ simp[transitive_def, char_lt_def] )
-    \\ irule SHORTLEX_total
-    \\ simp[total_def, RC_DEF, char_lt_def]
-    \\ Cases \\ Cases \\ simp[])
+  \\ impl_keep_tac >- simp[Abbr`R`]
   \\ rw[SORTS_DEF]
   \\ first_x_assum(qspec_then`SET_TO_LIST s`mp_tac)
   \\ rw[]
@@ -584,20 +575,8 @@ Proof
   \\ rfs[SORTED_EQ]
   \\ simp[min_elt_def]
   \\ SELECT_ELIM_TAC
-  \\ drule MEM_PERM \\ simp[] \\ strip_tac
-  \\ qmatch_assum_rename_tac`PERM (c::_) (d::_)`
-  \\ conj_tac
-  >- (
-    fs[Abbr`R`, RC_DEF]
-    \\ metis_tac[MEM_SET_TO_LIST, MEM])
-  \\ rw[]
-  \\ `R x d ∧ R d x` by metis_tac[MEM_SET_TO_LIST, MEM]
-  \\ fs[Abbr`R`, RC_DEF]
-  \\ ntac 2 (pop_assum mp_tac)
-  \\ map_every qid_spec_tac[`d`,`x`]
-  \\ Induct \\ simp[]
-  \\ gen_tac \\ Cases \\ simp[]
-  \\ rw[] \\ fs[] \\ rfs[char_lt_def]
+  \\ drule MEM_PERM \\ simp[]
+  \\ metis_tac[RC_SHORTLEX_char_lt_antisymmetric, antisymmetric_def, MEM_SET_TO_LIST, MEM, RC_DEF]
 QED
 
 Definition biextensional_collapse_def:
@@ -626,10 +605,8 @@ Proof
   \\ impl_tac >- metis_tac[IN_DEF, MEMBER_NOT_EMPTY]
   \\ strip_tac
   \\ qexists_tac`min`
-  \\ `total (RC char_lt)`
-  by ( simp[RC_char_lt] \\ simp[total_def, char_le_def] )
-  \\ imp_res_tac SHORTLEX_total
-  \\ fs[IN_DEF, RC_DEF, total_def]
+  \\ assume_tac RC_SHORTLEX_char_lt_total
+  \\ full_simp_tac std_ss [IN_DEF, RC_DEF, total_def]
   \\ metis_tac[]
 QED
 

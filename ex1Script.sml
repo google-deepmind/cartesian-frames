@@ -153,7 +153,7 @@ Proof
   \\ CONV_TAC(DEPTH_CONV(fn tm =>
         if pred_setSyntax.is_image tm then EVAL tm else
         raise UNCHANGED))
-  \\ simp[QSORT_string_le_SET_TO_LIST_init, mk_cf_def]
+  \\ simp[QSORT_char_lt_SET_TO_LIST_init, mk_cf_def]
   \\ EVAL_TAC
 QED
 
@@ -215,9 +215,9 @@ Theorem cf_matrix_runs_cf2:
   cf_matrix runs_cf2 =
     [
       (* n *)  ["nr"; "ns"];
+      (* u *)  ["ur"; "us"];
       (* run *)["ur"; "ns"];
       (* sun *)["nr"; "us"];
-      (* u *)  ["ur"; "us"];
     ]
 Proof
   simp[cf_matrix_def, runs_cf2_def]

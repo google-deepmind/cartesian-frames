@@ -21,11 +21,12 @@ structure matrixLib = struct
       else raise UNCHANGED
 
   in
+    val () = computeLib.add_funs [relationTheory.RC_DEF]
     val qsort_set_to_list_tac =
-      simp[QSORT_string_le_SET_TO_LIST_init]
+      simp[QSORT_char_lt_SET_TO_LIST_init]
       \\ rpt (CHANGED_TAC (
         CONV_TAC(DEPTH_CONV qsort_set_to_list_conv1)
-        \\ DEP_REWRITE_TAC[QSORT_string_le_SET_TO_LIST]
+        \\ DEP_REWRITE_TAC[QSORT_char_lt_SET_TO_LIST]
         \\ CONV_TAC(DEPTH_CONV qsort_set_to_list_conv2)))
       \\ simp[]
   end

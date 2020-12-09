@@ -21,30 +21,51 @@ val _ = new_theory"matrix";
 
 Definition cf_matrix_def:
   cf_matrix c =
-   MAP (λa. MAP (c.eval a) (QSORT $<= (SET_TO_LIST c.env)))
-       (QSORT $<= (SET_TO_LIST c.agent))
+   MAP (λa. MAP (c.eval a) (QSORT (RC(SHORTLEX char_lt)) (SET_TO_LIST c.env)))
+       (QSORT (RC(SHORTLEX char_lt)) (SET_TO_LIST c.agent))
 End
 
-Theorem QSORT_string_le_SET_TO_LIST:
+Theorem RC_SHORTLEX_char_lt_transitive[simp]:
+  transitive (RC (SHORTLEX char_lt))
+Proof
+  irule transitive_RC
+  \\ irule SHORTLEX_transitive
+  \\ simp[transitive_def, char_lt_def]
+QED
+
+Theorem RC_SHORTLEX_char_lt_total[simp]:
+  total (RC (SHORTLEX char_lt))
+Proof
+  irule SHORTLEX_total
+  \\ simp[total_def, RC_DEF, char_lt_def]
+  \\ Cases \\ Cases \\ simp[]
+QED
+
+Theorem RC_SHORTLEX_char_lt_antisymmetric[simp]:
+  antisymmetric (RC (SHORTLEX char_lt))
+Proof
+  simp[antisymmetric_def]
+  \\ Induct \\ simp[]
+  \\ gen_tac \\ Cases \\ simp[]
+  \\ rw[] \\ fs[] \\ rfs[char_lt_def]
+QED
+
+Theorem QSORT_char_lt_SET_TO_LIST:
 ∀x.
   (FINITE ls ⇒
-   QSORT string_le (x ++ SET_TO_LIST (s INSERT ls)) =
-     QSORT string_le (x ++ if s ∈ ls then SET_TO_LIST ls else s::(SET_TO_LIST ls)))
+   QSORT (RC(SHORTLEX char_lt)) (x ++ SET_TO_LIST (s INSERT ls)) =
+     QSORT (RC(SHORTLEX char_lt)) (x ++ if s ∈ ls then SET_TO_LIST ls else s::(SET_TO_LIST ls)))
 Proof
   gen_tac \\ simp[]
   \\ strip_tac
   \\ DEP_REWRITE_TAC[SORTS_PERM_EQ]
   \\ conj_tac
-  >- (
-    conj_asm1_tac >- ( rw[transitive_def] \\ metis_tac[string_le_def, string_lt_trans] )
-    \\ conj_tac >- ( rw[antisymmetric_def] \\ metis_tac[string_le_def, string_lt_antisym] )
-    \\ match_mp_tac QSORT_SORTS
-    \\ rw[total_def] \\ metis_tac[string_lt_cases, string_le_def] )
+  >- ( simp[] \\ match_mp_tac QSORT_SORTS \\ simp[])
   \\ simp[PERM_APPEND_IFF]
   \\ simp[PERM_SET_TO_LIST_INSERT]
 QED
 
-Theorem QSORT_string_le_SET_TO_LIST_init =
-  QSORT_string_le_SET_TO_LIST |> Q.SPEC`[]` |> SIMP_RULE(srw_ss())[]
+Theorem QSORT_char_lt_SET_TO_LIST_init =
+  QSORT_char_lt_SET_TO_LIST |> Q.SPEC`[]` |> SIMP_RULE(srw_ss())[]
 
 val _ = export_theory();

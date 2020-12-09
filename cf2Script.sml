@@ -557,6 +557,49 @@ End
 
 val _ = temp_overload_on("rep", ``min_elt (RC (SHORTLEX char_lt))``)
 
+Theorem rep_HD_QSORT_SET_TO_LIST:
+  FINITE s ∧ s ≠ ∅ ⇒
+    rep s = HD (QSORT (RC (SHORTLEX char_lt)) (SET_TO_LIST s))
+Proof
+  rw[]
+  \\ qmatch_goalsub_abbrev_tac`QSORT R`
+  \\ qspec_then`R` mp_tac QSORT_SORTS
+  \\ impl_keep_tac >- (
+    qunabbrev_tac`R`
+    \\ conj_tac
+    >- (
+      irule transitive_RC
+      \\ irule SHORTLEX_transitive
+      \\ simp[transitive_def, char_lt_def] )
+    \\ irule SHORTLEX_total
+    \\ simp[total_def, RC_DEF, char_lt_def]
+    \\ Cases \\ Cases \\ simp[])
+  \\ rw[SORTS_DEF]
+  \\ first_x_assum(qspec_then`SET_TO_LIST s`mp_tac)
+  \\ rw[]
+  \\ Cases_on`SET_TO_LIST s` \\ fs[]
+  >- ( imp_res_tac SET_TO_LIST_CARD \\ rfs[] )
+  \\ Cases_on`QSORT R (SET_TO_LIST s)` \\ fs[]
+  \\ rfs[] \\ fs[]
+  \\ rfs[SORTED_EQ]
+  \\ simp[min_elt_def]
+  \\ SELECT_ELIM_TAC
+  \\ drule MEM_PERM \\ simp[] \\ strip_tac
+  \\ qmatch_assum_rename_tac`PERM (c::_) (d::_)`
+  \\ conj_tac
+  >- (
+    fs[Abbr`R`, RC_DEF]
+    \\ metis_tac[MEM_SET_TO_LIST, MEM])
+  \\ rw[]
+  \\ `R x d ∧ R d x` by metis_tac[MEM_SET_TO_LIST, MEM]
+  \\ fs[Abbr`R`, RC_DEF]
+  \\ ntac 2 (pop_assum mp_tac)
+  \\ map_every qid_spec_tac[`d`,`x`]
+  \\ Induct \\ simp[]
+  \\ gen_tac \\ Cases \\ simp[]
+  \\ rw[] \\ fs[] \\ rfs[char_lt_def]
+QED
+
 Definition biextensional_collapse_def:
   biextensional_collapse c = mk_cf
     <| world := c.world;

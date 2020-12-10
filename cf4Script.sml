@@ -219,7 +219,20 @@ Proof
   \\ rw[FUN_EQ_THM, move_fn_def]
 QED
 
-(* TODO: proof about getting cf1 and cfbot from 1 and ⊥ via functors? *)
+Theorem cf1_from_move_fn:
+  cf1 w s = move_fn (restrict I s) w (cf1 s s)
+Proof
+  rw[cf_component_equality]
+  \\ rw[cf1_def, move_fn_def, mk_cf_def, FUN_EQ_THM, restrict_def]
+QED
+
+Theorem cfbot_from_move_fn:
+  cfbot w s = move_fn (restrict I s) w (cfbot s s)
+Proof
+  rw[cf_component_equality, cfbot_def]
+  \\ rw[cf1_def, move_fn_def, mk_cf_def, FUN_EQ_THM, restrict_def]
+  \\ rw[]
+QED
 
 Theorem homotopy_equiv_move_fn:
   IMAGE p w ⊆ v ∧ c ≃ d -: w ⇒ move_fn p v c ≃ move_fn p v d -: v

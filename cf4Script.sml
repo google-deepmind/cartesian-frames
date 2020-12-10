@@ -748,4 +748,88 @@ Proof
   \\ simp[restrict_def]
 QED
 
+Theorem move_SURJ_inverse:
+  SURJ p w v ∧ extensional p w ∧ c ∈ chu_objects v ∧ FINITE v ∧
+    Q = {q | extensional q v ∧ IMAGE q v ⊆ w ∧ restrict (p o q) v = restrict I v}⇒
+  move_fn p v (move (cf_swap Q v w) c) ≃ c -: v
+Proof
+  rw[]
+  \\ qmatch_goalsub_abbrev_tac`cf_swap Q`
+  \\ rw[homotopy_equiv_def]
+  \\ qmatch_goalsub_abbrev_tac`_ :- z → c -: chu v`
+  \\ `∃q. q ∈ Q`
+  by (
+    simp[Abbr`Q`, FUN_EQ_THM, restrict_def]
+    \\ fs[SURJ_DEF]
+    \\ Cases_on`v = ∅` \\ fs[]
+    >- (
+      simp[extensional_def]
+      \\ qexists_tac`K ARB`
+      \\ simp[] )
+    \\ qexists_tac`restrict (λx. (@y. y ∈ w ∧ p y = x )) v`
+    \\ simp[SUBSET_DEF, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[GSYM FORALL_AND_THM]
+    \\ gen_tac
+    \\ Cases_on`x ∈ v` \\ simp[]
+    \\ SELECT_ELIM_TAC \\ simp[])
+  \\ qexists_tac`mk_chu_morphism z c <| map_agent := I;
+                                        map_env := λe. encode_pair (e, encode_function v q) |>`
+  \\ qexists_tac`mk_chu_morphism c z <| map_agent := I; map_env := FST o decode_pair |>`
+  \\ `z ∈ chu_objects v`
+  by (
+    simp[Abbr`z`]
+    \\ irule move_fn_in_chu_objects
+    \\ qexists_tac`w`
+    \\ conj_tac
+    >- (
+      irule move_in_chu_objects
+      \\ simp[]
+      \\ simp[GSYM cf_swap_swap_cf]
+      \\ irule cf_in_chu_objects
+      \\ simp[Abbr`Q`] )
+    \\ fs[SURJ_DEF, SUBSET_DEF, PULL_EXISTS] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`z`]
+    \\ conj_tac >- metis_tac[]
+    \\ simp[move_fn_def, GSYM cf_swap_swap_cf, cf_def, mk_cf_def]
+    \\ rpt gen_tac \\ strip_tac
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ fs[Abbr`Q`, restrict_def, FUN_EQ_THM]
+    \\ fs[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
+    \\ fs[]
+    \\ metis_tac[] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`z`, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[GSYM cf_swap_swap_cf]
+    \\ simp[cf_def, mk_cf_def]
+    \\ rpt gen_tac \\ strip_tac
+    \\ reverse IF_CASES_TAC >- (
+      fs[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ fs[Abbr`Q`, restrict_def, FUN_EQ_THM]
+    \\ metis_tac[] )
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ conj_tac
+  \\ irule homotopic_id
+  \\ fs[maps_to_in_chu, pre_chu_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[restrict_def]
+  \\ simp[Abbr`z`]
+QED
+
 val _ = export_theory();

@@ -217,8 +217,6 @@ Definition homotopic_def:
     hom_comb m1 m2 ∈ (pre_chu w).mor
 End
 
-(* TODO: add example of two morphisms that are not homotopic *)
-
 Theorem homotopic_refl[simp]:
   m ∈ (pre_chu w).mor ⇒ homotopic w m m
 Proof

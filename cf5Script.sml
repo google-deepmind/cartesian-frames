@@ -15,7 +15,7 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-  pairTheory listTheory pred_setTheory categoryTheory
+  combinTheory pairTheory listTheory pred_setTheory categoryTheory
   cf0Theory cf1Theory cf2Theory cf4Theory
 
 val _ = new_theory"cf5";
@@ -79,7 +79,7 @@ Definition covering_subagent_def:
       ∃f m. f ∈ d.env ∧ m :- c → d -: chu w ∧ e = m.map.map_env f
 End
 
-Theorem subagent_cover:
+Theorem subagent_covering:
   c ◁ d -: w ⇔ covering_subagent w c d
 Proof
   rw[subagent_def, covering_subagent_def]
@@ -291,6 +291,41 @@ Proof
   \\ fs[composable_in_def, pre_chu_def]
   \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def]
   \\ simp[restrict_def, FUN_EQ_THM, Abbr`z`]
+QED
+
+Theorem subagent_homotopy_equiv:
+  c1 ◁ d -: w ∧ c1 ≃ c2 -: w ⇒ c2 ◁ d -: w
+Proof
+  rw[subagent_covering]
+  \\ fs[covering_subagent_def]
+  \\ fs[homotopy_equiv_def]
+  \\ conj_asm1_tac >- fs[maps_to_in_chu]
+  \\ gen_tac \\ strip_tac
+  \\ first_assum(qspec_then`f.map.map_env e`mp_tac)
+  \\ impl_tac >- ( fs[maps_to_in_chu, is_chu_morphism_def] )
+  \\ disch_then(qx_choosel_then[`x`,`m`]strip_assume_tac)
+  \\ qexists_tac`x` \\ simp[]
+  \\ qexists_tac`mk_chu_morphism c2 d
+       <| map_agent := m.map.map_agent o g.map.map_agent;
+          map_env := (x =+ e)(g.map.map_env o m.map.map_env) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ imp_res_tac maps_to_comp \\ fs[]
+    \\ qpat_assum`m o g -: _ :- _ → _ -: _`mp_tac
+    \\ qpat_assum`homotopic w (f o g -: _) _`mp_tac
+    \\ DEP_REWRITE_TAC[compose_in_thm]
+    \\ DEP_REWRITE_TAC[compose_thm]
+    \\ DEP_REWRITE_TAC[chu_comp]
+    \\ simp[CONJ_ASSOC]
+    \\ conj_tac >- fs[maps_to_in_chu, composable_in_def, pre_chu_def]
+    \\ simp[maps_to_in_chu, pre_chu_def, homotopic_def, hom_comb_def]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def, chu_id_morphism_map_def]
+    \\ simp[restrict_def, APPLY_UPDATE_THM]
+    \\ rw[] \\ fs[] \\ rw[] \\ fs[]
+    \\ metis_tac[] )
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[restrict_def, APPLY_UPDATE_THM]
 QED
 
 Theorem currying_implies_covering:

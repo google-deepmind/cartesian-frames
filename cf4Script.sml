@@ -688,4 +688,64 @@ Proof
   \\ metis_tac[]
 QED
 
+(* again for both of these we have isomorphism instead
+   of equality because of encodings *)
+
+Theorem move_fn_move_cf:
+  c ∈ chu_objects v ∧ IMAGE p v ⊆ w ∧ FINITE v ∧ extensional p v ⇒
+  move_fn p w c ≅ move (cf_swap {p} v w) c -: chu w
+Proof
+  rw[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (move_fn p w c) (move (cf_swap {p} v w) c)
+                 <| map_agent := I; map_env := FST o decode_pair |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ DEP_REWRITE_TAC[Q.GENL[`w`,`v`]move_fn_in_chu_objects]
+    \\ DEP_REWRITE_TAC[move_in_chu_objects]
+    \\ simp[GSYM cf_swap_swap_cf]
+    \\ DEP_REWRITE_TAC[cf_in_chu_objects]
+    \\ simp[]
+    \\ conj_tac >- metis_tac[]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[restrict_def]
+    \\ simp[cf_def, mk_cf_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ rw[] )
+  \\ simp[chu_iso_bij]
+  \\ fs[maps_to_in_chu]
+  \\ simp[BIJ_IFF_INV, mk_chu_morphism_def, PULL_EXISTS, EXISTS_PROD]
+  \\ rw[restrict_def]
+  \\ qexists_tac`I` \\ rw[]
+  \\ qexists_tac`λx. encode_pair (x, encode_function v p)`
+  \\ rw[]
+QED
+
+Theorem move_fn_move_cf_sing:
+  c ∈ chu_objects w ∧ d ∈ chu_objects v ∧ c.agent = v ∧ c.env = {e} ⇒
+  move c d ≅ move_fn (flip c.eval e) w d -: chu w
+Proof
+  rw[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (move c d) (move_fn (flip c.eval e) w d)
+       <| map_agent := I; map_env := λx. encode_pair (x, e) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ conj_asm1_tac
+    >- (
+      irule move_fn_in_chu_objects
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ fs[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
+      \\ fs[] )
+    \\ simp[mk_chu_morphism_def, is_chu_morphism_def]
+    \\ simp[move_def, move_fn_def, mk_cf_def]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD] )
+  \\ simp[chu_iso_bij]
+  \\ fs[maps_to_in_chu]
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS, EXISTS_PROD, mk_chu_morphism_def]
+  \\ map_every qexists_tac[`I`, `FST o decode_pair`]
+  \\ simp[restrict_def]
+QED
+
 val _ = export_theory();

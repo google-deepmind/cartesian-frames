@@ -328,11 +328,51 @@ Proof
   \\ simp[restrict_def, APPLY_UPDATE_THM]
 QED
 
+Theorem currying_implies_covering_eq_case:
+  d ∈ chu_objects w ∧
+  z ∈ chu_objects d.agent ∧
+  e ∈ (move d z).env ⇒
+  ∃f m. f ∈ d.env ∧ m :- move d z → d -: chu w ∧ e = m.map.map_env f
+Proof
+  simp[EXISTS_PROD, PULL_EXISTS]
+  \\ qx_genl_tac[`x`,`f`] \\ rw[]
+  \\ qexists_tac`f`
+  \\ qexists_tac`mk_chu_morphism (move d z) d
+       <| map_agent := flip z.eval x;
+          map_env := λf. encode_pair (x, f) |>`
+  \\ simp[]
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[restrict_def]
+    \\ fs[chu_objects_def, wf_def] \\ fs[] )
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[restrict_def]
+QED
+
 Theorem currying_implies_covering:
   finite_cf c ∧ finite_cf d ∧
   currying_subagent w c d ⇒ covering_subagent w c d
 Proof
-  cheat
+  rw[currying_subagent_def, covering_subagent_def]
+  \\ Cases_on`c = move d z`
+  >- metis_tac[currying_implies_covering_eq_case]
+  \\ imp_res_tac homotopy_equiv_sym
+  \\ first_assum(mp_then Any mp_tac subagent_homotopy_equiv)
+  \\ simp[subagent_covering]
+  \\ simp[covering_subagent_def, PULL_EXISTS, EXISTS_PROD]
+  \\ disch_then irule
+  \\ rw[]
+  \\ PROVE_TAC[SIMP_RULE(srw_ss())[EXISTS_PROD]currying_implies_covering_eq_case]
+QED
+
+Theorem subagent_currying:
+  finite_cf c ∧ finite_cf d ⇒
+  (c ◁ d -: w ⇔ currying_subagent w c d)
+Proof
+  metis_tac[subagent_covering, currying_implies_covering, covering_implies_currying]
 QED
 
 val _ = export_theory();

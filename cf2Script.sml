@@ -267,6 +267,26 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem homotopic_id:
+  m ∈ (pre_chu w).mor ∧ m.dom = c ∧ m.cod = c ∧
+  (m.map.map_env = restrict I c.env ∨
+   m.map.map_agent = restrict I c.agent)
+   ⇒
+   homotopic w m (id c -: chu w)
+Proof
+  simp[homotopic_def]
+  \\ simp[pre_chu_def, hom_comb_def, chu_id_morphism_map_def]
+  \\ strip_tac \\ fs[] \\ rfs[]
+  \\ fs[chu_id_morphism_map_def]
+  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism _ _ f`
+  \\ TRY(
+    `f = m.map` by ( simp[Abbr`f`, chu_morphism_map_component_equality] )
+    \\ fs[] )
+  \\ `f = (chu_id_morphism_map c)`
+  by simp[Abbr`f`, chu_morphism_map_component_equality, chu_id_morphism_map_def]
+  \\ simp[]
+QED
+
 Definition homotopy_equiv_def:
   homotopy_equiv w c d ⇔
     ∃f g.

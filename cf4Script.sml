@@ -653,81 +653,15 @@ Proof
     \\ metis_tac[decode_encode_function] )
   \\ qmatch_goalsub_abbrev_tac`f o g -: _`
   \\ imp_res_tac maps_to_comp \\ fs[]
-  \\ simp[homotopic_def, pre_chu_def]
-  \\ fs[maps_to_in_chu]
-  \\ simp[hom_comb_def]
+  \\ conj_tac
+  \\ irule homotopic_id
+  \\ fs[maps_to_in_chu, pre_chu_def]
   \\ DEP_REWRITE_TAC[compose_in_thm]
   \\ DEP_REWRITE_TAC[compose_thm]
   \\ DEP_REWRITE_TAC[chu_comp]
-  \\ simp[]
-  \\ conj_tac >- ( fs[composable_in_def, pre_chu_def] )
-  \\ conj_tac >- ( fs[composable_in_def, pre_chu_def] )
-  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism c c idc`
-  \\ qmatch_goalsub_abbrev_tac`is_chu_morphism (cf _ _ _) _ idf`
-  \\ simp[is_chu_morphism_def, GSYM CONJ_ASSOC]
-  \\ conj_tac >- ( simp[Abbr`idc`, pre_chu_def] )
-  \\ conj_tac >- ( simp[Abbr`idc`, chu_id_morphism_map_def] )
-  \\ conj_tac >- ( simp[Abbr`idc`, chu_id_morphism_map_def, restrict_def] )
-  \\ conj_tac >- (
-    simp[Abbr`idc`, pre_chu_def, restrict_def]
-    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
-    \\ rpt strip_tac
-    \\ reverse IF_CASES_TAC >- (
-      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
-      \\ metis_tac[] )
-    \\ SELECT_ELIM_TAC \\ simp[]
-    \\ DEP_REWRITE_TAC[decode_encode_function]
-    \\ simp[extensional_def]
-    \\ fs[chu_objects_def, wf_def]
-    \\ metis_tac[] )
-  \\ conj_tac >- (
-    simp[Abbr`idc`, chu_id_morphism_map_def, pre_chu_def]
-    \\ simp[restrict_def]
-    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
-    \\ rpt strip_tac
-    \\ reverse IF_CASES_TAC >- (
-      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
-      \\ metis_tac[] )
-    \\ SELECT_ELIM_TAC \\ simp[]
-    \\ DEP_REWRITE_TAC[decode_encode_function]
-    \\ simp[extensional_def]
-    \\ fs[chu_objects_def, wf_def]
-    \\ metis_tac[] )
-  \\ conj_tac >- ( simp[Abbr`idf`, pre_chu_def] )
-  \\ conj_tac >- ( simp[Abbr`idf`, chu_id_morphism_map_def] )
-  \\ conj_tac >- ( simp[Abbr`idf`, chu_id_morphism_map_def, restrict_def] )
-  \\ conj_tac >- (
-    simp[Abbr`idf`, pre_chu_def, restrict_def]
-    \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def]
-    \\ rpt strip_tac
-    \\ SELECT_ELIM_TAC \\ simp[]
-    \\ DEP_REWRITE_TAC[decode_encode_function]
-    \\ conj_tac >- (
-      fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
-    \\ conj_tac >- ( fs[Abbr`p`] \\ metis_tac[] )
-    \\ fs[Abbr`p`] \\ rw[]
-    \\ fs[chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
-    \\ metis_tac[] )
-  \\ simp[Abbr`idf`, chu_id_morphism_map_def, pre_chu_def]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def]
   \\ simp[restrict_def]
-  \\ simp[Abbr`g`, Abbr`f`, cf_def, mk_chu_morphism_def, mk_cf_def, PULL_EXISTS]
-  \\ rpt strip_tac
-  \\ DEP_REWRITE_TAC[decode_encode_function]
-  \\ conj_asm1_tac >- (
-    fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
-  \\ simp[restrict_def]
-  \\ DEP_REWRITE_TAC[decode_encode_function]
-  \\ simp[]
-  \\ reverse CASE_TAC >- metis_tac[]
-  \\ SELECT_ELIM_TAC
-  \\ conj_tac >- ( fs[Abbr`p`] \\ metis_tac[] )
-  \\ rpt strip_tac \\ simp[]
-  \\ DEP_REWRITE_TAC[decode_encode_function]
-  \\ conj_tac >- (
-    fs[chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS] )
-  \\ rw[]
-  \\ fs[Abbr`p`, chu_objects_def, wf_def, extensional_def, SUBSET_DEF, PULL_EXISTS]
-  \\ metis_tac[]
 QED
 
 Definition cf_swap_def:

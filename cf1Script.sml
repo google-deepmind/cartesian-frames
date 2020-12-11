@@ -464,11 +464,11 @@ val _ = add_rule { fixity = Suffix 2100,
 val _ = Unicode.unicode_version {u = UTF8.chr 0xA673, tmnm = "swap_syntax"}
 
 (* uses fixed free variable w, so won't apply in other cases *)
-val _ = overload_on("swap_syntax", ``objf (swap_functor w )``);
-val _ = overload_on("swap_syntax", ``objf (op_swap_functor w )``);
-val _ = overload_on("swap_syntax", ``morf (swap_functor w )``);
-val _ = overload_on("swap_syntax", ``morf (op_swap_functor w )``);
-val _ = overload_on("swap_syntax", ``swap``);
+Overload "swap_syntax" = ``objf (swap_functor w )``
+Overload "swap_syntax" = ``objf (op_swap_functor w )``
+Overload "swap_syntax" = ``morf (swap_functor w )``
+Overload "swap_syntax" = ``morf (op_swap_functor w )``
+Overload "swap_syntax" = ``swap``
 
 Theorem swap_functor_objf[simp]:
   c ∈ chu_objects w ⇒
@@ -608,7 +608,7 @@ Definition sum_def:
        eval := sum_eval c1.eval c2.eval |>
 End
 
-val _ = overload_on("⊕", ``sum``);
+Overload "⊕" = ``sum``
 val _ = set_fixity "⊕" (Infix (LEFT, 500))
 
 Theorem wf_sum[simp]:
@@ -1046,7 +1046,7 @@ Proof
   rw[prod_def]
 QED
 
-val _ = overload_on("&&", ``prod``)
+Overload "&&" = ``prod``
 val _ = set_fixity "&&" (Infix (LEFT, 500))
 
 Theorem swap_sum_prod:

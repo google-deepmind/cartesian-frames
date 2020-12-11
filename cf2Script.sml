@@ -293,7 +293,7 @@ Definition homotopy_equiv_def:
       homotopic w (f o g -: chu w) (id d -: chu w)
 End
 
-val _ = overload_on("homotopy_equiv_syntax", ``λc d w. homotopy_equiv w c d``);
+Overload "homotopy_equiv_syntax" = ``λc d w. homotopy_equiv w c d``
 
 val _ = add_rule {
   term_name = "homotopy_equiv_syntax",
@@ -573,7 +573,7 @@ Definition min_elt_def:
   min_elt R s = @x. x ∈ s ∧ ∀y. y ∈ s ⇒R x y
 End
 
-val _ = temp_overload_on("rep", ``min_elt (RC (SHORTLEX char_lt))``)
+Overload "rep"[local] = ``min_elt (RC (SHORTLEX char_lt))``
 
 Theorem rep_HD_QSORT_SET_TO_LIST:
   FINITE s ∧ s ≠ ∅ ⇒

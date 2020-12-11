@@ -27,7 +27,7 @@ Definition subagent_def:
 End
 
 
-val _ = overload_on("subagent_syntax", ``λc d w. subagent w c d``);
+Overload "subagent_syntax" = ``λc d w. subagent w c d``
 
 val _ = add_rule {
   term_name = "subagent_syntax",

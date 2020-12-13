@@ -46,6 +46,7 @@ Proof
     fs[maps_to_in_chu, is_chu_morphism_def]
     \\ first_x_assum irule
     \\ rw[cfbot_def] )
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ qexists_tac`λe. mk_chu_morphism c (cfbot w w)
        <| map_agent := flip c.eval e; map_env := K e |>`
   \\ simp[]
@@ -129,10 +130,6 @@ Definition currying_subagent_def:
     ∃z. z ∈ chu_objects d.agent ∧ c ≃ move d z -: w
 End
 
-Definition finite_cf_def:
-  finite_cf c ⇔ FINITE c.agent ∧ FINITE c.env
-End
-
 Theorem hom_finite[simp]:
   finite_cf c ∧ finite_cf d ⇒
   FINITE (chu w | c → d |)
@@ -208,19 +205,25 @@ QED
 *)
 
 Theorem covering_implies_currying:
-  finite_cf c ∧ finite_cf d ∧
   covering_subagent w c d ⇒ currying_subagent w c d
 Proof
   rw[covering_subagent_def, currying_subagent_def]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+  \\ `finite_cf c ∧ finite_cf d` by fs[chu_objects_def, wf_def]
   \\ qexists_tac`mk_cf <| world := d.agent; agent := c.agent;
                           env := IMAGE encode_morphism (chu w |c → d|);
                           eval := λa m. (decode_morphism c d m).map.map_agent a |>`
   \\ conj_asm1_tac
   >- (
     simp[chu_objects_def]
-    \\ simp[SUBSET_DEF, image_def, PULL_EXISTS]
-    \\ rw[hom_def]
-    \\ fs[maps_to_in_chu, finite_cf_def, is_chu_morphism_def] )
+    \\ conj_tac
+    >- (
+      simp[SUBSET_DEF, image_def, PULL_EXISTS]
+      \\ rw[hom_def]
+      \\ fs[maps_to_in_chu, finite_cf_def, is_chu_morphism_def] )
+    \\ simp[finite_cf_def]
+    \\ fs[chu_objects_def]
+    \\ metis_tac[hom_finite, wf_def, finite_cf_def, IMAGE_FINITE])
   \\ qmatch_assum_abbrev_tac`z ∈ chu_objects d.agent`
   \\ simp[homotopy_equiv_def]
   \\ qexists_tac`mk_chu_morphism c (move d z)
@@ -353,7 +356,6 @@ Proof
 QED
 
 Theorem currying_implies_covering:
-  finite_cf c ∧ finite_cf d ∧
   currying_subagent w c d ⇒ covering_subagent w c d
 Proof
   rw[currying_subagent_def, covering_subagent_def]
@@ -369,10 +371,18 @@ Proof
 QED
 
 Theorem subagent_currying:
-  finite_cf c ∧ finite_cf d ⇒
   (c ◁ d -: w ⇔ currying_subagent w c d)
 Proof
   metis_tac[subagent_covering, currying_implies_covering, covering_implies_currying]
 QED
+
+(*
+Theorem homotopy_equiv_subagent:
+  c1 ≃ c2 -: w ⇒ c1 ◁ c2 -: w
+Proof
+  rw[subagent_covering, covering_subagent_def]
+  \\ TRY (fs[homotopy_equiv_def, maps_to_in_chu] \\ NO_TAC)
+  \\ fs[homotopy_equiv_def]
+*)
 
 val _ = export_theory();

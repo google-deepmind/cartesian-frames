@@ -782,7 +782,7 @@ Theorem biextensional_collapse_in_chu_objects[simp]:
   c ∈ chu_objects w ⇒ biextensional_collapse c ∈ chu_objects w
 Proof
   rw[chu_objects_def, biextensional_collapse_def, image_def, SUBSET_DEF]
-  \\ fs[wf_def]
+  \\ fs[wf_def, finite_cf_def]
 QED
 
 Theorem equiv_class_rep_eq:
@@ -1063,13 +1063,13 @@ Proof
 QED
 
 Theorem wf_null[simp]:
-  wf (null w)
+  FINITE w ⇒ wf (null w)
 Proof
-  rw[wf_def, null_def]
+  rw[wf_def, null_def, finite_cf_def]
 QED
 
 Theorem null_in_chu_objects[simp]:
-  null w ∈ chu_objects w
+  FINITE w ⇒ null w ∈ chu_objects w
 Proof
   rw[chu_objects_def] \\ rw[null_def]
 QED
@@ -1118,6 +1118,7 @@ Theorem empty_agent_nonempty_env:
   c.agent = ∅ ∧ c.env ≠ ∅ ⇒ c ≃ cf0 w -: w
 Proof
   rw[]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ rw[homotopy_equiv_iff_iso_collapse]
   \\ rw[iso_objs_thm]
   \\ rw[chu_iso_bij]
@@ -1138,6 +1139,7 @@ Theorem empty_env_nonempty_agent:
   c ∈ chu_objects w ∧ c.env = ∅ ∧ c.agent  ≠ ∅ ⇒ c ≃ cfT w -: w
 Proof
   rw[]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ rw[homotopy_equiv_iff_iso_collapse]
   \\ rw[iso_objs_thm]
   \\ rw[chu_iso_bij]
@@ -1224,25 +1226,26 @@ Proof
 QED
 
 Theorem wf_cf1[simp]:
-  s ⊆ w ⇒ wf (cf1 w s)
+  FINITE w ∧ s ⊆ w ⇒ wf (cf1 w s)
 Proof
-  rw[cf1_def, image_def]
+  rw[cf1_def, image_def, finite_cf_def]
+  \\ metis_tac[SUBSET_FINITE]
 QED
 
 Theorem wf_cfbot[simp]:
-  s ⊆ w ⇒ wf (cfbot w s)
+  FINITE w ∧ s ⊆ w ⇒ wf (cfbot w s)
 Proof
   rw[cfbot_def]
 QED
 
 Theorem cf1_in_chu_objects[simp]:
-  s ⊆ w ⇒ cf1 w s ∈ chu_objects w
+  FINITE w ∧ s ⊆ w ⇒ cf1 w s ∈ chu_objects w
 Proof
   rw[chu_objects_def] \\ rw[cf1_def]
 QED
 
 Theorem cfbot_in_chu_objects[simp]:
-  s ⊆ w ⇒ cfbot w s ∈ chu_objects w
+  FINITE w ∧ s ⊆ w ⇒ cfbot w s ∈ chu_objects w
 Proof
   rw[cfbot_def]
 QED
@@ -1253,6 +1256,8 @@ Proof
   rw[SING_DEF]
   \\ `image c ⊆ w` by (
     fs[chu_objects_def, wf_def, image_def, SUBSET_DEF, PULL_EXISTS] \\ rw[] )
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+  \\ `FINITE (image c)` by fs[chu_objects_def, wf_def]
   \\ `c ^ ≅ cf1 w (image c) -: chu w` suffices_by
      metis_tac[homotopy_equiv_iff_iso_collapse,
                cf1_in_chu_objects, homotopy_equiv_sym,
@@ -1319,6 +1324,8 @@ Proof
   rw[]
   \\ `image c ⊆ w` by (
     fs[chu_objects_def, wf_def, image_def, SUBSET_DEF, PULL_EXISTS] \\ rw[] )
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+  \\ `FINITE (image c)` by fs[chu_objects_def, wf_def]
   \\ `swap c ≃ cf1 w (image c) -: w` suffices_by
         metis_tac[swap_swap, homotopy_equiv_swap, swap_in_chu_objects,
                   cf1_in_chu_objects, cfbot_def]
@@ -1328,9 +1335,10 @@ Proof
 QED
 
 Theorem cf0_prod_cf0[simp]:
-  cf0 w && cf0 w ≃ cf0 w -: w
+  FINITE w ⇒ cf0 w && cf0 w ≃ cf0 w -: w
 Proof
-  match_mp_tac empty_agent_nonempty_env
+  strip_tac
+  \\ match_mp_tac empty_agent_nonempty_env
   \\ simp[]
   \\ simp[prod_def]
   \\ simp[cf0_def]

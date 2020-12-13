@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-open HolKernel boolLib bossLib pred_setTheory arithmeticTheory stringTheory Parse
+open HolKernel boolLib bossLib Parse
+  pairTheory pred_setTheory arithmeticTheory stringTheory
 
 val _ = new_theory"cf0";
 
@@ -27,15 +28,49 @@ Datatype:
           eval: string -> string -> string |>
 End
 
+(*
+We restrict attention to finite Cartesian frames so as to allow the category of
+Cartesian frames over W to include frames where, e.g., the agent is the set of
+functions whose domain is the agent of some other frame in the category. A
+category (at least according to categoryTheory) has a _set_ of objects. The
+collection of frames including those with all such sets of functions for
+agents, and where some agents are infinite, is too large to be a set.
+
+We also require c.world to be finite so ensureables etc. are finite too. This
+is important because, e.g., cf1 w s uses s as its environment and we sometimes
+want s to be something in ensure c.
+
+An alternative approach would be to axiomatise (or assume) an (uncountable)
+Grothendieck universe from which to draw the agents and environments for our
+frames. Our proofs should not be hard to fix if we need to switch to this
+approach.
+*)
+
+Definition finite_cf_def:
+  finite_cf c ⇔ FINITE c.agent ∧ FINITE c.env ∧ FINITE c.world
+End
+
 Definition wf_def:
   wf c ⇔
     (∀a e. a ∈ c.agent ∧ e ∈ c.env ⇒ c.eval a e ∈ c.world) ∧
-    (∀a e. a ∉ c.agent ∨ e ∉ c.env ⇒ c.eval a e = ARB)
+    (∀a e. a ∉ c.agent ∨ e ∉ c.env ⇒ c.eval a e = ARB) ∧
+    finite_cf c
 End
 
 Definition image_def:
   image c = { w | ∃a e. a ∈ c.agent ∧ e ∈ c.env ∧ c.eval a e = w }
 End
+
+Theorem finite_image[simp]:
+  finite_cf c ⇒ FINITE (image c)
+Proof
+  rw[image_def, finite_cf_def]
+  \\ qspec_then`UNCURRY c.eval`irule (Q.GEN`f`FINITE_SURJ)
+  \\ qexists_tac`c`
+  \\ qexists_tac`c.agent × c.env`
+  \\ simp[SURJ_DEF, FORALL_PROD, EXISTS_PROD]
+  \\ metis_tac[]
+QED
 
 Definition mk_cf_def:
   mk_cf c = c with eval := λa e. if a ∈ c.agent ∧ e ∈ c.env then c.eval a e else ARB
@@ -50,9 +85,9 @@ Proof
 QED
 
 Theorem wf_mk_cf[simp]:
-  wf (mk_cf c) ⇔ image c ⊆ c.world
+  wf (mk_cf c) ⇔ image c ⊆ c.world ∧ finite_cf c
 Proof
-  rw[wf_def, SUBSET_DEF, image_def, mk_cf_def]
+  rw[wf_def, SUBSET_DEF, image_def, mk_cf_def, finite_cf_def]
   \\ rw[EQ_IMP_THM] \\ rw[]
   \\ metis_tac[]
 QED
@@ -77,24 +112,52 @@ Proof
   rw[ensure_def]
 QED
 
-Theorem ensure_subset_pow:
+Theorem ensure_subset_pow[simp]:
   ensure c ⊆ POW c.world
 Proof
   rw[ensure_def, Once SUBSET_DEF, IN_POW]
 QED
 
-Theorem prevent_subset_pow:
+Theorem prevent_subset_pow[simp]:
   prevent c ⊆ POW c.world
 Proof
   rw[prevent_def, Once SUBSET_DEF, IN_POW]
 QED
 
-Theorem ctrl_subset_pow:
+Theorem ctrl_subset_pow[simp]:
   ctrl c ⊆ POW c.world
 Proof
   rw[ctrl_def]
-  \\ assume_tac ensure_subset_pow
-  \\ fs[SUBSET_DEF]
+  \\ mp_tac ensure_subset_pow
+  \\ rewrite_tac[SUBSET_DEF]
+  \\ simp[]
+QED
+
+Theorem finite_ensure[simp]:
+  finite_cf c ⇒ FINITE (ensure c)
+Proof
+  rw[finite_cf_def]
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`POW (c.world)`
+  \\ simp[]
+QED
+
+Theorem finite_prevent[simp]:
+  finite_cf c ⇒ FINITE (prevent c)
+Proof
+  rw[finite_cf_def]
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`POW (c.world)`
+  \\ simp[]
+QED
+
+Theorem finite_ctrl[simp]:
+  finite_cf c ⇒ FINITE (ctrl c)
+Proof
+  rw[finite_cf_def]
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`POW (c.world)`
+  \\ simp[]
 QED
 
 Theorem ctrl_closure:
@@ -225,6 +288,15 @@ QED
 Definition env_for_def:
   env_for c s = { e | e ∈ c.env ∧ ∀a. a ∈ c.agent ⇒ c.eval a e ∈ s }
 End
+
+Theorem finite_env_for[simp]:
+  finite_cf c ⇒ FINITE (env_for c s)
+Proof
+  rw[finite_cf_def]
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`c.env`
+  \\ simp[SUBSET_DEF, env_for_def]
+QED
 
 Theorem obs_env_for:
   wf c ∧ s ∈ obs c ⇒ ∀e. e ∈ c.env ⇒ e ∈ env_for c s ∨ e ∈ env_for c (c.world DIFF s)

@@ -66,6 +66,13 @@ Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
 
+Theorem in_chu_objects_finite_world[simp]:
+  c ∈ chu_objects w ⇒ FINITE w
+Proof
+  rw[chu_objects_def, wf_def, finite_cf_def]
+  \\ rw[]
+QED
+
 Type chu_morphism[pp] = ``:(cf, cf, chu_morphism_map) morphism``;
 
 Definition pre_chu_def:
@@ -181,6 +188,12 @@ Theorem swap_components[simp]:
   (swap c).eval a e = c.eval e a
 Proof
   rw[swap_def]
+QED
+
+Theorem finite_swap[simp]:
+  finite_cf (swap c) ⇔ finite_cf c
+Proof
+  rw[finite_cf_def, EQ_IMP_THM]
 QED
 
 Theorem wf_swap[simp]:
@@ -611,11 +624,18 @@ End
 Overload "⊕" = ``sum``
 val _ = set_fixity "⊕" (Infix (LEFT, 500))
 
+Theorem finite_sum[simp]:
+  finite_cf c1 ∧ finite_cf c2 ⇒ finite_cf (sum c1 c2)
+Proof
+  rw[finite_cf_def, sum_def]
+QED
+
 Theorem wf_sum[simp]:
   wf c1 ∧ wf c2 ⇒ wf (sum c1 c2)
 Proof
-  rw[sum_def, SUBSET_DEF, image_def, sum_eval_def]
-  \\ rw[] \\ fs[wf_def]
+  simp[wf_def]
+  \\ simp[sum_def, mk_cf_def, image_def, sum_eval_def, SUBSET_DEF]
+  \\ rw[] \\ rw[] \\ rw[] \\ rw[] \\ metis_tac[]
 QED
 
 Theorem sum_in_chu_objects[simp]:
@@ -747,14 +767,20 @@ Definition cf0_def:
   cf0 w = <| world := w; agent := ∅; env := {""}; eval := K (K ARB) |>
 End
 
+Theorem finite_cf0[simp]:
+  FINITE w ⇒ finite_cf (cf0 w)
+Proof
+  rw[finite_cf_def, cf0_def]
+QED
+
 Theorem wf_cf0[simp]:
-  wf (cf0 w)
+  FINITE w ⇒ wf (cf0 w)
 Proof
   rw[wf_def, cf0_def]
 QED
 
 Theorem cf0_in_chu_objects[simp]:
-  cf0 w ∈ chu_objects w
+  FINITE w ⇒ cf0 w ∈ chu_objects w
 Proof
   rw[chu_objects_def] \\ rw[cf0_def]
 QED
@@ -790,6 +816,7 @@ Theorem sum_cf0:
   sum (cf0 w) c ≅ c -: chu w
 Proof
   simp[iso_objs_def] \\ strip_tac
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ conj_tac
   THENL [
     qexists_tac`mk_chu_morphism (sum c (cf0 w)) c (remove_cf0 F)`
@@ -816,7 +843,7 @@ Proof
 QED
 
 Theorem is_initial_cf0[simp]:
-  is_initial (chu w) (cf0 w)
+  FINITE w ⇒ is_initial (chu w) (cf0 w)
 Proof
   rw[is_initial_thm]
   \\ simp[EXISTS_UNIQUE_THM]
@@ -990,7 +1017,7 @@ Definition cfT_def:
 End
 
 Theorem cfT_in_chu_objects[simp]:
-  cfT w ∈ chu_objects w
+  FINITE w ⇒ cfT w ∈ chu_objects w
 Proof
   rw[cfT_def]
 QED
@@ -1003,6 +1030,7 @@ Proof
 QED
 
 Theorem cfT_swap_cf0:
+  FINITE w ⇒
   cfT w = swap_functor w @@ (cf0 w) ∧
   cfT w = op_swap_functor w @@ (cf0 w)
 Proof
@@ -1010,6 +1038,7 @@ Proof
 QED
 
 Theorem cf0_swap_cfT:
+  FINITE w ⇒
   cf0 w = (swap_functor w) @@ (cfT w) ∧
   cf0 w = (op_swap_functor w) @@ (cfT w)
 Proof
@@ -1017,9 +1046,10 @@ Proof
 QED
 
 Theorem is_terminal_cfT:
-  is_terminal (chu w) (cfT w)
+  FINITE w ⇒ is_terminal (chu w) (cfT w)
 Proof
-  rewrite_tac[CONJUNCT2 cfT_swap_cf0]
+  strip_tac
+  \\ rewrite_tac[CONJUNCT2 (UNDISCH cfT_swap_cf0)]
   \\ match_mp_tac is_terminal_cat_iso
   \\ qexists_tac`(chu w) °`
   \\ mp_tac cat_iso_pair_swap_functor
@@ -1166,13 +1196,16 @@ Proof
   \\ simp[]
 QED
 
+Theorem finite_prod[simp]:
+  finite_cf c1 ∧ finite_cf c2 ⇒ finite_cf (prod c1 c2)
+Proof
+  rw[GSYM swap_sum_prod]
+QED
+
 Theorem wf_prod[simp]:
   wf c1 ∧ wf c2 ⇒ wf (prod c1 c2)
 Proof
-  rw[wf_def]
-  \\ fs[prod_def]
-  \\ fs[sum_eval_def, mk_cf_def]
-  \\ rw[] \\ rw[] \\ fs[]
+  rw[GSYM swap_sum_prod]
 QED
 
 Theorem prod_in_chu_objects[simp]:

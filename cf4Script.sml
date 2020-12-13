@@ -36,13 +36,15 @@ Proof
 QED
 
 Theorem move_fn_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ IMAGE p w ⊆ v
+  c ∈ chu_objects w ∧ IMAGE p w ⊆ v ∧ FINITE v
   ⇒
   move_fn p v c ∈ chu_objects v
 Proof
-  rw[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
-  \\ TRY(rw[move_fn_def] \\ NO_TAC)
-  \\ metis_tac[]
+  strip_tac
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+  \\ fs[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
+  \\ rw[] \\ TRY(rw[move_fn_def] \\ NO_TAC)
+  \\ fs[finite_cf_def]
 QED
 
 Definition move_fn_morphism_def:
@@ -67,7 +69,7 @@ Proof
 QED
 
 Theorem move_fn_morphism_maps_to[simp]:
-  IMAGE p w ⊆ v ∧ m :- c → d -: chu w ⇒
+  IMAGE p w ⊆ v ∧ FINITE v ∧ m :- c → d -: chu w ⇒
   (move_fn_morphism p v m :- move_fn p v c → move_fn p v d -: chu v)
 Proof
   simp[maps_to_in_chu]
@@ -91,7 +93,7 @@ Proof
 QED
 
 Theorem pre_move_fn_functor_objf[simp]:
-  c ∈ chu_objects w ∧ IMAGE p w ⊆ v ⇒
+  c ∈ chu_objects w ∧ IMAGE p w ⊆ v ∧ FINITE v ⇒
   (pre_move_fn_functor p w v) @@ c = move_fn p v c
 Proof
   rw[objf_def, morf_def, pre_move_fn_functor_def]
@@ -113,7 +115,7 @@ Definition move_fn_functor_def:
 End
 
 Theorem is_functor_move_fn:
-  IMAGE p w ⊆ v ⇒
+  IMAGE p w ⊆ v ∧ FINITE v ⇒
   is_functor (move_fn_functor p w v)
 Proof
   rw[move_fn_functor_def]
@@ -150,7 +152,7 @@ Proof
 QED
 
 Theorem move_fn_functor_objf[simp]:
-  c ∈ chu_objects w ∧ IMAGE p w ⊆ v ⇒
+  c ∈ chu_objects w ∧ IMAGE p w ⊆ v ∧ FINITE v ⇒
   (move_fn_functor p w v) @@ c = move_fn p v c
 Proof
   rw[move_fn_functor_def]
@@ -235,7 +237,7 @@ Proof
 QED
 
 Theorem homotopy_equiv_move_fn:
-  IMAGE p w ⊆ v ∧ c ≃ d -: w ⇒ move_fn p v c ≃ move_fn p v d -: v
+  IMAGE p w ⊆ v ∧ FINITE v ∧ c ≃ d -: w ⇒ move_fn p v c ≃ move_fn p v d -: v
 Proof
   rw[homotopy_equiv_def]
   \\ qexists_tac`move_fn_morphism p v f`
@@ -274,7 +276,7 @@ Proof
 QED
 
 Theorem obs_move_fn:
-  IMAGE p w ⊆ v ∧ c ∈ chu_objects w ∧ s ⊆ w ∧ t ⊆ v ∧ (∀x. x ∈ w ⇒ (p x ∈ t ⇔ x ∈ s)) ∧ s ∈ obs c ⇒
+  IMAGE p w ⊆ v ∧ FINITE v ∧ c ∈ chu_objects w ∧ s ⊆ w ∧ t ⊆ v ∧ (∀x. x ∈ w ⇒ (p x ∈ t ⇔ x ∈ s)) ∧ s ∈ obs c ⇒
   t ∈ obs (move_fn p v c)
 Proof
   strip_tac
@@ -314,7 +316,7 @@ Theorem move_in_chu_objects[simp]:
   move c d ∈ chu_objects w
 Proof
   rw[chu_objects_def]
-  \\ fs[wf_def, PULL_EXISTS]
+  \\ fs[wf_def, PULL_EXISTS, finite_cf_def]
   \\ rw[move_def, mk_cf_def]
   \\ rw[] \\ fs[]
 QED
@@ -597,11 +599,11 @@ Proof
 QED
 
 Theorem cf_in_chu_objects:
-  FINITE e ∧ (∀f. f ∈ p ⇒extensional f e ∧ IMAGE f e ⊆ w) ⇒
+  FINITE p ∧ FINITE e ∧ FINITE w ∧ (∀f. f ∈ p ⇒extensional f e ∧ IMAGE f e ⊆ w) ⇒
   cf p e w ∈ chu_objects w
 Proof
   rw[chu_objects_def]
-  \\ rw[wf_def, cf_def, mk_cf_def] \\ rw[]
+  \\ rw[wf_def, cf_def, mk_cf_def, finite_cf_def] \\ rw[]
   \\ fs[SUBSET_DEF, PULL_EXISTS]
   \\ metis_tac[decode_encode_function]
 QED
@@ -616,6 +618,16 @@ Proof
                       ∃a. a ∈ c.agent ∧ ∀e. e ∈ c.env ⇒ f e = c.eval a e}`
   \\ simp[]
   \\ qmatch_goalsub_abbrev_tac`cf p e`
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+  \\ `FINITE p` by (
+    qspec_then`λf. IMAGE (λx. (x, f x)) e`irule FINITE_INJ
+    \\ qexists_tac`e`
+    \\ qexists_tac`POW (e × w)`
+    \\ simp[INJ_DEF, IN_POW]
+    \\ simp[Abbr`p`, PULL_EXISTS, SUBSET_DEF] \\ rw[]
+    \\ rw[FUN_EQ_THM]
+    \\ fs[SUBSET_DEF, extensional_def, EXTENSION, FORALL_PROD]
+    \\ metis_tac[])
   \\ `cf p e w ∈ chu_objects w` by ( irule cf_in_chu_objects \\ simp[Abbr`p`] )
   \\ simp[homotopy_equiv_def]
   \\ qexists_tac`mk_chu_morphism c (cf p e w)
@@ -705,10 +717,11 @@ QED
    of equality because of encodings *)
 
 Theorem move_fn_move_cf:
-  c ∈ chu_objects v ∧ IMAGE p v ⊆ w ∧ FINITE v ∧ extensional p v ⇒
+  c ∈ chu_objects v ∧ IMAGE p v ⊆ w ∧ FINITE w ∧ extensional p v ⇒
   move_fn p w c ≅ move (cf_swap {p} v w) c -: chu w
 Proof
   rw[iso_objs_thm]
+  \\ `FINITE v` by metis_tac[in_chu_objects_finite_world]
   \\ qexists_tac`mk_chu_morphism (move_fn p w c) (move (cf_swap {p} v w) c)
                  <| map_agent := I; map_env := FST o decode_pair |>`
   \\ conj_asm1_tac
@@ -740,6 +753,7 @@ Theorem move_fn_move_cf_sing:
   move c d ≅ move_fn (flip c.eval e) w d -: chu w
 Proof
   rw[iso_objs_thm]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ qexists_tac`mk_chu_morphism (move c d) (move_fn (flip c.eval e) w d)
        <| map_agent := I; map_env := λx. encode_pair (x, e) |>`
   \\ conj_asm1_tac
@@ -747,7 +761,7 @@ Proof
     simp[maps_to_in_chu]
     \\ conj_asm1_tac
     >- (
-      irule move_fn_in_chu_objects
+      irule move_fn_in_chu_objects \\ simp[]
       \\ goal_assum(first_assum o mp_then Any mp_tac)
       \\ fs[chu_objects_def, wf_def, SUBSET_DEF, PULL_EXISTS]
       \\ fs[] )
@@ -762,12 +776,20 @@ Proof
 QED
 
 Theorem move_SURJ_inverse:
-  SURJ p w v ∧ extensional p w ∧ c ∈ chu_objects v ∧ FINITE v ∧
+  SURJ p w v ∧ extensional p w ∧ c ∈ chu_objects v ∧ FINITE w ∧
     Q = {q | extensional q v ∧ IMAGE q v ⊆ w ∧ restrict (p o q) v = restrict I v}⇒
   move_fn p v (move (cf_swap Q v w) c) ≃ c -: v
 Proof
   rw[]
+  \\ `FINITE v` by metis_tac[in_chu_objects_finite_world]
   \\ qmatch_goalsub_abbrev_tac`cf_swap Q`
+  \\ `FINITE Q` by (
+    qspec_then`λf. IMAGE (λx. (x, f x)) v`irule FINITE_INJ
+    \\ qexists_tac`POW (v × w)`
+    \\ qexists_tac`v`
+    \\ rw[INJ_DEF, IN_POW, Abbr`Q`, extensional_def, SUBSET_DEF, FORALL_PROD, PULL_EXISTS]
+    \\ fs[FUN_EQ_THM, FORALL_PROD]
+    \\ metis_tac[])
   \\ rw[homotopy_equiv_def]
   \\ qmatch_goalsub_abbrev_tac`_ :- z → c -: chu v`
   \\ `∃q. q ∈ Q`
@@ -792,7 +814,7 @@ Proof
   \\ `z ∈ chu_objects v`
   by (
     simp[Abbr`z`]
-    \\ irule move_fn_in_chu_objects
+    \\ irule move_fn_in_chu_objects \\ fs[]
     \\ qexists_tac`w`
     \\ conj_tac
     >- (

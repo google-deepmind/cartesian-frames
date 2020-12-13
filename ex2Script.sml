@@ -44,7 +44,7 @@ Theorem sym_cf_in_chu_objects[simp]:
   sym_cf ∈ chu_objects sym_cf.world
 Proof
   rw[chu_objects_def, wf_def]
-  \\ fs[sym_cf_def, mk_cf_def]
+  \\ fs[sym_cf_def, mk_cf_def, finite_cf_def]
 QED
 
 Theorem is_morphism_flip[simp]:

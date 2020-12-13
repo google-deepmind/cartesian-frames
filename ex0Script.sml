@@ -179,13 +179,14 @@ Theorem wf_runs2[simp]:
   wf runs_cf2
 Proof
   rw[runs_cf2_def, image_def, SUBSET_DEF, runs_cf1_def]
+  \\ rw[finite_cf_def]
 QED
 
 Theorem wf_runs3[simp]:
   wf runs_cf3
 Proof
   rw[wf_def, runs_cf3_def, runs_cf2_def, runs_cf1_def, mk_cf_def]
-  \\ rw[]
+  \\ rw[finite_cf_def]
 QED
 
 Theorem runs_cf2_world[simp]:

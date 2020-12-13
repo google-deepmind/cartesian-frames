@@ -59,9 +59,10 @@ Proof
   \\ qmatch_assum_rename_tac`is_chu_morphism _ c f1`
   \\ imp_res_tac maps_to_obj \\ fs[]
   \\ `w = c.world ∧ w = d.world` by fs[chu_objects_def]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ qabbrev_tac`m1 = <| dom := cf1 w x; cod := c; map := f1 |>`
   \\ `m1 :- cf1 w x → c -: chu w`
-  by ( simp[maps_to_in_def, Abbr`m1`] \\ fs[pre_chu_def] )
+  by ( simp[maps_to_in_def, Abbr`m1`] \\ fs[pre_chu_def] \\ rfs[])
   \\ `m o m1 -: chu w :- cf1 w x → d -: chu w` by (
     imp_res_tac maps_to_comp \\ fs[] )
   \\ fs[maps_to_in_def, pre_chu_def]
@@ -77,6 +78,7 @@ Proof
   \\ simp[ensure_cf1_morphism]
   \\ gen_tac
   \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ Cases_on`x ⊆ c.world` \\ rfs[]
   \\ simp[EQ_IMP_THM]
   \\ conj_tac
@@ -158,6 +160,7 @@ Proof
   \\ once_rewrite_tac[SET_EQ_SUBSET]
   \\ `c.world = w ∧ d.world = w ∧ (sum c d).world = w`
   by ( simp[sum_def] \\ fs[chu_objects_def] )
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ reverse conj_tac
   >- (
     simp[Once SUBSET_DEF, ensure_cf1_morphism]
@@ -201,6 +204,7 @@ Proof
   \\ simp[EXTENSION, ensure_cf1_morphism]
   \\ imp_res_tac maps_to_obj \\ fs[]
   \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def] \\ fs[]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ gen_tac \\ EQ_TAC \\ strip_tac \\ simp[]
   \\ pop_assum(mp_then Any (qspec_then`w`mp_tac) is_chu_morphism_maps_to)
   \\ simp[]
@@ -227,6 +231,7 @@ Proof
   rw[ctrl_def, ensure_cf1_morphism]
   \\ rw[UNDISCH prevent_cf1_morphism]
   \\ `c.world = w` by fs[chu_objects_def] \\ fs[]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ simp[cf2_def]
   \\ Cases_on`s ⊆ w` \\ simp[]
   \\ EQ_TAC \\ strip_tac
@@ -371,9 +376,10 @@ Proof
     \\ qabbrev_tac`c2 = mk_cf (c with env := env_for c (w DIFF s))`
     \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
     by (
-      fs[chu_objects_def, Abbr`c1`, Abbr`c2`, env_for_def]
-      \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
-      \\ fs[wf_def] )
+      fs[chu_objects_def, Abbr`c1`, Abbr`c2`]
+      \\ fs[wf_def, finite_cf_def]
+      \\ simp[env_for_def, image_def, SUBSET_DEF, PULL_EXISTS])
+    \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
     \\ conj_asm1_tac
     >- ( fs[obs_def, chu_objects_def] \\ rfs[] )
     \\ map_every qexists_tac[`c1`,`c2`] \\ simp[]
@@ -527,6 +533,7 @@ Proof
   \\ rw[Abbr`P`, Abbr`R`, Abbr`Q`]
   \\ rfs[ensure_cf1_morphism]
   \\ `c.world = w` by fs[chu_objects_def]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ first_assum(mp_then Any (qspec_then`w`mp_tac) is_chu_morphism_maps_to)
   \\ simp[] \\ strip_tac
   \\ `∃f. f :- c → c1 && c2 -: chu w` by metis_tac[homotopy_equiv_def]
@@ -554,6 +561,7 @@ Theorem cfT_ctrl_obs_disjoint:
   c ∈ chu_objects w ∧ ¬(c ≃ cfT w -: w) ⇒ DISJOINT (ctrl c) (obs c)
 Proof
   CCONTR_TAC \\ fs[IN_DISJOINT]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ fs[UNDISCH(obs_homotopy_equiv_prod)]
   \\ fs[ctrl_def]
   \\ `c1 ≃ cfT w -: w ∧ c2 ≃ cfT w -: w` by metis_tac[prod_ensure_prevent_equiv_cfT]
@@ -565,6 +573,7 @@ Theorem image_subset_ensure_inter_obs_alt:
   c ∈ chu_objects w ∧ s ∈ ensure c ∩ obs c ⇒ image c ⊆ s
 Proof
   rw[]
+  \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
   \\ fs[UNDISCH(obs_homotopy_equiv_prod)]
   \\ `c2 ≃ cfT w -: w` by metis_tac[prod_ensure_prevent_equiv_cfT]
   \\ `c ≃ c1 -: w` by metis_tac[homotopy_equiv_trans, prod_cfT,

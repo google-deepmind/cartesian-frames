@@ -296,7 +296,7 @@ Proof
   \\ simp[restrict_def, FUN_EQ_THM, Abbr`z`]
 QED
 
-Theorem subagent_homotopy_equiv:
+Theorem subagent_same_homotopy_equiv:
   c1 ◁ d -: w ∧ c1 ≃ c2 -: w ⇒ c2 ◁ d -: w
 Proof
   rw[subagent_covering]
@@ -362,7 +362,7 @@ Proof
   \\ Cases_on`c = move d z`
   >- metis_tac[currying_implies_covering_eq_case]
   \\ imp_res_tac homotopy_equiv_sym
-  \\ first_assum(mp_then Any mp_tac subagent_homotopy_equiv)
+  \\ first_assum(mp_then Any mp_tac subagent_same_homotopy_equiv)
   \\ simp[subagent_covering]
   \\ simp[covering_subagent_def, PULL_EXISTS, EXISTS_PROD]
   \\ disch_then irule
@@ -376,13 +376,101 @@ Proof
   metis_tac[subagent_covering, currying_implies_covering, covering_implies_currying]
 QED
 
-(*
+Theorem homotopy_equiv_move_swap_cf1:
+  c ∈ chu_objects w ⇒
+  c ≃ move c (swap (cf1 c.agent c.agent)) -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ `FINITE c.agent` by (fs[chu_objects_def] \\ metis_tac[wf_def, finite_cf_def])
+  \\ qexists_tac`mk_chu_morphism c (move c (swap (cf1 c.agent c.agent)))
+      <| map_agent := I; map_env := SND o decode_pair |>`
+  \\ qexists_tac`mk_chu_morphism(move c (swap (cf1 c.agent c.agent))) c
+      <| map_agent := I; map_env := λe. encode_pair("", e) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[mk_chu_morphism_def, maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[move_def, restrict_def]
+    \\ rw[cf1_def, mk_cf_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[mk_chu_morphism_def, maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[move_def, restrict_def]
+    \\ rw[cf1_def, mk_cf_def] )
+  \\ qmatch_goalsub_abbrev_tac`f o g -: _`
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ conj_tac \\ irule homotopic_id
+  \\ fs[maps_to_in_chu, pre_chu_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ fs[composable_in_def, pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def]
+  \\ simp[restrict_def, FUN_EQ_THM]
+QED
+
 Theorem homotopy_equiv_subagent:
   c1 ≃ c2 -: w ⇒ c1 ◁ c2 -: w
 Proof
-  rw[subagent_covering, covering_subagent_def]
-  \\ TRY (fs[homotopy_equiv_def, maps_to_in_chu] \\ NO_TAC)
-  \\ fs[homotopy_equiv_def]
-*)
+  simp[subagent_currying, currying_subagent_def]
+  \\ strip_tac
+  \\ conj_asm1_tac >- (fs[homotopy_equiv_def, maps_to_in_chu])
+  \\ conj_asm1_tac >- (fs[homotopy_equiv_def, maps_to_in_chu])
+  \\ qexists_tac`swap (cf1 c2.agent c2.agent)`
+  \\ `FINITE c2.agent` by (fs[chu_objects_def] \\ metis_tac[wf_def, finite_cf_def])
+  \\ simp[]
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ simp[homotopy_equiv_move_swap_cf1]
+QED
+
+Theorem subagent_refl[simp]:
+  c ∈ chu_objects w ⇒  c ◁ c -: w
+Proof
+  metis_tac[homotopy_equiv_refl, homotopy_equiv_subagent]
+QED
+
+Theorem subagent_trans:
+  c1 ◁ c2 -: w ∧ c2 ◁ c3 -: w ⇒ c1 ◁ c3 -: w
+Proof
+  rw[subagent_def]
+  \\ first_x_assum(first_x_assum o mp_then Any strip_assume_tac)
+  \\ first_x_assum(first_x_assum o mp_then Any strip_assume_tac)
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule comp_assoc
+  \\ fs[maps_to_in_chu, composable_in_def, pre_chu_def]
+QED
+
+Theorem subagent_homotopy_equiv:
+  c1 ◁ d1 -: w ∧ c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w ⇒
+  c2 ◁ d2 -: w
+Proof
+  metis_tac[homotopy_equiv_subagent, homotopy_equiv_sym, subagent_trans]
+QED
+
+Definition mutual_subagents_def:
+  mutual_subagents w c d ⇔ c ◁ d -: w ∧ d ◁ c -: w
+End
+
+Theorem mutual_subagents_refl[simp]:
+  c ∈ chu_objects w ⇒ mutual_subagents w c c
+Proof
+  metis_tac[mutual_subagents_def, subagent_refl]
+QED
+
+Theorem mutual_subagents_sym:
+  mutual_subagents w c d ⇔ mutual_subagents w c d
+Proof
+  rw[mutual_subagents_def]
+QED
+
+Theorem mutual_subagents_trans:
+  mutual_subagents w c1 c2 ∧ mutual_subagents w c2 c3 ⇒ mutual_subagents w c1 c3
+Proof
+  metis_tac[mutual_subagents_def, subagent_trans]
+QED
 
 val _ = export_theory();

@@ -15,8 +15,8 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-  combinTheory pairTheory listTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf4Theory
+  combinTheory pairTheory listTheory pred_setTheory helperSetTheory categoryTheory
+  cf0Theory cf1Theory cf2Theory cf3Theory cf4Theory
 
 val _ = new_theory"cf5";
 
@@ -180,6 +180,16 @@ Proof
   rw[morphism_component_equality, decode_morphism_def]
   \\ rw[chu_morphism_map_component_equality]
   \\ rw[encode_morphism_def]
+QED
+
+Theorem decode_encode_chu_morphism[simp]:
+  m :- c → d -: chu w ⇒
+  decode_morphism c d (encode_morphism m) = m
+Proof
+  rw[maps_to_in_chu, is_chu_morphism_def]
+  \\ irule decode_encode_morphism
+  \\ fs[chu_objects_def, wf_def]
+  \\ fs[finite_cf_def]
 QED
 
 (*
@@ -471,6 +481,133 @@ Theorem mutual_subagents_trans:
   mutual_subagents w c1 c2 ∧ mutual_subagents w c2 c3 ⇒ mutual_subagents w c1 c3
 Proof
   metis_tac[mutual_subagents_def, subagent_trans]
+QED
+
+Theorem homotopy_equiv_mutual_subagents:
+  c ≃ d -: w ⇒ mutual_subagents w c d
+Proof
+  rw[mutual_subagents_def]
+  \\ metis_tac[homotopy_equiv_subagent, homotopy_equiv_sym]
+QED
+
+Theorem sum_cfT_cfT:
+  FINITE w ⇒
+    sum (cfT w) (cfT w) ≃ cfT w -: w ∧
+    ¬(sum (cfT w) (cfT w) ≅ cfT w -: chu w)
+Proof
+  strip_tac
+  \\ conj_tac
+  >- (
+    irule empty_env_nonempty_agent
+    \\ simp[sum_def, cfT_def, cf0_def])
+  \\ simp[iso_objs_thm, chu_iso_bij]
+  \\ CCONTR_TAC \\ fs[]
+  \\ fs[maps_to_in_chu]
+  \\ `CARD f.dom.agent = CARD f.cod.agent`
+  by (
+    irule FINITE_BIJ_CARD
+    \\ fs[chu_objects_def]
+    \\ metis_tac[wf_def, finite_cf_def])
+  \\ pop_assum mp_tac
+  \\ simp[sum_def, cfT_def, cf0_def]
+  \\ simp[CARD_UNION_EQN, SING_INTER]
+QED
+
+Theorem mutual_subagents_cfT_null:
+  FINITE w ⇒ mutual_subagents w (cfT w) (null w)
+Proof
+  rw[mutual_subagents_def, subagent_covering, covering_subagent_def]
+  \\ fs[cfT_def, null_def, cf0_def]
+QED
+
+Theorem cfT_not_homotopy_equiv_null:
+  ¬(cfT w ≃ null w -: w)
+Proof
+  rw[homotopy_equiv_def]
+  \\ CCONTR_TAC \\ fs[]
+  \\ fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ fs[null_def, cfT_def, cf0_def]
+QED
+
+(* TODO: example of non-vacuous mutual subagents? *)
+
+Theorem cfT_subagent[simp]:
+  c ∈ chu_objects w ⇒ cfT w ◁ c -: w
+Proof
+  strip_tac
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ rw[subagent_def]
+  \\ fs[cfT_def, cf0_def, maps_to_in_chu, is_chu_morphism_def, cfbot_def]
+QED
+
+Theorem subagent_cfbot[simp]:
+  c ∈ chu_objects w ⇒ c ◁ cfbot w w -: w
+Proof
+  strip_tac
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ rw[subagent_def]
+  \\ qexists_tac`m`
+  \\ qexists_tac`id (cfbot w w) -: chu w`
+  \\ simp[]
+  \\ irule(GSYM id_comp2)
+  \\ fs[maps_to_in_chu, pre_chu_def]
+QED
+
+Theorem null_subagent[simp]:
+  c ∈ chu_objects w ⇒ null w ◁ c -: w
+Proof
+  metis_tac[cfT_subagent, mutual_subagents_cfT_null, mutual_subagents_def,
+            subagent_trans, in_chu_objects_finite_world]
+QED
+
+Theorem subagent_cfbot_image:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  (c ◁ cfbot w s -: w ⇔ image c ⊆ s)
+Proof
+  strip_tac
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ EQ_TAC
+  >- (
+    CCONTR_TAC \\ fs[SUBSET_DEF]
+    \\ fs[image_def]
+    \\ fs[subagent_covering, covering_subagent_def]
+    \\ first_x_assum drule
+    \\ rw[]
+    \\ CCONTR_TAC \\ fs[]
+    \\ fs[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def]
+    \\ `c.eval a e = (cfbot w s).eval (m.map.map_agent a) f` by metis_tac[]
+    \\ pop_assum mp_tac
+    \\ simp_tac(srw_ss())[cfbot_def, cf1_def, mk_cf_def]
+    \\ fs[cfbot_def, cf1_def, mk_cf_def]
+    \\ metis_tac[])
+  \\ rw[subagent_covering, covering_subagent_def]
+  \\ qexists_tac`""`
+  \\ qexists_tac`mk_chu_morphism c (cfbot w s) <| map_agent := flip c.eval e; map_env := K e |>`
+  \\ simp[maps_to_in_chu]
+  \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+  \\ simp[cfbot_def, restrict_def]
+  \\ simp[cf1_def, mk_cf_def]
+  \\ fs[SUBSET_DEF, image_def, PULL_EXISTS]
+QED
+
+Theorem obs_homotopy_equiv_prod_subagent:
+  c ∈ chu_objects w ⇒
+  (s ∈ obs c ⇔
+   s ⊆ w ∧ ∃c1 c2. c1 ◁ cfbot w s -: w ∧ c2 ◁ cfbot w (w DIFF s) -: w ∧
+                   c ≃ c1 && c2 -: w)
+Proof
+  strip_tac
+  \\ drule obs_homotopy_equiv_prod
+  \\ simp[]
+  \\ disch_then kall_tac
+  \\ Cases_on`s ⊆ w` \\ simp[]
+  \\ EQ_TAC \\ strip_tac
+  \\ map_every qexists_tac[`c1`,`c2`]
+  \\ simp[subagent_cfbot_image]
+  \\ DEP_REWRITE_TAC[GSYM subagent_cfbot_image]
+  \\ simp[]
+  \\ fs[subagent_def]
 QED
 
 val _ = export_theory();

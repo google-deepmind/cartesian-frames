@@ -20,7 +20,7 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 
 val _ = new_theory"cf2";
 
-(* -- *)
+(* TODO: move some of these *)
 Theorem IMAGE_CHR_UNIV:
   UNIV = IMAGE CHR (count 256)
 Proof

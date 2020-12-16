@@ -236,13 +236,13 @@ Proof
 QED
 
 Definition tensor_morphism_def:
-  tensor_morphism f c1 c2 g d1 d2 =
-    mk_chu_morphism (tensor c1 d1) (tensor c2 d2)
+  tensor_morphism f g =
+    mk_chu_morphism (tensor f.dom g.dom) (tensor f.cod g.cod)
       <| map_agent := λp. let (a,b) = decode_pair p in
                             encode_pair (f.map.map_agent a, g.map.map_agent b);
-         map_env := λe. let m = decode_morphism c2 (swap d2) e in
+         map_env := λe. let m = decode_morphism f.cod (swap g.cod) e in
            encode_morphism
-             (mk_chu_morphism c1 (swap d1)
+             (mk_chu_morphism f.dom (swap g.dom)
                <| map_agent := g.map.map_env o m.map.map_agent o f.map.map_agent;
                   map_env := f.map.map_env o m.map.map_env o g.map.map_agent |>) |>
 End
@@ -251,7 +251,7 @@ Theorem tensor_morphism_maps_to:
   f :- c1 → c2 -: chu w ∧
   g :- d1 → d2 -: chu w
   ⇒
-  tensor_morphism f c1 c2 g d1 d2 :- tensor c1 d1 → tensor c2 d2 -: chu w
+  tensor_morphism f g :- tensor c1 d1 → tensor c2 d2 -: chu w
 Proof
   reverse(rw[maps_to_in_chu])
   >- rw[tensor_morphism_def]
@@ -315,21 +315,57 @@ Proof
   \\ fs[maps_to_in_chu, is_chu_morphism_def]
 QED
 
+Theorem iso_tensor_right:
+  c1 ≅ c2 -: chu w ∧ d ∈ chu_objects w ⇒
+  tensor c1 d ≅ tensor c2 d -: chu w
+Proof
+  cheat
 (*
+  simp[iso_objs_thm, GSYM AND_IMP_INTRO]
+  \\ disch_then(qx_choose_then`f`strip_assume_tac)
+  \\ strip_tac
+  \\ qexists_tac`tensor_morphism f (id_in (chu w) d)`
+  \\ conj_asm1_tac >- simp[tensor_morphism_maps_to, id_maps_to, is_category_chu, chu_obj]
+  \\ fs[chu_iso_bij]
+  \\ simp[Once CONJ_ASSOC]
+  \\ reverse conj_tac >- fs[maps_to_in_chu]
+  \\ fs[maps_to_in_chu] \\ rfs[]
+  \\ rpt(qpat_x_assum`T`kall_tac)
+  \\ qpat_x_assum`BIJ _.map.map_env _ _`mp_tac
+  \\ qpat_x_assum`BIJ _.map.map_agent _ _`mp_tac
+
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS]
+  \\ qx_gen_tac`f'e` \\ strip_tac
+  \\ qx_gen_tac`g'e` \\ strip_tac
+  \\ qabbrev_tac`f' = <| dom := c2; cod := c1; map := <| map_agent := f'a; map_env := f'e |> |>`
+  \\ qabbrev_tac`g' = <| dom := d2; cod := d1; map := <| map_agent := g'a; map_env := g'e |> |>`
+  \\ qexists_tac`(tensor_morphism f' g').map.map_agent`
+  \\ qexists_tac`(tensor_morphism f' g').map.map_env`
+  \\ simp[tensor_morphism_def, mk_chu_morphism_def, PULL_EXISTS, EXISTS_PROD, restrict_def]
+  \\ simp[tensor_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[Abbr`f'`, Abbr`g'`]
+  \\ simp[hom_def]
+*)
+QED
+
 Theorem iso_tensor:
   c1 ≅ c2 -: chu w ∧ d1 ≅ d2 -: chu w ⇒
   tensor c1 d1 ≅ tensor c2 d2 -: chu w
 Proof
-  simp[iso_objs_thm, GSYM AND_IMP_INTRO]
-  \\ disch_then(qx_choose_then`f`strip_assume_tac)
-  \\ disch_then(qx_choose_then`g`strip_assume_tac)
-  \\ qexists_tac`tensor_morphism f c1 c2 g d1 d2`
-  \\ conj_asm1_tac >- simp[tensor_morphism_maps_to]
-  \\ fs[chu_iso_bij]
-  \\ simp[Once CONJ_ASSOC]
-  \\ reverse conj_tac >- fs[maps_to_in_chu]
+  strip_tac
+  \\ irule iso_objs_trans \\ simp[]
+  \\ qexists_tac`tensor c2 d1`
+  \\ conj_tac >- metis_tac[iso_tensor_right, chu_obj, is_category_chu, iso_objs_objs]
+  \\ irule iso_objs_trans \\ simp[]
+  \\ qexists_tac`tensor d1 c2`
+  \\ conj_tac >- metis_tac[tensor_comm, iso_objs_objs, is_category_chu, chu_obj]
+  \\ irule iso_objs_trans \\ simp[]
+  \\ qexists_tac`tensor d2 c2`
+  \\ conj_tac >- metis_tac[iso_tensor_right, chu_obj, is_category_chu, iso_objs_objs]
+  \\ metis_tac[tensor_comm, iso_objs_objs, is_category_chu, chu_obj]
 QED
 
+(*
 Theorem tensor_assoc:
   c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
   tensor c1 (tensor c2 c3) ≅ tensor (tensor c1 c2) c3 -: chu w

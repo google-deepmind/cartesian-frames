@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf5Theory
+  cf0Theory cf1Theory cf2Theory cf4Theory cf5Theory
 
 val _ = new_theory"cf6";
 
@@ -434,7 +434,197 @@ Proof
   \\ metis_tac[tensor_comm, iso_objs_objs, is_category_chu, chu_obj]
 QED
 
-(*
+Overload pas[local] = ``λa b. IMAGE encode_pair (a × b)``
+
+Definition tensor_assoc_helper_def:
+  tensor_assoc_helper w c1 c2 c3 =
+    mk_cf <| world := w;
+             agent := pas c1.agent (pas c2.agent c3.agent);
+             env := IMAGE (λ(g1, g2, g3).
+                      encode_pair (encode_function (pas c2.agent c3.agent) g1,
+                        encode_pair (encode_function (pas c1.agent c3.agent) g2,
+                                     encode_function (pas c1.agent c2.agent) g3)))
+                      { (g1, g2, g3) |
+                    extensional g1 (pas c2.agent c3.agent) ∧ IMAGE g1 (pas c2.agent c3.agent) ⊆ c1.env ∧
+                    extensional g2 (pas c1.agent c3.agent) ∧ IMAGE g2 (pas c1.agent c3.agent) ⊆ c2.env ∧
+                    extensional g3 (pas c1.agent c2.agent) ∧ IMAGE g3 (pas c1.agent c2.agent) ⊆ c3.env ∧
+                        (∀a1 a2 a3. a1 ∈ c1.agent ∧ a2 ∈ c2.agent ∧ a3 ∈ c3.agent ⇒
+                           c1.eval a1 (g1 (encode_pair (a2, a3))) =
+                           c2.eval a2 (g2 (encode_pair (a1, a3))) ∧
+                           c2.eval a2 (g2 (encode_pair (a1, a3))) =
+                           c3.eval a3 (g3 (encode_pair (a1, a2)))) };
+             eval := λa e. c1.eval (FST (decode_pair a))
+                             ((decode_function (FST (decode_pair e))) (SND (decode_pair a))) |>
+End
+
+Theorem tensor_assoc_helper_in_chu_objects[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+  tensor_assoc_helper w c1 c2 c3 ∈ chu_objects w
+Proof
+  simp[tensor_assoc_helper_def]
+  \\ strip_tac
+  \\ simp[chu_objects_def]
+  \\ conj_tac
+  >- (
+    simp[image_def, SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+    \\ fs[chu_objects_def, wf_def] \\ fs[]
+    \\ rpt gen_tac \\ strip_tac
+    \\ first_x_assum irule \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ fs[finite_cf_def] )
+  \\ fs[chu_objects_def]
+  \\ `finite_cf c1 ∧ finite_cf c2 ∧ finite_cf c3` by metis_tac[wf_def]
+  \\ fs[finite_cf_def] \\ rfs[]
+  \\ irule IMAGE_FINITE
+  \\ qmatch_goalsub_abbrev_tac`extensional _ d1 ∧ IMAGE _ _ ⊆ r1 ∧
+                               extensional _ d2 ∧ IMAGE _ _ ⊆ r2 ∧
+                               extensional _ d3 ∧ IMAGE _ _ ⊆ r3 ∧ _`
+  \\ qabbrev_tac`fns = λd r. { g : string -> string | extensional g d ∧ IMAGE g d ⊆ r }`
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`fns d1 r1 × fns d2 r2 × fns d3 r3`
+  \\ reverse conj_tac
+  >- ( simp[SUBSET_DEF, PULL_EXISTS, Abbr`fns`] )
+  \\ `∀d r. FINITE d ∧ FINITE r ⇒ FINITE (fns d r)`
+  suffices_by  (
+    `FINITE d1 ∧ FINITE d2 ∧ FINITE d3` by simp[Abbr`d1`,Abbr`d2`,Abbr`d3`]
+    \\ simp[] )
+  \\ rw[Abbr`fns`]
+  \\ qspec_then`λg. IMAGE (λx. (x, g x)) d`irule FINITE_INJ
+  \\ qexists_tac`d`
+  \\ qexists_tac`POW (d × r)`
+  \\ simp[INJ_DEF, IN_POW]
+  \\ simp[SUBSET_DEF, PULL_EXISTS]
+  \\ simp[SET_EQ_SUBSET, SUBSET_DEF, PULL_EXISTS]
+  \\ simp[extensional_def]
+  \\ rw[FUN_EQ_THM]
+  \\ metis_tac[]
+QED
+
+Definition swap_pair_def:
+  swap_pair p = encode_pair (SND(decode_pair p),FST(decode_pair p))
+End
+
+Definition map_pair_def:
+  map_pair f g p = encode_pair (f (FST (decode_pair p)), g (SND (decode_pair p)))
+End
+
+Definition swap_pair_fn_def:
+  swap_pair_fn a b g = restrict (g o swap_pair) (pas b a)
+End
+
+Definition swap_pair_efn_def:
+  swap_pair_efn a b g = encode_function (pas b a) (swap_pair_fn a b (decode_function g))
+End
+
+Theorem swap_pair_efn_encode_function:
+  FINITE a ∧ FINITE b ∧ extensional f (pas a b) ⇒
+  swap_pair_efn a b (encode_function (pas a b) f) =
+    encode_function (pas b a) (swap_pair_fn a b f)
+Proof
+  rw[swap_pair_efn_def, swap_pair_fn_def]
+QED
+
+Theorem tensor_assoc_helper_swap_iso[simp]:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+  tensor_assoc_helper w c1 c2 c3 ≅ tensor_assoc_helper w c1 c3 c2 -: chu w
+Proof
+  rw[iso_objs_thm]
+  \\ `finite_cf c1 ∧ finite_cf c2 ∧ finite_cf c3` by ( fs[chu_objects_def] \\ metis_tac[wf_def])
+  \\ `c1.world = w ∧ c2.world = w ∧ c3.world = w` by fs[chu_objects_def]
+  \\ qexists_tac`mk_chu_morphism (tensor_assoc_helper w c1 c2 c3) (tensor_assoc_helper w c1 c3 c2)
+       <| map_agent := map_pair I swap_pair;
+          map_env := map_pair (swap_pair_efn c3.agent c2.agent) swap_pair |>`
+  \\ simp[maps_to_in_chu]
+  \\ fs[finite_cf_def]
+  \\ conj_asm1_tac
+  >- (
+    simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_tac
+    >- (
+      simp[tensor_assoc_helper_def, EXISTS_PROD, PULL_EXISTS]
+      \\ qx_genl_tac[`x`,`y`,`z`]
+      \\ strip_tac
+      \\ map_every qexists_tac[`swap_pair_fn c3.agent c2.agent x`,`z`,`y`]
+      \\ simp[swap_pair_fn_def, map_pair_def, swap_pair_def, swap_pair_efn_def]
+      \\ fs[extensional_def, SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ fs[restrict_def, swap_pair_def] )
+    \\ conj_tac >- ( simp[tensor_assoc_helper_def, swap_pair_def, map_pair_def,
+                          PULL_EXISTS, EXISTS_PROD] )
+    \\ simp[tensor_assoc_helper_def, mk_cf_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[map_pair_def, swap_pair_def, swap_pair_efn_encode_function]
+    \\ rpt gen_tac \\ strip_tac
+    \\ reverse IF_CASES_TAC
+    >- (
+      `F` suffices_by rw[]
+      \\ pop_assum mp_tac
+      \\ simp[]
+      \\ qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`]
+      \\ qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`]
+      \\ qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`]
+      \\ simp[swap_pair_fn_def]
+      \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+      \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD] )
+    \\ pop_assum kall_tac
+    \\ reverse IF_CASES_TAC
+    >- metis_tac[]
+    \\ pop_assum kall_tac
+    \\ DEP_REWRITE_TAC[decode_encode_function]
+    \\ simp[swap_pair_fn_def]
+    \\ simp[restrict_def, swap_pair_def] )
+  \\ simp[chu_iso_bij]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[BIJ_IFF_INV]
+  \\ simp[restrict_def]
+  \\ simp[PULL_EXISTS]
+  \\ qexists_tac`map_pair I swap_pair`
+  \\ qexists_tac`map_pair (swap_pair_efn c2.agent c3.agent) swap_pair`
+  \\ simp[tensor_assoc_helper_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[map_pair_def, swap_pair_def, swap_pair_efn_encode_function]
+  \\ conj_tac
+  >- (
+    rpt gen_tac \\ strip_tac
+    \\ rpt(qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`])
+    \\ simp[swap_pair_fn_def]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+    \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD] )
+  \\ conj_tac
+  >- (
+    rpt gen_tac \\ strip_tac
+    \\ rpt(qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`])
+    \\ simp[swap_pair_fn_def]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+    \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD] )
+  \\ conj_tac
+  >- (
+    rpt gen_tac \\ strip_tac
+    \\ DEP_REWRITE_TAC[swap_pair_efn_encode_function]
+    \\ simp[swap_pair_fn_def]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+    \\ AP_TERM_TAC
+    \\ simp[FUN_EQ_THM]
+    \\ rw[] \\ fs[]
+    \\ fs[extensional_def, PULL_EXISTS, EXISTS_PROD] )
+  \\ rpt gen_tac \\ strip_tac
+  \\ reverse IF_CASES_TAC
+  >- (
+    `F` suffices_by rw[]
+    \\ pop_assum mp_tac
+    \\ simp[]
+    \\ rpt(qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`])
+    \\ simp[swap_pair_fn_def]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+    \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD] )
+  \\ pop_assum kall_tac
+  \\ DEP_REWRITE_TAC[swap_pair_efn_encode_function]
+  \\ simp[swap_pair_fn_def]
+  \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
+  \\ AP_TERM_TAC
+  \\ simp[FUN_EQ_THM]
+  \\ rw[] \\ fs[]
+  \\ fs[extensional_def, PULL_EXISTS, EXISTS_PROD]
+QED
+
 Theorem tensor_assoc:
   c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
   tensor c1 (tensor c2 c3) ≅ tensor (tensor c1 c2) c3 -: chu w
@@ -457,8 +647,17 @@ Proof
     \\ qexists_tac`tensor (tensor c1 c3) c2`
     \\ conj_tac >- ( irule iso_tensor \\ simp[] \\ irule tensor_comm \\ simp[] )
     \\ metis_tac[] )
-  \\
+  \\ `∃d. ∀c1 c2 c3.
+        c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+        tensor (tensor c1 c2) c3 ≅ d c1 c2 c3 -: chu w ∧
+        d c1 c2 c3 ≅ d c1 c3 c2 -: chu w`
+  suffices_by metis_tac[iso_objs_sym, iso_objs_trans, is_category_chu]
+  \\ qexists_tac`tensor_assoc_helper w`
+  \\ rw[]
+  \\ cheat
+QED
 
+(*
 Theorem homotopy_equiv_tensor_right:
   c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ d ∈ chu_objects w ∧
   c1 ≃ c2 -: w ⇒

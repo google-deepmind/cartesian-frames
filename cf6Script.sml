@@ -635,18 +635,13 @@ Proof
   suffices_by (
     rpt strip_tac
     \\ irule iso_objs_trans \\ simp[]
-    \\ qexists_tac`tensor c1 (tensor c3 c2)`
-    \\ conj_tac >- ( irule iso_tensor \\ simp[] \\ irule tensor_comm \\ simp[] )
-    \\ irule iso_objs_trans \\ simp[]
-    \\ qexists_tac`tensor (tensor c3 c2) c1`
+    \\ qexists_tac`tensor (tensor c2 c3) c1`
     \\ conj_tac >- metis_tac[tensor_comm, tensor_in_chu_objects]
     \\ irule iso_objs_trans \\ simp[]
-    \\ qexists_tac`tensor (tensor c3 c1) c2`
+    \\ qexists_tac`tensor (tensor c2 c1) c3`
     \\ conj_tac >- metis_tac[]
-    \\ irule iso_objs_trans \\ simp[]
-    \\ qexists_tac`tensor (tensor c1 c3) c2`
-    \\ conj_tac >- ( irule iso_tensor \\ simp[] \\ irule tensor_comm \\ simp[] )
-    \\ metis_tac[] )
+    \\ irule iso_tensor \\ simp[]
+    \\ irule tensor_comm \\ simp[])
   \\ `∃d. ∀c1 c2 c3.
         c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
         tensor (tensor c1 c2) c3 ≅ d c1 c2 c3 -: chu w ∧

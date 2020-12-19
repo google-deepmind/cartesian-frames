@@ -900,7 +900,94 @@ Proof
     \\ fs[is_chu_morphism_def, extensional_def]
     \\ rw[] )
   \\ simp[INJ_DEF]
-  \\ cheat
+  \\ rpt gen_tac
+  \\ simp[Abbr`f`, mk_chu_morphism_def, restrict_def]
+  \\ strip_tac
+  \\ qho_match_abbrev_tac`encode_morphism (m x) = _ (m y) ⇒ _`
+  \\ strip_tac
+  \\ `decode_morphism (tensor c1 c2) (swap c3) (encode_morphism (m x)) =
+      decode_morphism (tensor c1 c2) (swap c3) (encode_morphism (m y))` by simp[]
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ reverse conj_tac
+  >- (
+    qpat_x_assum`x ∈ _`mp_tac
+    \\ qpat_x_assum`y ∈ _`mp_tac
+    \\ simp[tensor_assoc_helper_def, PULL_EXISTS]
+    \\ rpt gen_tac \\ strip_tac
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[Abbr`m`, FUN_EQ_THM]
+    \\ strip_tac
+    \\ `g3 = g3'` by (
+      simp[FUN_EQ_THM]
+      \\ fs[extensional_def, tensor_def]
+      \\ metis_tac[] )
+    \\ `g1 = g1'` by (
+      simp[FUN_EQ_THM]
+      \\ qx_gen_tac`p`
+      \\ reverse(Cases_on`p ∈ pas c2.agent c3.agent`) >- fs[extensional_def]
+      \\ fs[EXISTS_PROD]
+      \\ qmatch_assum_rename_tac`a3 ∈ c3.agent`
+      \\ qmatch_assum_rename_tac`a2 ∈ c2.agent`
+      \\ first_x_assum(qspec_then`a3`mp_tac)
+      \\ simp[]
+      \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism c1 (swap c2)`)
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ simp[maps_to_in_chu, FUN_EQ_THM]
+      \\ simp[is_chu_morphism_def]
+      \\ simp[extensional_def]
+      \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ rw[]
+      \\ metis_tac[] )
+    \\ `g2 = g2'` by (
+      simp[FUN_EQ_THM]
+      \\ qx_gen_tac`p`
+      \\ reverse(Cases_on`p ∈ pas c1.agent c3.agent`) >- fs[extensional_def]
+      \\ fs[EXISTS_PROD]
+      \\ qmatch_assum_rename_tac`a3 ∈ c3.agent`
+      \\ qmatch_assum_rename_tac`a1 ∈ c1.agent`
+      \\ first_x_assum(qspec_then`a3`mp_tac)
+      \\ simp[]
+      \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism c1 (swap c2)`)
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ simp[maps_to_in_chu, FUN_EQ_THM]
+      \\ asm_rewrite_tac[is_chu_morphism_def]
+      \\ simp_tac(srw_ss())[]
+      \\ simp_tac(srw_ss())[extensional_def]
+      \\ rpt BasicProvers.VAR_EQ_TAC
+      \\ simp_tac(srw_ss())[GSYM CONJ_ASSOC]
+      \\ conj_tac >- fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_tac >- fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_tac >- metis_tac[]
+      \\ conj_tac >- fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_tac >- fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_tac >- metis_tac[]
+      \\ rw[]
+      \\ metis_tac[] )
+    \\ rw[])
+  \\ `∀x. x ∈ (tensor_assoc_helper w c1 c2 c3).env ⇒ m x :- tensor c1 c2 → swap c3 -: chu w` suffices_by metis_tac[]
+  \\ simp[tensor_assoc_helper_def, PULL_EXISTS]
+  \\ simp[maps_to_in_chu, Abbr`m`]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[extensional_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[Once tensor_def, hom_def]
+  \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+  \\ ntac 4 strip_tac
+  \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[Once (GSYM FORALL_AND_THM)]
+  \\ qx_gen_tac`a3`
+  \\ Cases_on`a3 ∈ c3.agent` \\ simp[]
+  \\ qmatch_goalsub_abbrev_tac`encode_morphism m`
+  \\ `m :- c1 → swap c2 -: chu w`
+  by (
+    simp[Abbr`m`, maps_to_in_chu]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[extensional_def] )
+  \\ conj_asm1_tac >- metis_tac[]
+  \\ simp[tensor_def, mk_cf_def, hom_def]
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ simp[Abbr`m`]
 QED
 
 (*

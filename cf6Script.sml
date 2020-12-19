@@ -990,11 +990,104 @@ Proof
   \\ simp[Abbr`m`]
 QED
 
-(*
 Theorem homotopy_equiv_tensor_right:
-  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ d ∈ chu_objects w ∧
-  c1 ≃ c2 -: w ⇒
+  d ∈ chu_objects w ∧ c1 ≃ c2 -: w ⇒
   tensor c1 d ≃ tensor c2 d -: w
-*)
+Proof
+  rw[homotopy_equiv_def]
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by fs[maps_to_in_chu]
+  \\ `c1.world = w ∧ c2.world = w` by fs[chu_objects_def]
+  \\ qexists_tac`mk_chu_morphism (tensor c1 d) (tensor c2 d)
+       <| map_agent := λp. encode_pair (f.map.map_agent (FST (decode_pair p)),
+                                        SND (decode_pair p));
+          map_env := λm. encode_morphism
+            (decode_morphism c2 (swap d) m o f -: chu w) |>`
+  \\ qexists_tac`mk_chu_morphism (tensor c2 d) (tensor c1 d)
+       <| map_agent := λp. encode_pair (g.map.map_agent (FST (decode_pair p)),
+                                        SND (decode_pair p));
+          map_env := λm. encode_morphism
+            (decode_morphism c1 (swap d) m o g -: chu w) |>`
+  \\ qmatch_goalsub_abbrev_tac`h1 :- tensor c1 d → tensor c2 d -: _`
+  \\ qmatch_goalsub_abbrev_tac`h2 :- tensor c2 d → tensor c1 d -: _`
+  \\ ntac 2 (
+    conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu, Abbr`h1`, Abbr`h2`]
+      \\ simp[is_chu_morphism_def]
+      \\ simp[mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ conj_tac
+      >- metis_tac[composable_maps_to, maps_to_composable,
+                   is_category_chu, maps_to_in_def, maps_to_def,
+                   decode_encode_chu_morphism]
+      \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+      \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ rpt gen_tac \\ strip_tac
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+      \\ simp[Once tensor_def, mk_cf_def, hom_def]
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ conj_asm1_tac
+      >- metis_tac[composable_maps_to, maps_to_composable,
+                   is_category_chu, maps_to_in_def, maps_to_def]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ simp[Once tensor_def, mk_cf_def, hom_def]
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+      \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ pop_assum kall_tac
+      \\ DEP_REWRITE_TAC[compose_in_thm]
+      \\ DEP_REWRITE_TAC[compose_thm]
+      \\ DEP_REWRITE_TAC[chu_comp]
+      \\ rewrite_tac[CONJ_ASSOC]
+      \\ conj_tac >- metis_tac[maps_to_composable, composable_in_def]
+      \\ simp[pre_chu_def, restrict_def]
+      \\ reverse IF_CASES_TAC >- rfs[maps_to_in_chu]
+      \\ fs[maps_to_in_chu, is_chu_morphism_def] ))
+  \\ imp_res_tac maps_to_comp \\ fs[]
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ fs[maps_to_in_chu]
+  \\ simp[hom_comb_def]
+  \\ simp[chu_id_morphism_map_def]
+  \\ ntac 2 (qhdtm_x_assum`homotopic`mp_tac)
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ simp[hom_comb_def, chu_id_morphism_map_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[Once CONJ_ASSOC]
+  \\ simp[Once CONJ_ASSOC]
+  \\ conj_tac >- simp[composable_in_def, pre_chu_def]
+  \\ simp[pre_chu_def]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[restrict_def]
+  \\ fs[is_chu_morphism_def]
+  \\ simp[Abbr`h1`, Abbr`h2`, mk_chu_morphism_def]
+  \\ simp[restrict_def]
+  \\ simp[tensor_def, PULL_EXISTS, EXISTS_PROD, mk_cf_def, hom_def]
+  \\ ntac 2 strip_tac
+  \\ conj_tac \\ rpt gen_tac \\ strip_tac
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+  \\ (reverse IF_CASES_TAC >- metis_tac[])
+  \\ pop_assum kall_tac
+  \\ fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem homotopy_equiv_tensor:
+  c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w ⇒
+  tensor c1 d1 ≃ tensor c2 d2 -: w
+Proof
+  strip_tac
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧
+      d1 ∈ chu_objects w ∧ d2 ∈ chu_objects w`
+      by fs[homotopy_equiv_def, maps_to_in_chu]
+  \\ PROVE_TAC[homotopy_equiv_trans, tensor_comm,
+               iso_homotopy_equiv, homotopy_equiv_tensor_right]
+QED
 
 val _ = export_theory();

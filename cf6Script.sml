@@ -1383,4 +1383,35 @@ Proof
   \\ rw[]
 QED
 
+Definition lollipop_def:
+  lollipop c d = mk_cf
+    <| world := c.world;
+       agent := IMAGE encode_morphism (chu c.world | c → d |);
+       env := IMAGE encode_pair (c.agent × d.env);
+       eval := λa e.
+         c.eval (FST (decode_pair e))
+           ((decode_morphism c d a).map.map_env (SND (decode_pair e))) |>
+End
+
+Theorem lollipop_eq_par:
+  lollipop c d = par (swap c) d
+Proof
+  rw[lollipop_def, par_def]
+QED
+
+Theorem cf1_lollipop[simp]:
+  c ∈ chu_objects w ⇒
+  lollipop (cf1 w w) c ≅ c -: chu w
+Proof
+  rw[lollipop_eq_par]
+  \\ rw[GSYM cfbot_def]
+QED
+
+Theorem lollipop_cfbot[simp]:
+  c ∈ chu_objects w ⇒
+  lollipop c (cfbot w w) ≅ swap c -: chu w
+Proof
+  rw[lollipop_eq_par]
+QED
+
 val _ = export_theory();

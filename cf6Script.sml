@@ -1272,4 +1272,115 @@ Proof
   \\ PROVE_TAC[sum_is_sum, EXISTS_UNIQUE_ALT]
 QED
 
+Theorem tensor_overlap:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+  ¬DISJOINT (ensure c) (prevent d) ⇒
+  tensor c d ≃ cfT w -: w
+Proof
+  strip_tac
+  \\ irule empty_env_nonempty_agent
+  \\ simp[]
+  \\ fs[IN_DISJOINT]
+  \\ simp[Once tensor_def]
+  \\ fs[ensure_def, prevent_def]
+  \\ simp[CROSS_EMPTY_EQN]
+  \\ simp[GSYM MEMBER_NOT_EMPTY]
+  \\ conj_tac >- metis_tac[]
+  \\ simp[tensor_def, hom_def, EXTENSION]
+  \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def]
+  \\ simp[maps_to_in_chu]
+  \\ simp[is_chu_morphism_def]
+  \\ metis_tac[]
+QED
+
+Theorem tensor_self:
+  c ∈ chu_objects w ∧ ctrl c ≠ ∅ ⇒
+  tensor c c ≃ cfT w -: w
+Proof
+  strip_tac
+  \\ irule tensor_overlap
+  \\ fs[ctrl_def, DISJOINT_DEF]
+QED
+
+(* TODO: examples re tensor being relative to a coarse world model *)
+
+Definition par_def:
+  par c d = mk_cf <| world := c.world;
+    agent := IMAGE encode_morphism (chu c.world | swap c → d |);
+    env := IMAGE encode_pair (c.env × d.env);
+    eval := λa e.
+      c.eval ((decode_morphism (swap c) d a).map.map_env (SND (decode_pair e)))
+             (FST (decode_pair e)) |>
+End
+
+Theorem swap_tensor_par:
+  swap (tensor (swap c) (swap d)) = par c d
+Proof
+  rw[par_def, tensor_def, cf_component_equality]
+  \\ rw[mk_cf_def, swap_def, FUN_EQ_THM]
+  \\ rw[]
+  \\ metis_tac[]
+QED
+
+Theorem par_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒ par c d ∈ chu_objects w
+Proof
+  rw[GSYM swap_tensor_par]
+QED
+
+Theorem par_comm:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  par c d ≅ par d c -: chu w
+Proof
+  rw[GSYM swap_tensor_par]
+  \\ irule tensor_comm
+  \\ simp[]
+QED
+
+Theorem par_assoc:
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  c3 ∈ chu_objects w ⇒
+  par c1 (par c2 c3) ≅ par (par c1 c2) c3 -: chu w
+Proof
+  rw[GSYM swap_tensor_par]
+  \\ irule tensor_assoc
+  \\ simp[]
+QED
+
+Theorem par_cfbot[simp]:
+  c ∈ chu_objects w ⇒
+  par c (cfbot w w) ≅ c -: chu w ∧
+  par (cfbot w w) c ≅ c -: chu w
+Proof
+  rw[GSYM swap_tensor_par, cfbot_def]
+  \\ metis_tac[tensor_cf1, swap_swap, swap_in_chu_objects, swap_iso]
+QED
+
+Theorem homotopy_equiv_par:
+  c1 ≃ c2 -: w ∧
+  d1 ≃ d2 -: w ⇒
+  par c1 d1 ≃ par c2 d2 -: w
+Proof
+  rw[GSYM swap_tensor_par]
+  \\ DEP_REWRITE_TAC[homotopy_equiv_swap]
+  \\ DEP_REWRITE_TAC[tensor_in_chu_objects]
+  \\ simp[]
+  \\ conj_asm1_tac >- fs[homotopy_equiv_def, maps_to_in_chu]
+  \\ irule homotopy_equiv_tensor
+  \\ simp[]
+QED
+
+Theorem par_distrib:
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  d ∈ chu_objects w ⇒
+  par (c1 && c2) d ≅ par c1 d && par c2 d -: chu w
+Proof
+  rw[GSYM swap_tensor_par]
+  \\ rw[GSYM swap_sum_prod]
+  \\ irule tensor_distrib
+  \\ rw[]
+QED
+
 val _ = export_theory();

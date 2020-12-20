@@ -1090,4 +1090,186 @@ Proof
                iso_homotopy_equiv, homotopy_equiv_tensor_right]
 QED
 
+Theorem tensor_distrib:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  tensor (sum c1 c2) d ≅ sum (tensor c1 d) (tensor c2 d) -: chu w
+Proof
+  strip_tac
+  \\ `c1.world = w ∧ c2.world = w ∧ d.world = w` by fs[chu_objects_def]
+  \\ simp[Once iso_objs_sym]
+  \\ simp[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (sum (tensor c1 d) (tensor c2 d))
+                                 (tensor (sum c1 c2) d)
+       <| map_agent := λa. sum_CASE (decode_sum a)
+                             (λp. encode_pair (encode_sum (INL (FST (decode_pair p))),
+                                               SND (decode_pair p)))
+                             (λp. encode_pair (encode_sum (INR (FST (decode_pair p))),
+                                               SND (decode_pair p)));
+          map_env := λe.
+            let m = decode_morphism (sum c1 c2) (swap d) e in
+              encode_pair
+                (encode_morphism (m o inj1 c1 c2 -: chu w),
+                 encode_morphism (m o inj2 c1 c2 -: chu w)) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_tac
+    >- (
+      simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ gen_tac \\ strip_tac
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ conj_asm1_tac >- rfs[sum_def]
+      \\ qspecl_then[`chu w`,`inj1 c1 c2`,`x`]mp_tac maps_to_comp \\ simp[]
+      \\ disch_then(first_assum o mp_then Any (qspec_then`c1`mp_tac))
+      \\ simp[] \\ strip_tac
+      \\ qspecl_then[`chu w`,`inj2 c1 c2`,`x`]mp_tac maps_to_comp \\ simp[]
+      \\ disch_then(first_assum o mp_then Any (qspec_then`c2`mp_tac))
+      \\ simp[] \\ strip_tac
+      \\ simp[Once sum_def]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def] )
+    \\ conj_tac
+    >- (
+      simp[Once sum_def, PULL_EXISTS]
+      \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ gen_tac \\ strip_tac \\ simp[]
+      \\ simp[Once tensor_def]
+      \\ simp[Once sum_def] )
+    \\ simp[Once sum_def, PULL_EXISTS]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+    \\ rpt gen_tac
+    \\ simp[CONJ_COMM]
+    \\ simp[GSYM AND_IMP_INTRO]
+    \\ strip_tac
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ conj_asm1_tac >- rfs[sum_def]
+    \\ qspecl_then[`chu w`,`inj1 c1 c2`,`x`]mp_tac maps_to_comp \\ simp[]
+    \\ disch_then(first_assum o mp_then Any (qspec_then`c1`mp_tac))
+    \\ simp[] \\ strip_tac
+    \\ qspecl_then[`chu w`,`inj2 c1 c2`,`x`]mp_tac maps_to_comp \\ simp[]
+    \\ disch_then(first_assum o mp_then Any (qspec_then`c2`mp_tac))
+    \\ simp[] \\ strip_tac
+    \\ simp[Once sum_def, mk_cf_def]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+    \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+    \\ simp[sum_eval_def]
+    \\ strip_tac \\ simp[]
+    \\ simp[Once tensor_def, mk_cf_def, hom_def]
+    \\ (reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac)
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+    \\ simp[Once tensor_def, mk_cf_def, hom_def]
+    \\ simp[Once sum_def]
+    \\ (reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac)
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+    \\ simp[Once sum_def]
+    \\ simp[mk_cf_def, PULL_EXISTS, EXISTS_PROD]
+    \\ (reverse IF_CASES_TAC >- (
+          fs[maps_to_in_chu, is_chu_morphism_def, sum_def, PULL_EXISTS, EXISTS_PROD]
+          \\ metis_tac[] ))
+    \\ simp[sum_eval_def]
+    \\ DEP_REWRITE_TAC[compose_in_thm]
+    \\ DEP_REWRITE_TAC[compose_thm]
+    \\ DEP_REWRITE_TAC[chu_comp]
+    \\ simp[CONJ_ASSOC]
+    \\ (conj_tac >- (
+      conj_asm2_tac >- fs[maps_to_in_chu]
+      \\ irule maps_to_composable
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ metis_tac[inj_maps_to]))
+    \\ simp[pre_chu_def, restrict_def]
+    \\ fs[maps_to_in_chu]
+    \\ simp[inj1_def, inj2_def, mk_chu_morphism_def]
+    \\ simp[restrict_def, sum_def, PULL_EXISTS, EXISTS_PROD])
+  \\ qmatch_goalsub_abbrev_tac`iso _ f`
+  \\ simp[chu_iso_bij]
+  \\ simp[Once CONJ_ASSOC]
+  \\ reverse conj_tac >- fs[maps_to_in_chu]
+  \\ conj_tac
+  >- (
+    simp[BIJ_IFF_INV]
+    \\ conj_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+    \\ qexists_tac`λp. sum_CASE (decode_sum (FST (decode_pair p)))
+         (λx. encode_sum (INL (encode_pair (x, SND (decode_pair p)))))
+         (λx. encode_sum (INR (encode_pair (x, SND (decode_pair p)))))`
+    \\ simp[Abbr`f`, mk_chu_morphism_def, tensor_def, sum_def,
+            PULL_EXISTS, EXISTS_PROD]
+    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[] \\ simp[] \\ fs[] )
+  \\ simp[BIJ_IFF_INV]
+  \\ conj_tac >- fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ qexists_tac`λp. encode_morphism (@m.
+        m :- (sum c1 c2) → (swap d) -: chu w ∧
+        m o inj1 c1 c2 -: chu w = decode_morphism c1 (swap d) (FST (decode_pair p)) ∧
+        m o inj2 c1 c2 -: chu w = decode_morphism c2 (swap d) (SND (decode_pair p)))`
+  \\ simp[]
+  \\ qho_match_abbrev_tac`(∀x. _ x ⇒ encode_morphism (m x) ∈ _) ∧ _`
+  \\ simp[]
+  \\ conj_asm1_tac
+  >- (
+    simp[Abbr`f`, tensor_def, Once sum_def, PULL_EXISTS, EXISTS_PROD, hom_def]
+    \\ rpt gen_tac \\ strip_tac
+    \\ qmatch_goalsub_abbrev_tac`encode_morphism z = _`
+    \\ qexists_tac`z` \\ simp[Abbr`z`]
+    \\ simp[Abbr`m`]
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism] \\ simp[]
+    \\ `(sum c1 c2).world = w` by simp[sum_def] \\ simp[]
+    \\ SELECT_ELIM_TAC \\ simp[]
+    \\ PROVE_TAC[sum_is_sum, EXISTS_UNIQUE_ALT] )
+  \\ conj_tac
+  >- (
+    simp[Abbr`f`]
+    \\ simp[mk_chu_morphism_def]
+    \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+    \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+    \\ simp[restrict_def]
+    \\ gen_tac \\ strip_tac
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ conj_asm1_tac >- rfs[sum_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ pop_assum kall_tac
+    \\ simp[Abbr`m`]
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ conj_asm1_tac
+    >- (
+      conj_tac \\ irule composable_maps_to \\ simp[]
+      \\ (conj_tac >- fs[maps_to_in_chu])
+      \\ irule maps_to_composable
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ metis_tac[inj_maps_to] )
+    \\ AP_TERM_TAC
+    \\ SELECT_ELIM_TAC
+    \\ PROVE_TAC[sum_is_sum, EXISTS_UNIQUE_ALT] )
+  \\ simp[Abbr`f`]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[Once sum_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+  \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+  \\ simp[restrict_def]
+  \\ rpt gen_tac \\ strip_tac
+  \\ simp[Once tensor_def, hom_def, PULL_EXISTS]
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ conj_asm1_tac >- (
+    simp[Abbr`m`]
+    \\ SELECT_ELIM_TAC
+    \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ simp[]
+    \\ PROVE_TAC[sum_is_sum, EXISTS_UNIQUE_ALT] )
+  \\ reverse IF_CASES_TAC >- (rfs[sum_def] \\ metis_tac[])
+  \\ pop_assum kall_tac
+  \\ simp[Abbr`m`]
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ simp[]
+  \\ SELECT_ELIM_TAC
+  \\ PROVE_TAC[sum_is_sum, EXISTS_UNIQUE_ALT]
+QED
+
 val _ = export_theory();

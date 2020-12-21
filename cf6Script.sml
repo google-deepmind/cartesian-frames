@@ -575,7 +575,6 @@ Proof
   \\ simp[chu_iso_bij]
   \\ simp[mk_chu_morphism_def]
   \\ simp[BIJ_IFF_INV]
-  \\ simp[restrict_def]
   \\ simp[PULL_EXISTS]
   \\ qexists_tac`map_pair I swap_pair`
   \\ qexists_tac`map_pair (swap_pair_efn c2.agent c3.agent) swap_pair`
@@ -606,16 +605,6 @@ Proof
     \\ rw[] \\ fs[]
     \\ fs[extensional_def, PULL_EXISTS, EXISTS_PROD] )
   \\ rpt gen_tac \\ strip_tac
-  \\ reverse IF_CASES_TAC
-  >- (
-    `F` suffices_by rw[]
-    \\ pop_assum mp_tac
-    \\ simp[]
-    \\ rpt(qmatch_goalsub_abbrev_tac`encode_function _ ff` \\ qexists_tac`ff` \\ simp[Abbr`ff`])
-    \\ simp[swap_pair_fn_def]
-    \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]
-    \\ fs[SUBSET_DEF, PULL_EXISTS, EXISTS_PROD] )
-  \\ pop_assum kall_tac
   \\ DEP_REWRITE_TAC[swap_pair_efn_encode_function]
   \\ simp[swap_pair_fn_def]
   \\ simp[restrict_def, PULL_EXISTS, EXISTS_PROD, swap_pair_def]

@@ -1353,8 +1353,64 @@ Proof
   \\ fs[chu_iso_bij] \\ rfs[]
   \\ `finite_cf c1 ∧ finite_cf c2` by fs[chu_objects_def, wf_def]
   \\ fs[finite_cf_def]
-  \\ conj_tac >- metis_tac[FINITE_BIJ_CARD]
-  \\ cheat
+  \\ conj_asm1_tac >- metis_tac[FINITE_BIJ_CARD]
+  \\ `CARD c1.agent = CARD c2.agent` by metis_tac[FINITE_BIJ_CARD]
+  \\ simp[cf_matrix_def]
+  \\ qmatch_goalsub_abbrev_tac`MAP (λx. MAP (_ x) e1) a1`
+  \\ qmatch_goalsub_abbrev_tac`_ _ ( _ _ (MAP (λx. MAP (_ x) e2) a2))`
+  \\ fs[is_chu_morphism_def]
+  \\ qexists_tac`λn. THE (INDEX_OF (f.map.map_agent (EL n a1)) a2)`
+  \\ qexists_tac`λn. THE (INDEX_OF (LINV f.map.map_env c2.env (EL n e1)) e2)`
+  \\ simp[Once LIST_EQ_REWRITE]
+  \\ `LENGTH a1 = CARD c2.agent` by simp[Abbr`a1`, SET_TO_LIST_CARD]
+  \\ `LENGTH a2 = CARD c2.agent` by simp[Abbr`a2`, SET_TO_LIST_CARD]
+  \\ `LENGTH e1 = CARD c2.env` by simp[Abbr`e1`, SET_TO_LIST_CARD]
+  \\ `LENGTH e2 = CARD c2.env` by simp[Abbr`e2`, SET_TO_LIST_CARD]
+  \\ simp[EL_MAP]
+  \\ `∀a. ((a ∈ c1.agent) ⇔ (∃n. (n < LENGTH a1) ∧ (a = EL n a1)))`
+  by (rewrite_tac[GSYM MEM_EL] \\ simp[Abbr`a1`, QSORT_MEM])
+  \\ `∀a. ((a ∈ c2.agent) ⇔ (∃n. (n < LENGTH a2) ∧ (a = EL n a2)))`
+  by (rewrite_tac[GSYM MEM_EL] \\ simp[Abbr`a2`, QSORT_MEM])
+  \\ `∀a. ((a ∈ c1.env) ⇔ (∃n. (n < LENGTH e1) ∧ (a = EL n e1)))`
+  by (rewrite_tac[GSYM MEM_EL] \\ simp[Abbr`e1`, QSORT_MEM])
+  \\ `∀a. ((a ∈ c2.env) ⇔ (∃n. (n < LENGTH e2) ∧ (a = EL n e2)))`
+  by (rewrite_tac[GSYM MEM_EL] \\ simp[Abbr`e2`, QSORT_MEM])
+  \\ `ALL_DISTINCT a1 ∧ ALL_DISTINCT a2 ∧ ALL_DISTINCT e1 ∧ ALL_DISTINCT e2`
+  by metis_tac[ALL_DISTINCT_PERM, QSORT_PERM, ALL_DISTINCT_SET_TO_LIST]
+  \\ conj_asm1_tac
+  >- (
+    qpat_assum`BIJ f.map.map_agent _ _`mp_tac
+    \\ simp_tac(srw_ss())[BIJ_DEF, INJ_DEF, SURJ_DEF, PULL_EXISTS]
+    \\ simp[PULL_EXISTS]
+    \\ metis_tac[ALL_DISTINCT_INDEX_OF_EL, optionTheory.THE_DEF, IN_COUNT,
+                 SET_TO_LIST_CARD, LENGTH_QSORT, BIJ_LINV_THM, BIJ_LINV_ELEMENT] )
+  \\ conj_asm1_tac
+  >- (
+    qpat_assum`BIJ f.map.map_env _ _`mp_tac
+    \\ simp_tac(srw_ss())[BIJ_DEF, INJ_DEF, SURJ_DEF, PULL_EXISTS]
+    \\ simp[PULL_EXISTS]
+    \\ metis_tac[ALL_DISTINCT_INDEX_OF_EL, optionTheory.THE_DEF, IN_COUNT,
+                 SET_TO_LIST_CARD, LENGTH_QSORT, BIJ_LINV_THM, BIJ_LINV_ELEMENT] )
+  \\ rw[] \\ rfs[]
+  \\ ntac 2 (qhdtm_x_assum`BIJ`mp_tac)
+  \\ simp[BIJ_DEF, SURJ_DEF]
+  \\ ntac 2 strip_tac
+  \\ simp[permute_cols_def, EL_MAP]
+  \\ simp[Once LIST_EQ_REWRITE]
+  \\ simp[EL_MAP]
+  \\ qx_gen_tac`y` \\ strip_tac
+  \\ qmatch_goalsub_abbrev_tac`INDEX_OF x2 a2`
+  \\ qmatch_goalsub_abbrev_tac`INDEX_OF y2 e2`
+  \\ `MEM (f.map.map_agent (EL x a1)) a2` by metis_tac[QSORT_MEM, MEM_SET_TO_LIST]
+  \\ pop_assum mp_tac \\ simp[MEM_EL]
+  \\ disch_then(qx_choose_then`ix2`strip_assume_tac)
+  \\ simp[]
+  \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL] \\ simp[]
+  \\ Cases_on`INDEX_OF y2 e2`
+  >- ( fs[INDEX_OF_eq_NONE] \\ metis_tac[BIJ_LINV_ELEMENT, MEM_EL] )
+  \\ simp[]
+  \\ fs[INDEX_OF_eq_SOME]
+  \\ metis_tac[BIJ_LINV_THM, IN_COUNT, SET_TO_LIST_CARD]
 QED
 
 Theorem iso_matrix:

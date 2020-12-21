@@ -15,7 +15,8 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-     pred_setTheory helperSetTheory pairTheory relationTheory listTheory sortingTheory stringTheory
+     pred_setTheory helperSetTheory pairTheory relationTheory
+     listTheory sortingTheory stringTheory
      categoryTheory cf0Theory matrixTheory cf1Theory
 
 val _ = new_theory"cf2";
@@ -1196,6 +1197,177 @@ Theorem prod_cfT[simp]:
 Proof
   rw[cfT_def, GSYM swap_sum_prod]
   \\ metis_tac[sum_cf0, swap_in_chu_objects, swap_swap, iso_objs_trans, swap_iso, is_category_chu]
+QED
+
+Triviality matrix_imp_iso:
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  CARD c1.env = CARD c2.env ∧
+  pr PERMUTES (count (CARD c1.agent)) ∧
+  pc PERMUTES (count (CARD c2.env)) ∧
+  cf_matrix c1 = permute_rows pr (permute_cols pc (cf_matrix c2)) ⇒
+  c1 ≅ c2 -: chu w
+Proof
+  rw[]
+  \\ fs[cf_matrix_def]
+  \\ `finite_cf c1 ∧ finite_cf c2` by fs[chu_objects_def, wf_def]
+  \\ fs[finite_cf_def]
+  \\ rfs[Once LIST_EQ_REWRITE]
+  \\ fs[EL_MAP, SET_TO_LIST_CARD]
+  \\ fs[permute_cols_def]
+  \\ `∀i. (i < CARD c2.agent) ⇒ pr i < CARD c2.agent` by fs[BIJ_DEF, SURJ_DEF]
+  \\ `∀i. (i < CARD c2.env) ⇒ pc i < CARD c2.env` by fs[BIJ_DEF, SURJ_DEF]
+  \\ qpat_x_assum`CARD _.env = _`assume_tac
+  \\ fs[EL_MAP, SET_TO_LIST_CARD]
+  \\ rev_full_simp_tac(srw_ss()++boolSimps.DNF_ss)[Once LIST_EQ_REWRITE]
+  \\ fs[EL_MAP, SET_TO_LIST_CARD, EL_GENLIST]
+  \\ rw[iso_objs_thm]
+  \\ qmatch_asmsub_abbrev_tac`c1.eval (EL _ a1) (EL _ e1)`
+  \\ qmatch_asmsub_abbrev_tac`c2.eval (EL _ a2) (EL _ e2)`
+  \\ `ALL_DISTINCT a1 ∧ ALL_DISTINCT e1 ∧ ALL_DISTINCT a2 ∧ ALL_DISTINCT e2`
+  by ( metis_tac[ALL_DISTINCT_PERM, QSORT_PERM, ALL_DISTINCT_SET_TO_LIST] )
+  \\ qexists_tac`mk_chu_morphism c1 c2 <|
+       map_agent := λa. EL (pr (THE (INDEX_OF a a1))) a2;
+       map_env := λe. EL (LINV pc (count (CARD c2.env)) (THE (INDEX_OF e e2))) e1 |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_def, pre_chu_def]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[GSYM CONJ_ASSOC]
+    \\ conj_asm1_tac
+    >- (
+      rw[]
+      \\ `MEM e e2` by simp[Abbr`e2`, QSORT_MEM]
+      \\ fs[MEM_EL]
+      \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+      \\ simp[]
+      \\ metis_tac[QSORT_MEM, MEM_EL, MEM_SET_TO_LIST,
+                   LENGTH_QSORT, SET_TO_LIST_CARD, BIJ_LINV_ELEMENT,
+                   IN_COUNT] )
+    \\ conj_asm1_tac
+    >- (
+      rw[]
+      \\ `MEM a a1` by simp[Abbr`a1`, QSORT_MEM]
+      \\ fs[MEM_EL]
+      \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+      \\ simp[]
+      \\ metis_tac[QSORT_MEM, MEM_EL, MEM_SET_TO_LIST,
+                   LENGTH_QSORT, SET_TO_LIST_CARD] )
+    \\ rw[]
+    \\ `MEM a a1` by simp[Abbr`a1`, QSORT_MEM]
+    \\ `MEM f e2` by simp[Abbr`e2`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ qmatch_goalsub_rename_tac`LINV pc _ j`
+    \\ qmatch_goalsub_abbrev_tac`LINV pc s j`
+    \\ `EL j e2 = EL (pc (LINV pc s j)) e2`
+    by metis_tac[BIJ_LINV_THM, IN_COUNT, LENGTH_QSORT, SET_TO_LIST_CARD]
+    \\ pop_assum SUBST1_TAC
+    \\ first_x_assum irule
+    \\ metis_tac[BIJ_LINV_ELEMENT, IN_COUNT, SET_TO_LIST_CARD, LENGTH_QSORT] )
+  \\ simp[chu_iso_bij]
+  \\ fs[maps_to_in_chu]
+  \\ simp[mk_chu_morphism_def]
+  \\ fs[is_chu_morphism_def, mk_chu_morphism_def]
+  \\ fs[restrict_def]
+  \\ simp[BIJ_IFF_INV]
+  \\ simp[PULL_EXISTS]
+  \\ qexists_tac`λa. EL (LINV pr (count (CARD c2.agent)) (THE (INDEX_OF a a2))) a1`
+  \\ qexists_tac`λe. EL (pc (THE (INDEX_OF e e1))) e2`
+  \\ simp[GSYM CONJ_ASSOC]
+  \\ conj_tac
+  >- (
+    rw[]
+    \\ `MEM x a2` by simp[Abbr`a2`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ metis_tac[QSORT_MEM, MEM_EL, MEM_SET_TO_LIST,
+                 LENGTH_QSORT, SET_TO_LIST_CARD, BIJ_LINV_ELEMENT,
+                 IN_COUNT] )
+  \\ conj_tac
+  >- (
+    rw[]
+    \\ `MEM a a1` by simp[Abbr`a1`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ conj_asm1_tac >- metis_tac[BIJ_DEF, SURJ_DEF, IN_COUNT,
+                                  SET_TO_LIST_CARD, LENGTH_QSORT]
+    \\ metis_tac[BIJ_LINV_THM, IN_COUNT, SET_TO_LIST_CARD, LENGTH_QSORT] )
+  \\ conj_tac
+  >- (
+    rw[]
+    \\ `MEM x a2` by simp[Abbr`a2`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ conj_asm1_tac >- metis_tac[BIJ_LINV_ELEMENT, IN_COUNT,
+                                  LENGTH_QSORT, SET_TO_LIST_CARD]
+    \\ metis_tac[BIJ_LINV_THM, IN_COUNT, SET_TO_LIST_CARD, LENGTH_QSORT] )
+  \\ conj_tac
+  >- (
+    rw[]
+    \\ `MEM x e1` by simp[Abbr`e1`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ metis_tac[QSORT_MEM, MEM_EL, MEM_SET_TO_LIST,
+                 LENGTH_QSORT, SET_TO_LIST_CARD, IN_COUNT] )
+  \\ conj_tac
+  >- (
+    rw[]
+    \\ `MEM e e2` by simp[Abbr`e2`, QSORT_MEM]
+    \\ fs[MEM_EL]
+    \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+    \\ simp[]
+    \\ conj_asm1_tac >- metis_tac[BIJ_LINV_ELEMENT, IN_COUNT,
+                                  LENGTH_QSORT, SET_TO_LIST_CARD]
+    \\ metis_tac[BIJ_LINV_THM, IN_COUNT, SET_TO_LIST_CARD, LENGTH_QSORT] )
+  \\ rw[]
+  \\ `MEM x e1` by simp[Abbr`e1`, QSORT_MEM]
+  \\ fs[MEM_EL]
+  \\ DEP_REWRITE_TAC[ALL_DISTINCT_INDEX_OF_EL]
+  \\ simp[]
+  \\ conj_asm1_tac >- metis_tac[BIJ_DEF, SURJ_DEF, IN_COUNT,
+                                SET_TO_LIST_CARD, LENGTH_QSORT]
+  \\ metis_tac[BIJ_LINV_THM, IN_COUNT, SET_TO_LIST_CARD, LENGTH_QSORT]
+QED
+
+Triviality iso_imp_matrix:
+  c1 ≅ c2 -: chu w
+  ⇒
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  CARD c1.env = CARD c2.env ∧
+  ∃pr pc.
+    pr PERMUTES (count (CARD c1.agent)) ∧
+    pc PERMUTES (count (CARD c2.env)) ∧
+    cf_matrix c1 = permute_rows pr (permute_cols pc (cf_matrix c2))
+Proof
+  simp[iso_objs_thm]
+  \\ strip_tac
+  \\ fs[maps_to_in_chu]
+  \\ fs[chu_iso_bij] \\ rfs[]
+  \\ `finite_cf c1 ∧ finite_cf c2` by fs[chu_objects_def, wf_def]
+  \\ fs[finite_cf_def]
+  \\ conj_tac >- metis_tac[FINITE_BIJ_CARD]
+  \\ cheat
+QED
+
+Theorem iso_matrix:
+  c1 ≅ c2 -: chu w ⇔
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  CARD c1.env = CARD c2.env ∧
+  ∃pr pc.
+    pr PERMUTES (count (CARD c1.agent)) ∧
+    pc PERMUTES (count (CARD c2.env)) ∧
+    cf_matrix c1 = permute_rows pr (permute_cols pc (cf_matrix c2))
+Proof
+  metis_tac[iso_imp_matrix, matrix_imp_iso]
 QED
 
 val _ = export_theory();

@@ -68,4 +68,54 @@ QED
 Theorem QSORT_char_lt_SET_TO_LIST_init =
   QSORT_char_lt_SET_TO_LIST |> Q.SPEC`[]` |> SIMP_RULE(srw_ss())[]
 
+Definition permute_rows_def:
+  permute_rows f m = GENLIST (λn. EL (f n) m) (LENGTH m)
+End
+
+Definition permute_cols_def:
+  permute_cols f m = MAP (λr. GENLIST (λn. EL (f n) r) (LENGTH r)) m
+End
+
+Theorem permute_rows_I[simp]:
+  permute_rows I m = m
+Proof
+  rw[permute_rows_def, LIST_EQ_REWRITE]
+QED
+
+Theorem permute_cols_I[simp]:
+  permute_cols I m = m
+Proof
+  rw[permute_cols_def, LIST_EQ_REWRITE, EL_MAP]
+QED
+
+Theorem permute_rows_cols_comm:
+  (∀i. (i < LENGTH m) ⇒ pr i < LENGTH m)
+  ⇒
+  permute_rows pr (permute_cols pc m) =
+  permute_cols pc (permute_rows pr m)
+Proof
+  rw[permute_rows_def, permute_cols_def]
+  \\ simp[LIST_EQ_REWRITE]
+  \\ rw[EL_MAP]
+QED
+
+Theorem LENGTH_permute_rows[simp]:
+  LENGTH (permute_rows pr m) = LENGTH m
+Proof
+  rw[permute_rows_def]
+QED
+
+Theorem LENGTH_permute_cols[simp]:
+  LENGTH (permute_cols pc m) = LENGTH m
+Proof
+  rw[permute_cols_def]
+QED
+
+Theorem EL_permute_rows[simp]:
+  n < LENGTH m ⇒
+  EL n (permute_rows pr m) = EL (pr n) m
+Proof
+  rw[permute_rows_def]
+QED
+
 val _ = export_theory();

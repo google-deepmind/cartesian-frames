@@ -626,6 +626,12 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem biextensional_collapse_finite[simp]:
+  finite_cf c ⇒ finite_cf (biextensional_collapse c)
+Proof
+  rw[finite_cf_def, biextensional_collapse_def]
+QED
+
 Theorem biextensional_collapse_in_chu_objects[simp]:
   c ∈ chu_objects w ⇒ biextensional_collapse c ∈ chu_objects w
 Proof
@@ -1424,6 +1430,101 @@ Theorem iso_matrix:
     cf_matrix c1 = permute_rows pr (permute_cols pc (cf_matrix c2))
 Proof
   metis_tac[iso_imp_matrix, matrix_imp_iso]
+QED
+
+Theorem transpose_swap:
+  FINITE c.agent ∧ FINITE c.env ∧ c.agent ≠ ∅ ⇒
+  transpose (cf_matrix c) = cf_matrix (swap c)
+Proof
+  rw[cf_matrix_def, transpose_def]
+  \\ qmatch_goalsub_abbrev_tac`HD (MAP _ ls)`
+  \\ Cases_on`ls = []` \\ fs[]
+  >- (
+    fs[Abbr`ls`]
+    \\ pop_assum(assume_tac o Q.AP_TERM`LENGTH`)
+    \\ fs[]
+    \\ pop_assum(assume_tac o Q.AP_TERM`LENGTH`)
+    \\ rfs[SET_TO_LIST_CARD] )
+  \\ simp[Once LIST_EQ_REWRITE]
+  \\ conj_asm1_tac >- ( Cases_on`ls` \\ fs[] )
+  \\ rw[]
+  \\ simp[EL_MAP, MAP_MAP_o]
+  \\ simp[MAP_EQ_f, EL_MAP]
+QED
+
+Theorem LENGTH_nub_cf_matrix:
+  FINITE c.agent ∧ FINITE c.env ⇒
+  LENGTH (nub (cf_matrix c)) =  CARD (biextensional_collapse c).agent
+Proof
+  rw[biextensional_collapse_def]
+  \\ rw[IMAGE_COMPOSE]
+  \\ DEP_ONCE_REWRITE_TAC[INJ_CARD_IMAGE_EQN]
+  \\ simp[]
+  \\ conj_tac
+  >- (
+    rw[INJ_DEF]
+    \\ DEP_REWRITE_TAC[equiv_class_eq]
+    \\ simp[]
+    \\ imp_res_tac rep_in_equiv_class
+    \\ rpt(first_x_assum(qspec_then`agent_equiv c`mp_tac))
+    \\ simp_tac(srw_ss())[equiv_class_element]
+    \\ metis_tac[agent_equiv_equiv] )
+  \\ simp[cf_matrix_def]
+  \\ simp[GSYM CARD_LIST_TO_SET_EQN]
+  \\ simp[LIST_TO_SET_MAP]
+  \\ qmatch_goalsub_abbrev_tac`set (QSORT R a)`
+  \\ `set (QSORT R a) = set a` by simp[EXTENSION, QSORT_MEM]
+  \\ pop_assum SUBST_ALL_TAC
+  \\ simp[Abbr`a`]
+  \\ simp[SET_TO_LIST_INV]
+  \\ irule FINITE_BIJ_CARD
+  \\ simp[]
+  \\ qmatch_goalsub_abbrev_tac`MAP _ env`
+  \\ qexists_tac`λr. equiv_class (agent_equiv c) c.agent
+                       (@a. a ∈ c.agent ∧ MAP (c.eval a) env = r)`
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS]
+  \\ qexists_tac`λs. MAP (c.eval (CHOICE s)) env`
+  \\ conj_tac >- metis_tac[]
+  \\ simp[]
+  \\ simp[GSYM FORALL_AND_THM]
+  \\ simp[GSYM IMP_CONJ_THM]
+  \\ gen_tac \\ strip_tac
+  \\ qmatch_goalsub_abbrev_tac`CHOICE s`
+  \\ `s ≠ ∅`
+  by (
+    simp[Abbr`s`, GSYM MEMBER_NOT_EMPTY]
+    \\ metis_tac[agent_equiv_equiv] )
+  \\ imp_res_tac CHOICE_DEF
+  \\ qmatch_asmsub_abbrev_tac`a ∈ s`
+  \\ qpat_x_assum`a ∈ _`mp_tac
+  \\ simp[Abbr`s`]
+  \\ strip_tac
+  \\ conj_tac >- metis_tac[]
+  \\ simp[MAP_EQ_f, PULL_FORALL] \\ gen_tac
+  \\ qmatch_goalsub_abbrev_tac`CHOICE s`
+  \\ `s ≠ ∅`
+    by (
+      simp[Abbr`s`, GSYM MEMBER_NOT_EMPTY]
+      \\ metis_tac[agent_equiv_equiv] )
+  \\ drule CHOICE_DEF
+  \\ qmatch_goalsub_abbrev_tac`a' ∈ s`
+  \\ simp[Abbr`s`]
+  \\ simp[Once agent_equiv_def]
+  \\ strip_tac
+  \\ conj_tac
+  >- (
+    strip_tac
+    \\ first_x_assum(qspec_then`e` mp_tac)
+    \\ impl_tac >- rfs[Abbr`env`, QSORT_MEM]
+    \\ metis_tac[] )
+  \\ DEP_REWRITE_TAC[equiv_class_eq]
+  \\ simp[]
+  \\ conj_tac >- metis_tac[]
+  \\ SELECT_ELIM_TAC
+  \\ conj_tac >-metis_tac[]
+  \\ rw[]
+  \\ fs[agent_equiv_def]
+  \\ fs[Abbr`env`, QSORT_MEM]
 QED
 
 val _ = export_theory();

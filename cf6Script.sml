@@ -22,7 +22,7 @@ val _ = new_theory"cf6";
 
 Definition tensor_def:
   tensor c d = mk_cf <|
-    world := c.world;
+    world := c.world ∪ d.world;
     agent := IMAGE encode_pair (c.agent × d.agent);
     env := IMAGE encode_morphism (hom (chu c.world) c (swap d));
     eval := λa e. c.eval (FST(decode_pair a))
@@ -36,7 +36,7 @@ Proof
 QED
 
 Theorem wf_tensor[simp]:
-  c.world = d.world ∧ wf c ∧ wf d ⇒ wf (tensor c d)
+  wf c ∧ wf d ⇒ wf (tensor c d)
 Proof
   simp[wf_def]
   \\ strip_tac
@@ -1294,7 +1294,7 @@ QED
 (* TODO: examples re tensor being relative to a coarse world model *)
 
 Definition par_def:
-  par c d = mk_cf <| world := c.world;
+  par c d = mk_cf <| world := c.world ∪ d.world;
     agent := IMAGE encode_morphism (chu c.world | swap c → d |);
     env := IMAGE encode_pair (c.env × d.env);
     eval := λa e.
@@ -1374,7 +1374,7 @@ QED
 
 Definition lollipop_def:
   lollipop c d = mk_cf
-    <| world := c.world;
+    <| world := c.world ∪ d.world;
        agent := IMAGE encode_morphism (chu c.world | c → d |);
        env := IMAGE encode_pair (c.agent × d.env);
        eval := λa e.

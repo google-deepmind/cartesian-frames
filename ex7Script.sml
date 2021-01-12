@@ -16,7 +16,9 @@ limitations under the License.
 
 open HolKernel boolLib bossLib boolSimps Parse dep_rewrite
   pred_setTheory listTheory sortingTheory categoryTheory
-  matrixLib matrixTheory cf0Theory cf1Theory cf5Theory cf6Theory
+  matrixLib matrixTheory
+  cf0Theory cf1Theory cf2Theory cf5Theory cf6Theory cf7Theory
+  ex1Theory
 
 val _ = new_theory"ex7";
 
@@ -221,6 +223,37 @@ Proof
   \\ qexists_tac`I`
   \\ reverse conj_tac >- EVAL_TAC
   \\ metis_tac[BIJ_ID, combinTheory.I_THM]
+QED
+
+(* TODO: subsums and subtensors of these examples *)
+
+Theorem no_subtensors:
+  ∃c d w.
+    c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+    ∀t. ¬is_subtensor c d t
+Proof
+  qexists_tac`test_yesterday`
+  \\ qexists_tac`swap test_demanding`
+  \\ qexists_tac`test_world`
+  \\ simp[]
+  \\ rw[is_subtensor_def]
+  \\ qmatch_goalsub_abbrev_tac`tensor c d`
+  \\ `(tensor c d).env = ∅`
+  by (
+    rw[tensor_def]
+    \\ rw[Abbr`c`, Abbr`d`, hom_def, EXTENSION]
+    \\ rw[maps_to_in_chu]
+    \\ metis_tac[no_morphisms_yesterday_demanding] )
+  \\ simp[]
+  \\ CCONTR_TAC \\ gs[restrict_def]
+  \\ fs[homotopy_equiv_def]
+  \\ fs[maps_to_in_chu]
+  \\ fs[is_chu_morphism_def]
+  \\ qpat_x_assum`∀e. e ∉ c.env`mp_tac
+  \\ simp[Abbr`c`]
+  \\ EVAL_TAC
+  \\ simp[]
+  \\ metis_tac[]
 QED
 
 val _ = export_theory();

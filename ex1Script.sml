@@ -52,6 +52,26 @@ Definition test_demanding_def:
        eval := test_today.eval |>
 End
 
+Theorem test_yesterday_in_chu_objects[simp]:
+  test_yesterday ∈ chu_objects test_world
+Proof
+  rw[test_yesterday_def, chu_objects_def,
+     finite_cf_def, SUBSET_DEF]
+  \\ TRY (pop_assum mp_tac)
+  \\ EVAL_TAC
+  \\ rw[]
+QED
+
+Theorem test_demanding_in_chu_objects[simp]:
+  test_demanding ∈ chu_objects test_world
+Proof
+  rw[test_demanding_def, chu_objects_def,
+     finite_cf_def, SUBSET_DEF]
+  \\ TRY (pop_assum mp_tac)
+  \\ EVAL_TAC
+  \\ rw[]
+QED
+
 Theorem morphism_today_yesterday:
   is_chu_morphism test_today test_yesterday
     (mk_chu_morphism test_today test_yesterday <| map_env := I; map_agent := I |>).map

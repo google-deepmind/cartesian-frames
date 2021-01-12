@@ -118,6 +118,224 @@ Proof
   \\ fs[is_subtensor_def] \\ simp[tensor_def]
 QED
 
+Definition comm_subsum_def:
+  comm_subsum s = mk_cf
+    <| world := s.world;
+       agent := IMAGE comm_sum.map_agent s.agent;
+       env := IMAGE comm_sum.map_env s.env;
+       eval := λa e. s.eval (comm_sum.map_agent a) (comm_sum.map_env e) |>
+End
+
+Theorem comm_subsum_idem:
+  wf s ∧
+  s.agent ⊆ (sum c d).agent ∧
+  s.env ⊆ (sum c d).env ⇒
+  comm_subsum (comm_subsum s) = s
+Proof
+  rw[comm_subsum_def, mk_cf_def]
+  \\ simp[cf_component_equality, PULL_EXISTS]
+  \\ conj_tac
+  >- (
+    simp[EXTENSION, PULL_EXISTS]
+    \\ fs[sum_def, comm_sum_def, PULL_EXISTS, SUBSET_DEF]
+    \\ rw[EQ_IMP_THM] \\ res_tac \\ gs[]
+    \\ qexists_tac`x` \\ simp[])
+  \\ conj_tac
+  >- (
+    simp[EXTENSION, PULL_EXISTS]
+    \\ simp[sum_def, comm_sum_def, PULL_EXISTS, UNCURRY]
+    \\ fs[SUBSET_DEF, sum_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rw[EQ_IMP_THM] \\ res_tac \\ gs[]
+    \\ qexists_tac`x` \\ simp[] )
+  \\ simp[FUN_EQ_THM]
+  \\ fs[SUBSET_DEF, sum_def, PULL_EXISTS, EXISTS_PROD, wf_def]
+  \\ rw[comm_sum_def] \\ gvs[]
+  \\ res_tac \\ gvs[UNCURRY]
+  \\ TRY (
+    first_x_assum irule
+    \\ CCONTR_TAC \\ fs[] \\ fs[]
+    \\ res_tac \\ fs[]
+    \\ first_x_assum(qspecl_then[`a`,`e`]mp_tac)
+    \\ simp[]
+    \\ NO_TAC)
+  \\ `F` suffices_by rw[]
+  \\ qpat_x_assum`∀x y. _`mp_tac \\ simp[]
+  \\ goal_assum(first_assum o mp_then Any mp_tac) \\ simp[]
+  \\ goal_assum(first_assum o mp_then Any mp_tac) \\ simp[]
+QED
+
+Theorem comm_subsum_in_chu_objects:
+  s ∈ chu_objects w ∧
+  s.agent ⊆ (sum c d).agent ∧
+  s.env ⊆ (sum c d).env
+  ⇒ comm_subsum s ∈ chu_objects w
+Proof
+  rw[chu_objects_def, comm_subsum_def]
+  \\ fs[wf_def, finite_cf_def]
+  \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
+  \\ rw[]
+  \\ fs[SUBSET_DEF, sum_def, comm_sum_def]
+  \\ res_tac \\ gs[UNCURRY]
+QED
+
+Theorem comm_subsum_iso:
+  s ∈ chu_objects w ∧
+  s.agent ⊆ (sum c d).agent ∧
+  s.env ⊆ (sum c d).env
+  ⇒
+  s ≅ comm_subsum s -: chu w
+Proof
+  rw[iso_objs_thm, chu_iso_bij]
+  \\ qexists_tac`mk_chu_morphism s (comm_subsum s) comm_sum`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ conj_tac >- metis_tac[comm_subsum_in_chu_objects]
+    \\ simp[is_chu_morphism_def,mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[comm_subsum_def, PULL_EXISTS, mk_cf_def]
+    \\ fs[SUBSET_DEF, sum_def, PULL_EXISTS]
+    \\ rw[]
+    \\ res_tac \\ gs[comm_sum_def, UNCURRY] )
+  \\ fs[maps_to_in_chu]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[comm_subsum_def]
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS]
+  \\ qexistsl_tac[`comm_sum.map_agent`,`comm_sum.map_env`]
+  \\ fs[SUBSET_DEF, sum_def, PULL_EXISTS]
+  \\ rw[]
+  \\ res_tac \\ gs[comm_sum_def, UNCURRY]
+  \\ qexists_tac`x` \\ simp[]
+QED
+
+Theorem is_subsum_comm_subsum:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+  is_subsum c d s ⇒ is_subsum d c (comm_subsum s)
+Proof
+  simp[is_subsum_def]
+  \\ strip_tac
+  \\ conj_tac >- simp[sum_def, UNION_COMM,comm_subsum_def]
+  \\ conj_asm1_tac
+  >- (
+    simp[sum_def, comm_subsum_def,
+         comm_sum_def, GSYM IMAGE_COMPOSE]
+    \\ simp[combinTheory.o_DEF, UNION_COMM])
+  \\ conj_asm1_tac
+  >- (
+    fs[SUBSET_DEF, PULL_EXISTS, comm_subsum_def,
+       comm_sum_def, UNCURRY]
+    \\ fs[sum_def]
+    \\ gen_tac \\ strip_tac \\ res_tac
+    \\ simp[] )
+  \\ conj_tac
+  >- (
+    fs[comm_subsum_def]
+    \\ simp[FUN_EQ_THM, restrict_def, mk_cf_def]
+    \\ fs[SUBSET_DEF]
+    \\ rw[]
+    \\ res_tac
+    \\ fs[sum_def, mk_cf_def, comm_sum_def,
+          sum_eval_def, UNCURRY]
+    \\ gs[] \\ rw[] \\ gs[] )
+  \\ qmatch_assum_abbrev_tac`c ≃ c1 -: _`
+  \\ qmatch_assum_abbrev_tac`d ≃ d1 -: _`
+  \\ qmatch_goalsub_abbrev_tac`c ≃ c2 -: _`
+  \\ qmatch_goalsub_abbrev_tac`d ≃ d2 -: _`
+  \\ `c2 = comm_subsum c1`
+  by (
+    simp[cf_component_equality]
+    \\ simp[Abbr`c2`, Abbr`c1`]
+    \\ simp[comm_subsum_def, mk_cf_def]
+    \\ conj_tac
+    >- simp[EXTENSION, comm_sum_def, PULL_EXISTS]
+    \\ simp[FUN_EQ_THM, restrict_def]
+    \\ rw[] \\ gs[comm_sum_def]
+    \\ `F` suffices_by rw[]
+    \\ qpat_x_assum`∀x. _`mp_tac
+    \\ simp[PULL_EXISTS]
+    \\ dsimp[sum_def, PULL_EXISTS]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ simp[] )
+  \\ `d2 = comm_subsum d1`
+  by (
+    simp[cf_component_equality]
+    \\ simp[Abbr`d2`, Abbr`d1`]
+    \\ simp[comm_subsum_def, mk_cf_def]
+    \\ conj_tac
+    >- simp[EXTENSION, comm_sum_def, PULL_EXISTS]
+    \\ simp[FUN_EQ_THM, restrict_def]
+    \\ rw[] \\ gs[comm_sum_def]
+    \\ `F` suffices_by rw[]
+    \\ qpat_x_assum`∀x. _`mp_tac
+    \\ simp[PULL_EXISTS]
+    \\ dsimp[sum_def, PULL_EXISTS]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ simp[] )
+  \\ `sum c d ∈ chu_objects w` by simp[]
+  \\ `c1 ∈ chu_objects w`
+  by (
+    simp[chu_objects_def, Abbr`c1`]
+    \\ fs[chu_objects_def, wf_def]
+    \\ fs[finite_cf_def]
+    \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ reverse conj_tac >- metis_tac[SUBSET_FINITE, SUBSET_DEF]
+    \\ rw[]
+    \\ first_x_assum irule \\ simp[]
+    \\ rewrite_tac[sum_def] \\ simp[] )
+  \\ `d1 ∈ chu_objects w`
+  by (
+    simp[chu_objects_def, Abbr`d1`]
+    \\ fs[chu_objects_def, wf_def]
+    \\ fs[finite_cf_def]
+    \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ reverse conj_tac >- metis_tac[SUBSET_FINITE, SUBSET_DEF]
+    \\ rw[]
+    \\ first_x_assum irule \\ simp[]
+    \\ rewrite_tac[sum_def] \\ simp[] )
+  \\ `c.world = w ∧ d.world = w` by rfs[chu_objects_def]
+  \\ conj_tac \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule iso_homotopy_equiv
+  \\ rw[]
+  \\ irule comm_subsum_iso
+  \\ rw[]
+  \\ simp[Abbr`c1`, Abbr`d1`]
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ simp[SUBSET_DEF, PULL_EXISTS]
+  \\ simp[sum_def]
+QED
+
+Theorem is_subsum_comm:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  BIJ comm_subsum (is_subsum c d) (is_subsum d c) ∧
+    ∀s. is_subsum c d s ⇒ s ≅ (comm_subsum s) -: chu w
+Proof
+  reverse(rw[])
+  >- (
+    irule comm_subsum_iso
+    \\ conj_tac >- metis_tac[subsum_in_chu_objects]
+    \\ fs[is_subsum_def]
+    \\ metis_tac[SUBSET_REFL] )
+  \\ rw[BIJ_IFF_INV]
+  >- (
+    pop_assum mp_tac
+    \\ simp[IN_DEF]
+    \\ metis_tac[is_subsum_comm_subsum])
+  \\ qexists_tac`comm_subsum`
+  \\ conj_tac >- (
+    simp[IN_DEF]
+    \\ metis_tac[is_subsum_comm_subsum] )
+  \\ rw[]
+  \\ irule comm_subsum_idem
+  \\ pop_assum mp_tac
+  \\ simp[Once IN_DEF]
+  \\ strip_tac
+  \\ `x ∈ chu_objects w` by imp_res_tac subsum_in_chu_objects
+  \\ fs[chu_objects_def]
+  \\ fs[is_subsum_def]
+  \\ metis_tac[SUBSET_REFL]
+QED
+
 Theorem sum_is_subsum:
   c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
   c.env ≠ ∅ ∧ d.env ≠ ∅

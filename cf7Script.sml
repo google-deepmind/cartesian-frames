@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf5Theory cf6Theory
+  cf0Theory cf1Theory cf2Theory cf4Theory cf5Theory cf6Theory
 
 val _ = new_theory"cf7";
 
@@ -275,9 +275,12 @@ Proof
   \\ `c1 ∈ chu_objects w`
   by (
     simp[chu_objects_def, Abbr`c1`]
-    \\ fs[chu_objects_def, wf_def]
-    \\ fs[finite_cf_def]
+    \\ pop_assum mp_tac
+    \\ qpat_x_assum`c ∈ chu_objects _ `mp_tac
+    \\ rewrite_tac[chu_objects_def, wf_def]
+    \\ simp[finite_cf_def]
     \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ ntac 2 strip_tac
     \\ reverse conj_tac >- metis_tac[SUBSET_FINITE, SUBSET_DEF]
     \\ rw[]
     \\ first_x_assum irule \\ simp[]
@@ -285,9 +288,12 @@ Proof
   \\ `d1 ∈ chu_objects w`
   by (
     simp[chu_objects_def, Abbr`d1`]
-    \\ fs[chu_objects_def, wf_def]
-    \\ fs[finite_cf_def]
+    \\ qpat_x_assum`(sum _ _) ∈ _`mp_tac
+    \\ qpat_x_assum`d ∈ chu_objects _ `mp_tac
+    \\ rewrite_tac[chu_objects_def, wf_def]
+    \\ simp[finite_cf_def]
     \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ ntac 2 strip_tac
     \\ reverse conj_tac >- metis_tac[SUBSET_FINITE, SUBSET_DEF]
     \\ rw[]
     \\ first_x_assum irule \\ simp[]
@@ -947,6 +953,100 @@ Proof
   \\ simp[homotopy_equiv_def]
   \\ fs[chu_objects_def]
   \\ metis_tac[]
+QED
+
+Theorem subsum_subagent:
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  is_subsum c1 c2 d ⇒
+  c1 ◁ d -: w ∧ c2 ◁ d -: w
+Proof
+  qho_match_abbrev_tac`P c1 c2 d ⇒ Q c1 c2 d`
+  \\ `∀c1 c2 d. P c1 c2 d ⇒ Q c1 c1 d`
+  suffices_by (
+    simp[Abbr`P`, Abbr`Q`]
+    \\ ntac 2 strip_tac
+    \\ conj_tac >- metis_tac[]
+    \\ `is_subsum c2 c1 (comm_subsum d)`
+    by metis_tac[is_subsum_comm_subsum]
+    \\ irule subagent_homotopy_equiv
+    \\ qexistsl_tac[`c2`,`comm_subsum d`]
+    \\ simp[]
+    \\ conj_tac
+    >- (
+      simp[Once homotopy_equiv_sym]
+      \\ irule iso_homotopy_equiv
+      \\ metis_tac[is_subsum_comm] )
+    \\ metis_tac[] )
+  \\ simp[Abbr`P`, Abbr`Q`]
+  \\ rpt gen_tac \\ strip_tac
+  \\ `d ∈ chu_objects w` by metis_tac[subsum_in_chu_objects]
+  \\ simp[subagent_currying]
+  \\ simp[currying_subagent_def]
+  \\ `c1.world = w ∧ c2.world = w` by rfs[chu_objects_def]
+  \\ gs[is_subsum_def]
+  \\ qmatch_assum_abbrev_tac`c1 ≃ b1 -: _`
+  \\ qexists_tac`mk_cf <| world := d.agent; agent := b1.agent;
+       env := {""}; eval := K |>`
+  \\ qmatch_goalsub_abbrev_tac`c1 ≃ move d b2 -: _`
+  \\ `b1 ∈ chu_objects w`
+  by (
+    qpat_x_assum`d ∈ _`mp_tac
+    \\ fs[chu_objects_def, Abbr`b1`]
+    \\ fs[wf_def, finite_cf_def]
+    \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ `(sum c1 c2).world = w` by simp[sum_def]
+    \\ rw[]
+    \\ first_x_assum irule
+    \\ simp[Once sum_def] )
+  \\ `b2 ∈ chu_objects d.agent`
+  by (
+    simp[chu_objects_def, Abbr`b2`]
+    \\ simp[SUBSET_DEF, image_def]
+    \\ conj_tac >- (
+      simp[Abbr`b1`, PULL_EXISTS] \\ simp[sum_def] )
+    \\ simp[finite_cf_def, Abbr`b1`]
+    \\ `wf c1 ∧ wf (sum c1 c2)` by rfs[chu_objects_def]
+    \\ `finite_cf c1 ∧ finite_cf (sum c1 c2)` by fs[wf_def]
+    \\ fs[finite_cf_def] )
+  \\ `move d b2 ∈ chu_objects w`
+  by ( irule move_in_chu_objects \\ simp[] )
+  \\ `b1 ≃ move d b2 -: w`
+  suffices_by metis_tac[homotopy_equiv_trans]
+  \\ simp[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism b1 (move d b2) <| map_agent := I;
+       map_env := SND o decode_pair |>`
+  \\ qexists_tac`mk_chu_morphism (move d b2) b1 <| map_agent := I;
+       map_env := λe. encode_pair ("", e) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`b2`, move_def, Abbr`b1`, PULL_EXISTS]
+    \\ simp[mk_cf_def, restrict_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, mk_chu_morphism_def]
+    \\ simp[is_chu_morphism_def, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`b2`, move_def, Abbr`b1`, PULL_EXISTS]
+    \\ simp[mk_cf_def, restrict_def] )
+  \\ qmatch_goalsub_abbrev_tac`homotopic w (f o g -: _) _`
+  \\ `f o g -: chu w :- b1 → b1 -: chu w` by (
+    irule maps_to_comp \\ simp[] \\ metis_tac[] )
+  \\ `g o f -: chu w :- move d b2 → move d b2 -: chu w` by (
+    irule maps_to_comp \\ simp[] \\ metis_tac[] )
+  \\ conj_tac
+  \\ irule homotopic_id
+  \\ fs[maps_to_in_chu, pre_chu_def]
+  \\ DEP_REWRITE_TAC[compose_in_thm]
+  \\ DEP_REWRITE_TAC[compose_thm]
+  \\ DEP_REWRITE_TAC[chu_comp]
+  \\ simp[pre_chu_def]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ simp[Abbr`f`, Abbr`g`, mk_chu_morphism_def, restrict_def, FUN_EQ_THM]
+  \\ simp[Abbr`b1`, Abbr`b2`]
 QED
 
 val _ = export_theory();

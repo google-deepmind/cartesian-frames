@@ -58,31 +58,34 @@ QED
 
 (* TODO: tensor example with J, K, L *)
 
+Definition comm_tensor_env_def:
+  comm_tensor_env c d e =
+    let m = decode_morphism d (swap c) e in
+      encode_morphism
+        (mk_chu_morphism c (swap d)
+          <| map_agent := m.map.map_env;
+             map_env := m.map.map_agent |>)
+End
+
 Theorem tensor_comm:
   c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
   tensor c d ≅ tensor d c -: chu w
 Proof
   rw[iso_objs_thm]
-  \\ qabbrev_tac`me = λc d e.
-        let m = decode_morphism d (swap c) e in
-          encode_morphism
-            (mk_chu_morphism c (swap d)
-              <| map_agent := m.map.map_env;
-                 map_env := m.map.map_agent |>)`
   \\ qexists_tac`mk_chu_morphism (tensor c d) (tensor d c)
         <| map_agent := λp. encode_pair (SND(decode_pair p), FST(decode_pair p));
-           map_env := me c d |>`
+           map_env := comm_tensor_env c d |>`
   \\ qmatch_goalsub_abbrev_tac`iso _ f`
   \\ `c.world = w ∧ d.world = w` by fs[chu_objects_def]
   \\ `∀c d m. m :- d → swap c -: chu w ⇒
-          ∃z. me c d (encode_morphism m) = encode_morphism z ∧
-              me d c (encode_morphism z) = encode_morphism m ∧
+          ∃z. comm_tensor_env c d (encode_morphism m) = encode_morphism z ∧
+              comm_tensor_env d c (encode_morphism z) = encode_morphism m ∧
               z :- c → swap d -: chu w ∧
               ∀a b. a ∈ c.agent ∧ b ∈ d.agent ⇒
                 c.eval a (z.map.map_env b) = d.eval b (m.map.map_env a)`
   by (
     rpt gen_tac \\ strip_tac
-    \\ simp[Abbr`me`, mk_chu_morphism_def, restrict_def]
+    \\ simp[comm_tensor_env_def, mk_chu_morphism_def, restrict_def]
     \\ qmatch_goalsub_abbrev_tac`encode_morphism z`
     \\ qexists_tac`z` \\ simp[]
     \\ conj_tac
@@ -150,7 +153,7 @@ Proof
   \\ simp[maps_to_in_chu]
   \\ strip_tac
   \\ simp[tensor_def, PULL_EXISTS, hom_def]
-  \\ qexists_tac`me d c`
+  \\ qexists_tac`comm_tensor_env d c`
   \\ simp[Abbr`f`, mk_chu_morphism_def, tensor_def, restrict_def, hom_def, PULL_EXISTS]
   \\ rw[]
   \\ metis_tac[]

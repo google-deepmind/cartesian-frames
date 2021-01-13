@@ -1049,4 +1049,72 @@ Proof
   \\ simp[Abbr`b1`, Abbr`b2`]
 QED
 
+Theorem subtensor_subagent:
+  c1 ∈ chu_objects w ∧
+  c2 ∈ chu_objects w ∧
+  is_subtensor c1 c2 d ⇒
+  c1 ◁ d -: w ∧ c2 ◁ d -: w
+Proof
+  qho_match_abbrev_tac`P c1 c2 d ⇒ Q c1 c2 d`
+  \\ `∀c1 c2 d. P c1 c2 d ⇒ Q c1 c1 d`
+  suffices_by (
+    simp[Abbr`P`, Abbr`Q`]
+    \\ ntac 2 strip_tac
+    \\ conj_tac >- metis_tac[]
+    \\ `is_subtensor c2 c1 (comm_subtensor c2 c1 d)`
+    by metis_tac[is_subtensor_comm_subtensor]
+    \\ irule subagent_homotopy_equiv
+    \\ qexistsl_tac[`c2`,`comm_subtensor c2 c1 d`]
+    \\ simp[]
+    \\ conj_tac
+    >- (
+      simp[Once homotopy_equiv_sym]
+      \\ irule iso_homotopy_equiv
+      \\ metis_tac[is_subtensor_comm] )
+    \\ metis_tac[] )
+  \\ simp[Abbr`P`, Abbr`Q`]
+  \\ rpt gen_tac \\ strip_tac
+  \\ `d ∈ chu_objects w` by metis_tac[subtensor_in_chu_objects]
+  \\ simp[subagent_currying]
+  \\ simp[currying_subagent_def]
+  \\ `c1.world = w ∧ c2.world = w` by rfs[chu_objects_def]
+  \\ gs[is_subtensor_def]
+  \\ qmatch_assum_abbrev_tac`c1 ≃ b1 -: _`
+  \\ qexists_tac`mk_cf <| world := d.agent; agent := c1.agent;
+       env := c2.agent; eval := CURRY encode_pair |>`
+  \\ qmatch_goalsub_abbrev_tac`c1 ≃ move d b2 -: _`
+  \\ `b1 ∈ chu_objects w`
+  by (
+    qpat_x_assum`d ∈ _`mp_tac
+    \\ fs[chu_objects_def, Abbr`b1`]
+    \\ fs[wf_def, finite_cf_def]
+    \\ fs[SUBSET_DEF, image_def, PULL_EXISTS, restrict_def]
+    \\ `(tensor c1 c2).world = w` by simp[tensor_def]
+    \\ rw[]
+    \\ first_x_assum irule
+    \\ simp[Once tensor_def] )
+  \\ conj_asm1_tac >- (
+    simp[chu_objects_def, Abbr`b2`]
+    \\ simp[SUBSET_DEF, image_def, PULL_EXISTS]
+    \\ conj_tac >- simp[tensor_def]
+    \\ simp[finite_cf_def]
+    \\ `wf c1 ∧ wf c2 ∧ wf (tensor c1 c2)` by rfs[chu_objects_def]
+    \\ `finite_cf c1 ∧ finite_cf c2 ∧ finite_cf (tensor c1 c2)` by fs[wf_def]
+    \\ fs[finite_cf_def] )
+  \\ `move d b2 ∈ chu_objects w`
+  by ( irule move_in_chu_objects \\ simp[] )
+  \\ `b1 = move d b2`
+  suffices_by metis_tac[homotopy_equiv_trans, homotopy_equiv_refl]
+  \\ simp[cf_component_equality]
+  \\ simp[Abbr`b1`, Abbr`b2`]
+  \\ simp[Once tensor_def]
+  \\ simp[move_def, mk_cf_def]
+  \\ simp[FUN_EQ_THM]
+  \\ simp[restrict_def]
+  \\ rpt gen_tac
+  \\ reverse IF_CASES_TAC \\ simp[]
+  \\ reverse IF_CASES_TAC \\ simp[]
+  \\ fs[]
+QED
+
 val _ = export_theory();

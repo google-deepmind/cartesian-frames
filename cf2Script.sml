@@ -133,6 +133,33 @@ Proof
   \\ simp[]
 QED
 
+Theorem homotopic_id_map_agent_id:
+  c ∈ chu_objects w ⇒
+  (homotopic w m (id c -: chu w) ⇔
+   m :- c → c -: chu w ∧
+   ∀a. a ∈ c.agent ⇒
+     c.eval (m.map.map_agent a) = c.eval a)
+Proof
+  strip_tac
+  \\ eq_tac
+  >- (
+    rw[homotopic_def, pre_chu_def] \\ gs[]
+    >- simp[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def, hom_comb_def]
+    \\ rw[FUN_EQ_THM]
+    \\ reverse(Cases_on`x ∈ m.cod.env`)
+    >- ( fs[chu_objects_def, wf_def] )
+    \\ first_x_assum drule
+    \\ disch_then drule
+    \\ simp[id_in_def, restrict_def]
+    \\ simp[chu_id_morphism_map_def, restrict_def] )
+  \\ rw[homotopic_def, pre_chu_def]
+  \\ fs[maps_to_in_chu]
+  \\ rw[hom_comb_def]
+  \\ fs[is_chu_morphism_def, chu_id_morphism_map_def]
+  \\ simp[restrict_def]
+QED
+
 Definition homotopy_equiv_def:
   homotopy_equiv w c d ⇔
     ∃f g.

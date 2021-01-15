@@ -160,6 +160,28 @@ Proof
   \\ simp[restrict_def]
 QED
 
+Theorem homotopic_id_map_env_id:
+  c ∈ chu_objects w ⇒
+  (homotopic w m (id c -: chu w) ⇔
+   m :- c → c -: chu w ∧
+   ∀a e. e ∈ c.env ⇒
+     c.eval a (m.map.map_env e) = c.eval a e)
+Proof
+  strip_tac
+  \\ rw[homotopic_def, EQ_IMP_THM, pre_chu_def]
+  \\ TRY (fs[maps_to_in_chu] \\ NO_TAC)
+  >- (
+    fs[is_chu_morphism_def, hom_comb_def]
+    \\ gs[id_in_def, restrict_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ Cases_on`a ∈ m.cod.agent` \\ simp[]
+    \\ fs[chu_id_morphism_map_def, restrict_def] )
+  \\ fs[maps_to_in_chu]
+  \\ fs[is_chu_morphism_def, hom_comb_def]
+  \\ fs[chu_id_morphism_map_def, restrict_def]
+  \\ rw[extensional_def]
+QED
+
 Definition homotopy_equiv_def:
   homotopy_equiv w c d ⇔
     ∃f g.

@@ -1294,6 +1294,39 @@ Proof
   \\ fs[ctrl_def, DISJOINT_DEF]
 QED
 
+Theorem tensor_null_null:
+  FINITE w ⇒
+  tensor (null w) (null w) ≅ cf0 w -: chu w
+Proof
+  rw[iso_objs_thm]
+  \\ rw[maps_to_in_chu, is_chu_morphism_def]
+  \\ rw[Once tensor_def]
+  \\ rw[Once tensor_def, hom_def, maps_from_null]
+  \\ rw[Once cf0_def]
+  \\ rw[Once cf0_def]
+  \\ rw[Once cf0_def]
+  \\ rw[Once tensor_def]
+  \\ rw[Once tensor_def]
+  \\ qmatch_goalsub_abbrev_tac`_ "" = m`
+  \\ qexists_tac`<| dom := tensor (null w) (null w);
+                    cod := cf0 w;
+                    map := <| map_agent := K ARB;
+                              map_env := λe. if e = "" then m else ARB |> |>`
+  \\ simp[extensional_def]
+  \\ simp[chu_iso_bij]
+  \\ simp[Once cf0_def]
+  \\ simp[Once tensor_def]
+  \\ simp[Once cf0_def]
+  \\ simp[Once tensor_def]
+  \\ simp[BIJ_IFF_INV, PULL_EXISTS]
+  \\ qexists_tac`K ""` \\ simp[]
+  \\ simp[hom_def]
+  \\ simp[maps_from_null]
+  \\ simp[is_chu_morphism_def, tensor_def, extensional_def]
+  \\ simp[cf0_def, hom_def]
+  \\ simp[maps_from_null]
+QED
+
 (* TODO: examples re tensor being relative to a coarse world model *)
 
 Definition par_def:

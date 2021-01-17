@@ -977,6 +977,41 @@ Proof
   rw[chu_objects_def] \\ rw[null_def]
 QED
 
+Theorem swap_null[simp]:
+  swap (null w) = null w
+Proof
+  rw[null_def, swap_def, FUN_EQ_THM]
+QED
+
+Theorem null_components[simp]:
+  (null w).world = w ∧
+  (null w).agent = ∅ ∧
+  (null w).env = ∅ ∧
+  (null w).eval = K (K ARB)
+Proof
+  rw[null_def]
+QED
+
+Theorem maps_from_null:
+  f :- null w → c -: chu w
+  ⇔ f = <| dom := null w; cod := c;
+           map := <| map_agent := K ARB;
+                     map_env := K ARB |> |> ∧
+        FINITE w ∧ c ∈ chu_objects w ∧ c.env = ∅
+Proof
+  rw[maps_to_in_chu]
+  \\ Cases_on`c ∈ chu_objects w` \\ rw[]
+  \\ simp[morphism_component_equality]
+  \\ reverse(Cases_on`FINITE w`) \\ simp[]
+  >- metis_tac[in_chu_objects_finite_world]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[extensional_def]
+  \\ simp[chu_morphism_map_component_equality, Once FUN_EQ_THM]
+  \\ simp[EXTENSION]
+  \\ simp[FUN_EQ_THM]
+  \\ rw[EQ_IMP_THM]
+QED
+
 Theorem biextensional_collapse_idem[simp]:
   wf c ∧ biextensional c ⇒ biextensional_collapse c = c
 Proof

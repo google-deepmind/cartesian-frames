@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf7Theory
+  cf0Theory cf1Theory cf2Theory cf5Theory cf6Theory cf7Theory
 
 val _ = new_theory"cf8";
 
@@ -401,6 +401,69 @@ Proof
   \\ simp[Abbr`s`, Abbr`d'`, PULL_EXISTS]
   \\ simp[FUN_EQ_THM]
   \\ disj1_tac \\ rw[] \\ rw[] \\ fs[]
+QED
+
+Theorem is_subtensor_null_null:
+  is_subtensor (null w) (null w) n ⇔
+    (n = null w ∧ FINITE w) ∨
+    (n ≅ cf0 w -: chu w ∧
+     n.env = (tensor (null w) (null w)).env)
+Proof
+  reverse eq_tac
+  \\ strip_tac
+  >- (
+    simp[is_subtensor_def]
+    \\ simp[Once tensor_def]
+    \\ simp[Once tensor_def]
+    \\ simp[restrict_def]
+    \\ simp[FUN_EQ_THM]
+    \\ qmatch_goalsub_abbrev_tac`_ ≃ nn -: _`
+    \\ `nn = null w` suffices_by rw[]
+    \\ rw[Abbr`nn`, cf_component_equality, mk_cf_def]
+    \\ rw[FUN_EQ_THM] )
+  >- (
+    `n ∈ chu_objects w`
+    by metis_tac[iso_objs_thm, is_category_chu, maps_to_in_chu]
+    \\ simp[is_subtensor_def]
+    \\ simp[Once tensor_def]
+    \\ conj_asm1_tac >- fs[chu_objects_def]
+    \\ simp[Once tensor_def]
+    \\ conj_asm1_tac >- (
+      fs[iso_objs_thm, maps_to_in_chu, is_chu_morphism_def]
+      \\ fs[cf0_def] \\ simp[EXTENSION] )
+    \\ simp[Once tensor_def, mk_cf_def]
+    \\ simp[FUN_EQ_THM]
+    \\ conj_tac
+    >- ( fs[chu_objects_def, wf_def] \\ simp[restrict_def] )
+    \\ qmatch_goalsub_abbrev_tac`_ ≃ nn -: _`
+    \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+    \\ `nn = null w` suffices_by rw[]
+    \\ rw[Abbr`nn`, cf_component_equality, FUN_EQ_THM] )
+  >- (
+    fs[is_subtensor_def]
+    \\ `null w ∈ chu_objects w` by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+    \\ `FINITE w` by metis_tac[in_chu_objects_finite_world]
+    \\ Cases_on`n.env = ∅`
+    >- (
+      disj1_tac
+      \\ simp[cf_component_equality]
+      \\ simp[tensor_def, FUN_EQ_THM]
+      \\ simp[restrict_def] )
+    \\ disj2_tac
+    \\ reverse conj_asm2_tac
+    >- (
+      qpat_x_assum`_ ⊆ _`mp_tac
+      \\ simp[tensor_def]
+      \\ simp[EXTENSION, SUBSET_DEF, hom_def]
+      \\ simp[maps_from_null]
+      \\ metis_tac[MEMBER_NOT_EMPTY] )
+    \\ `n = tensor (null w) (null w)` suffices_by metis_tac[tensor_null_null]
+    \\ simp[cf_component_equality]
+    \\ simp[FUN_EQ_THM]
+    \\ rw[restrict_def]
+    \\ `tensor (null w) (null w) ∈ chu_objects w` by simp[]
+    \\ pop_assum mp_tac
+    \\ simp[chu_objects_def, Excl"tensor_in_chu_objects", Excl"wf_tensor", wf_def])
 QED
 
 val _ = export_theory();

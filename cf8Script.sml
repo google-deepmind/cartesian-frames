@@ -1416,4 +1416,309 @@ Proof
   \\ rw[Abbr`d'`]
 QED
 
+Theorem additive_subagent_categorical:
+  additive_subagent c d ⇔
+  let w = c.world in
+  ∃m0. m0 :- c → d -: chu w ∧
+    ∀m. m :- c → cfbot w w -: chu w ⇒
+      ∃m1. m1 :- d → cfbot w w -: chu w ∧
+        homotopic w m (m1 o m0 -: chu w)
+Proof
+  simp[additive_subagent_committing]
+  \\ reverse eq_tac \\ strip_tac
+  >- (
+    qexists_tac`IMAGE m0.map.map_agent c.agent`
+    \\ qexists_tac`d.agent`
+    \\ qexists_tac`d.env`
+    \\ qexists_tac`d.eval`
+    \\ conj_tac
+    >- (
+      simp[SUBSET_DEF, PULL_EXISTS]
+      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    \\ qmatch_goalsub_abbrev_tac `d ≃ d' -: w`
+    \\ `c ∈ chu_objects w ∧ d ∈ chu_objects w`
+    by metis_tac[maps_to_in_chu]
+    \\ reverse conj_tac
+    >- (
+      `d' = d` suffices_by rw[]
+      \\ rw[Abbr`d'`, cf_component_equality, mk_cf_def]
+      \\ fs[chu_objects_def]
+      \\ fs[wf_def]
+      \\ rw[FUN_EQ_THM]
+      \\ metis_tac[] )
+    \\ qmatch_goalsub_abbrev_tac`c ≃ c' -: _`
+    \\ simp[homotopy_equiv_def]
+    \\ imp_res_tac in_chu_objects_finite_world
+    \\ `∀e. e ∈ c.env ⇒ mk_chu_morphism c (cfbot w w)
+          <| map_agent := flip c.eval e;
+             map_env := K e |> :- c → cfbot w w -: chu w`
+    by (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[cfbot_def]
+      \\ simp[cf1_def, mk_cf_def]
+      \\ qpat_x_assum`c ∈ _`mp_tac
+      \\ simp[chu_objects_def, wf_def] )
+    \\ fs[GSYM RIGHT_EXISTS_IMP_THM, SKOLEM_THM]
+    \\ pop_assum mp_tac
+    \\ qho_match_abbrev_tac`(∀e. e ∈ c.env ⇒ h e :- _ → _ -: _) ⇒ _`
+    \\ strip_tac
+    \\ qexists_tac`mk_chu_morphism c c' <| map_agent := m0.map.map_agent;
+         map_env := m0.map.map_env |>`
+    \\ qexists_tac`mk_chu_morphism c' c <| map_agent := λa. @b. b ∈ c.agent ∧ m0.map.map_agent b = a;
+         map_env := λe. (f (h e)).map.map_env "" |>`
+    \\ conj_asm1_tac
+    >- (
+      qpat_x_assum`m0 :- _ → _ -: _`mp_tac
+      \\ simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[Abbr`c'`, mk_cf_def]
+      \\ simp[restrict_def]
+      \\ qpat_x_assum`d ∈ _`mp_tac
+      \\ qpat_x_assum`c ∈ _`mp_tac
+      \\ simp[chu_objects_def, wf_def]
+      \\ simp[extensional_def]
+      \\ simp[finite_cf_def]
+      \\ metis_tac[IMAGE_FINITE] )
+    \\ `c' ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[Abbr`c'`, PULL_EXISTS, mk_cf_def]
+      \\ `"" ∈ (cfbot w w).env` by simp[cfbot_def]
+      \\ conj_asm1_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ conj_tac >- metis_tac[]
+      \\ rpt strip_tac
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ qpat_assum`m0 :- c → _ -: _`mp_tac
+      \\ simp_tac (srw_ss())[maps_to_in_chu, is_chu_morphism_def]
+      \\ strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac >- metis_tac[]
+      \\ qx_gen_tac`y` \\ strip_tac
+      \\ pop_assum (assume_tac o SYM) \\ simp[]
+      \\ first_x_assum(fn th => DEP_REWRITE_TAC[GSYM(Q.GEN`a`(Q.SPEC`a`th))])
+      \\ conj_tac >- metis_tac[]
+      \\ qmatch_goalsub_rename_tac`h e`
+      \\ `homotopic w (h e) (f (h e) o m0 -: chu w)` by metis_tac[]
+      \\ pop_assum mp_tac
+      \\ simp_tac std_ss [homotopic_def, GSYM AND_IMP_INTRO]
+      \\ ntac 4 (disch_then kall_tac)
+      \\ simp_tac (srw_ss()) [pre_chu_def, GSYM AND_IMP_INTRO]
+      \\ ntac 2 (disch_then kall_tac)
+      \\ `(h e).dom = c` by metis_tac[maps_to_in_chu]
+      \\ `(f (h e) o m0 -: chu w) :- c → cfbot w w -: chu w` by (
+        irule maps_to_comp \\ simp[] \\ metis_tac[] )
+      \\ `(f (h e) o m0 -: chu w).cod = cfbot w w` by metis_tac[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, hom_comb_def]
+      \\ strip_tac
+      \\ pop_assum mp_tac
+      \\ simp[cfbot_def]
+      \\ simp[cf1_def, mk_cf_def]
+      \\ disch_then drule
+      \\ `(cfbot w w).agent = w` by simp[cfbot_def]
+      \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+      \\ `(f (h e)).cod = cfbot w w` by metis_tac[maps_to_in_chu]
+      \\ simp[pre_chu_def, restrict_def, composable_in_def]
+      \\ conj_tac >- metis_tac[maps_to_in_chu]
+      \\ strip_tac
+      \\ simp[Abbr`h`, mk_chu_morphism_def]
+      \\ simp[restrict_def])
+    \\ reverse conj_tac
+    >- (
+      rw[homotopic_id_map_agent_id]
+      \\ TRY ( irule maps_to_comp \\ simp[] \\ metis_tac[] )
+      \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+      \\ simp[pre_chu_def, restrict_def, composable_in_def]
+      \\ fs[maps_to_in_chu]
+      \\ simp[mk_chu_morphism_def, restrict_def]
+      \\ SELECT_ELIM_TAC
+      \\ `c'.agent = IMAGE m0.map.map_agent c.agent` by simp[Abbr`c'`]
+      \\ fs[] \\ metis_tac[] )
+    \\ rw[homotopic_id_map_agent_id]
+    \\ TRY ( irule maps_to_comp \\ simp[] \\ metis_tac[] )
+    \\ simp[FUN_EQ_THM]
+    \\ qx_gen_tac`e`
+    \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+    \\ simp[pre_chu_def, composable_in_def, restrict_def]
+    \\ conj_asm1_tac >- metis_tac[maps_to_in_chu]
+    \\ reverse(Cases_on`e ∈ c.env`)
+    >- ( qpat_x_assum`c ∈ _`mp_tac \\ simp[chu_objects_def, wf_def] )
+    \\ qpat_x_assum`_ ∧ _` strip_assume_tac
+    \\ pop_assum mp_tac
+    \\ simp[is_chu_morphism_def, GSYM AND_IMP_INTRO]
+    \\ ntac 4 (disch_then kall_tac)
+    \\ simp[AND_IMP_INTRO]
+    \\ disch_then(fn th => DEP_REWRITE_TAC[GSYM th])
+    \\ simp[Once mk_chu_morphism_def, restrict_def]
+    \\ conj_tac >- simp[Abbr`c'`]
+    \\ simp[Once mk_chu_morphism_def, restrict_def]
+    \\ simp[Once mk_chu_morphism_def, restrict_def]
+    \\ `"" ∈ (cfbot w w).env` by simp[cfbot_def]
+    \\ simp[Abbr`c'`, mk_cf_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ pop_assum kall_tac
+    \\ `is_chu_morphism d (cfbot w w) (f (h e)).map` by metis_tac[maps_to_in_chu]
+    \\ pop_assum mp_tac
+    \\ simp[is_chu_morphism_def]
+    \\ strip_tac
+    \\ pop_assum (fn th => DEP_REWRITE_TAC[th])
+    \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ `homotopic w (f (h e) o m0 -: chu w) (h e)` by metis_tac[homotopic_sym]
+    \\ pop_assum mp_tac
+    \\ simp_tac std_ss [homotopic_def, GSYM AND_IMP_INTRO]
+    \\ ntac 4 (disch_then kall_tac)
+    \\ simp[pre_chu_def, GSYM AND_IMP_INTRO]
+    \\ ntac 2 (disch_then kall_tac)
+    \\ `(h e).cod = cfbot w w` by metis_tac[maps_to_in_chu]
+    \\ `(f (h e) o m0 -: chu w) :- c → cfbot w w -: chu w` by (
+      irule maps_to_comp \\ simp[] \\ metis_tac[] )
+    \\ `(f (h e) o m0 -: chu w).dom = c` by metis_tac[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, hom_comb_def]
+    \\ strip_tac
+    \\ pop_assum mp_tac
+    \\ simp[cfbot_def]
+    \\ simp[cf1_def, mk_cf_def]
+    \\ disch_then drule
+    \\ `(cfbot w w).agent = w` by simp[cfbot_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+    \\ `(f (h e)).cod = cfbot w w` by metis_tac[maps_to_in_chu]
+    \\ simp[pre_chu_def, restrict_def, composable_in_def]
+    \\ conj_tac >- metis_tac[maps_to_in_chu]
+    \\ `m0.dom = c` by metis_tac[maps_to_in_chu]
+    \\ simp[]
+    \\ disch_then (assume_tac o SYM)
+    \\ simp[]
+    \\ simp[Abbr`h`, mk_chu_morphism_def]
+    \\ simp[restrict_def])
+  \\ qmatch_assum_abbrev_tac`c ≃ c' -: w`
+  \\ qmatch_assum_abbrev_tac`d ≃ d' -: w`
+  \\ fs[homotopy_equiv_def]
+  \\ qmatch_assum_rename_tac`f1 :- c → c' -: _`
+  \\ qmatch_assum_rename_tac`f2 :- c' → c -: _`
+  \\ qmatch_assum_rename_tac`f3 :- d → d' -: _`
+  \\ qmatch_assum_rename_tac`f4 :- d' → d -: _`
+  \\ `c' ∈ chu_objects w ∧ d' ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+  \\ `mk_chu_morphism c' d' <| map_agent := I; map_env := I |> :- c' → d' -: chu w`
+  by (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`c'`, Abbr`d'`, mk_cf_def]
+    \\ fs[SUBSET_DEF] )
+  \\ qmatch_assum_abbrev_tac`f0 :- c' → d' -: _`
+  \\ qexists_tac `f4 o f0 o f1 -: chu w -: chu w`
+  \\ conj_tac
+  >- (
+    irule maps_to_comp \\ simp[]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule maps_to_comp \\ simp[]
+    \\ metis_tac[] )
+  \\ rpt strip_tac
+  \\ qexists_tac`mk_chu_morphism d (cfbot w w) <|
+       map_agent := flip d.eval (f3.map.map_env (f2.map.map_env (m.map.map_env "")));
+       map_env := f3.map.map_env o f2.map.map_env o m.map.map_env |>`
+  \\ `d ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[cfbot_def]
+    \\ `"" ∈ (cfbot w w).env` by simp[cfbot_def]
+    \\ simp[cf1_def, mk_cf_def]
+    \\ fs[chu_objects_def, wf_def]
+    \\ `c'.env = z ∧ d'.env = z` by simp[Abbr`c'`, Abbr`d'`]
+    \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+  \\ qmatch_assum_abbrev_tac`g :- d → _ -: _`
+  \\ qmatch_goalsub_abbrev_tac`homotopic w m n`
+  \\ `n :- c → cfbot w w -: chu w`
+  by (
+    simp[Abbr`n`]
+    \\ irule maps_to_comp \\ simp[]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule maps_to_comp \\ simp[]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule maps_to_comp \\ simp[]
+    \\ metis_tac[] )
+  \\ simp[homotopic_def, pre_chu_def]
+  \\ simp[CONJ_ASSOC]
+  \\ conj_tac >- fs[maps_to_in_chu]
+  \\ simp[hom_comb_def]
+  \\ simp[is_chu_morphism_def]
+  \\ simp[CONJ_ASSOC]
+  \\ conj_tac  >- ( fs[maps_to_in_chu] \\ fs[is_chu_morphism_def] )
+  \\ `m.dom = c ∧ n.cod = cfbot w w` by fs[maps_to_in_chu] \\ simp[]
+  \\ qpat_assum`m :- _ → _ -: _`mp_tac
+  \\ simp_tac std_ss [maps_to_in_chu] \\ strip_tac
+  \\ qpat_x_assum`is_chu_morphism _ _ _`mp_tac
+  \\ simp[is_chu_morphism_def] \\ strip_tac
+  \\ simp[Abbr`n`]
+  \\ `f0 o f1 -: chu w :- c → d' -: chu w` by
+    (irule maps_to_comp \\ simp[] \\ metis_tac[])
+  \\ `f4 o f0 o f1 -: chu w -: chu w :- c → d -: chu w` by
+    (irule maps_to_comp \\ simp[] \\ metis_tac[])
+  \\ DEP_ONCE_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ conj_tac >- fs[composable_in_def, pre_chu_def, maps_to_in_chu]
+  \\ `(f4 o f0 o f1 -: chu w -: chu w).dom = c ∧ g.cod = cfbot w w` by fs[maps_to_in_chu]
+  \\ simp[pre_chu_def, restrict_def]
+  \\ simp[Abbr`g`, mk_chu_morphism_def, restrict_def]
+  \\ DEP_ONCE_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ conj_tac >- fs[composable_in_def, pre_chu_def, maps_to_in_chu]
+  \\ `(f0 o f1 -: chu w).dom = c ∧ f4.cod = d` by fs[maps_to_in_chu]
+  \\ simp[pre_chu_def, restrict_def]
+  \\ rpt gen_tac \\ strip_tac
+  \\ `c'.env = z ∧ d'.env = z` by simp[Abbr`c'`, Abbr`d'`]
+  \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ DEP_ONCE_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ conj_tac >- fs[composable_in_def, pre_chu_def, maps_to_in_chu]
+  \\ `f1.dom = c ∧ f0.cod = d'` by fs[maps_to_in_chu]
+  \\ simp[pre_chu_def, restrict_def]
+  \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ qpat_assum`f1 :- _ → _ -: _`mp_tac
+  \\ simp_tac (srw_ss()) [maps_to_in_chu, is_chu_morphism_def]
+  \\ strip_tac
+  \\ first_assum(fn th => DEP_REWRITE_TAC[Q.GEN`a`(Q.SPEC`a`th)])
+  \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ simp[Abbr`f0`, mk_chu_morphism_def, restrict_def]
+  \\ qpat_x_assum`homotopic _ (f3 o f4 -: _) _`mp_tac
+  \\ simp[homotopic_id_map_env_id] \\ strip_tac
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ conj_tac >- fs[composable_in_def, pre_chu_def, maps_to_in_chu]
+  \\ `f4.dom = d' ∧ f3.cod = d'` by fs[maps_to_in_chu]
+  \\ simp[pre_chu_def, restrict_def]
+  \\ `c'.agent = x` by simp[Abbr`c'`]
+  \\ `f1.map.map_agent a ∈ x` by metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ `c'.eval (f1.map.map_agent a) = d'.eval (f1.map.map_agent a)`
+  by ( fs[Abbr`c'`, Abbr`d'`, mk_cf_def, SUBSET_DEF] )
+  \\ simp[]
+  \\ disch_then(fn th => DEP_REWRITE_TAC[th])
+  \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ qpat_assum`f2 :- _ → _ -: _`mp_tac
+  \\ simp_tac (srw_ss()) [maps_to_in_chu, is_chu_morphism_def]
+  \\ strip_tac
+  \\ qpat_assum`_ = d'.eval _`(SUBST1_TAC o SYM)
+  \\ first_assum(fn th => DEP_REWRITE_TAC[Q.GEN`a`(Q.SPEC`a`th)])
+  \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ qpat_x_assum`homotopic _ (f2 o f1 -: _) _`mp_tac
+  \\ DEP_REWRITE_TAC[homotopic_id_map_agent_id]
+  \\ conj_tac >- simp[] \\ strip_tac
+  \\ pop_assum mp_tac
+  \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ conj_tac >- fs[composable_in_def, pre_chu_def, maps_to_in_chu]
+  \\ simp_tac(srw_ss())[pre_chu_def, restrict_def]
+  \\ disch_then drule
+  \\ reverse IF_CASES_TAC >- rfs[]
+  \\ disch_then SUBST1_TAC
+  \\ simp[]
+QED
+
 val _ = export_theory();

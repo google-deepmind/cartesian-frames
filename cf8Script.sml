@@ -1948,4 +1948,51 @@ Proof
   \\ metis_tac[multiplicative_subagent_subagent, swap_components]
 QED
 
+Theorem multiplicative_subagent_categorical:
+  multiplicative_subagent c d ⇔
+  let w = c.world in
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+  (∀m. m :- c → cfbot w w -: chu w ⇒
+     ∃m1 m2. m1 :- c → d -: chu w ∧ m2 :- d → cfbot w w -: chu w ∧
+             m = m2 o m1 -: chu w) ∧
+  (∀m. m :- cf1 w w → d -: chu w ⇒
+     ∃m1 m2. m1 :- cf1 w w → c -: chu w ∧ m2 :- c → d -: chu w ∧
+             m = m2 o m1 -: chu w)
+Proof
+  rw[multiplicative_subagent_subenvironment]
+  \\ rw[subenvironment_def]
+  \\ rw[subagent_def]
+  \\ eq_tac \\ strip_tac \\ fs[]
+  >- (
+    rw[]
+    \\ first_x_assum(qspec_then`swap_morphism (op_mor m)`mp_tac)
+    \\ simp[Once (GSYM swap_morphism_maps_to)]
+    \\ simp[Once cfbot_def] \\ strip_tac
+    \\ qexistsl_tac[`swap_morphism (op_mor m2)`, `swap_morphism (op_mor m1)`]
+    \\ simp[Once (GSYM swap_morphism_maps_to)] \\ simp[GSYM cfbot_def]
+    \\ simp[Once (GSYM swap_morphism_maps_to)]
+    \\ pop_assum (mp_tac o Q.AP_TERM`swap_morphism`)
+    \\ DEP_REWRITE_TAC[swap_morphism_comp] \\ simp[]
+    \\ DEP_REWRITE_TAC[op_cat_compose_in]
+    \\ simp[op_mor_swap_morphism]
+    \\ simp[swap_morphism_composable_in]
+    \\ irule maps_to_composable
+    \\ metis_tac[] )
+  \\  rw[]
+  \\ first_x_assum(qspec_then`swap_morphism (op_mor m)`mp_tac)
+  \\ simp[Once (GSYM swap_morphism_maps_to)]
+  \\ simp[Once (GSYM cfbot_def)] \\ strip_tac
+  \\ qexistsl_tac[`swap_morphism (op_mor m2)`, `swap_morphism (op_mor m1)`]
+  \\ simp[Once (GSYM swap_morphism_maps_to)]
+  \\ simp[Once (GSYM swap_morphism_maps_to)]
+  \\ simp[cfbot_def]
+  \\ pop_assum (mp_tac o Q.AP_TERM`swap_morphism`)
+  \\ DEP_REWRITE_TAC[swap_morphism_comp] \\ simp[]
+  \\ DEP_REWRITE_TAC[op_cat_compose_in]
+  \\ simp[op_mor_swap_morphism]
+  \\ simp[swap_morphism_composable_in]
+  \\ irule maps_to_composable
+  \\ metis_tac[]
+QED
+
 val _ = export_theory();

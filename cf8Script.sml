@@ -698,7 +698,7 @@ Proof
     \\ conj_asm1_tac >- metis_tac[homotopy_equiv_def, maps_to_in_chu]
     \\ qpat_x_assum`c1 ∈ _`mp_tac
     \\ qpat_x_assum`d' ∈ _`mp_tac
-    \\ simp[Abbr`d'`, Abbr`c1`, Abbr`c2`, chu_objects_def]
+    \\ simp[Abbr`d'`, Abbr`c1`, Abbr`c2`, in_chu_objects]
     \\ simp[SUBSET_DEF, image_def, finite_cf_def, PULL_EXISTS, EXISTS_PROD])
   \\ `∀zz. zz ∈ z ⇒ (mk_chu_morphism c1 (swap c2) <| map_agent := λx. encode_pair (x, zz); map_env := λy. encode_pair (y, zz) |>) :- c1 → (swap c2) -: chu c.world`
   by (
@@ -765,13 +765,13 @@ Proof
         `finite_cf c1 ∧ finite_cf c2`
         by (
           ntac 3 (qpat_x_assum`_ ∈ _`mp_tac)
-          \\ simp_tac(srw_ss())[chu_objects_def]
+          \\ simp_tac(srw_ss())[in_chu_objects]
           \\ simp[wf_def] )
         \\ `finite_cf (tensor c1 c2)` by metis_tac[finite_tensor]
         \\ ntac 3 (pop_assum mp_tac)
         \\ simp[Abbr`d1`, Abbr`d2`, finite_cf_def, Excl"finite_tensor"]
         \\ metis_tac[SUBSET_FINITE] )
-      \\ `wf c1 ∧ wf c2` by fs[chu_objects_def]
+      \\ `wf c1 ∧ wf c2` by fs[in_chu_objects]
       \\ qpat_x_assum`finite_cf _`mp_tac
       \\ qpat_x_assum`finite_cf _`mp_tac
       \\ simp[chu_objects_def, Abbr`d1`, Abbr`d2`, finite_cf_def]
@@ -844,19 +844,11 @@ Proof
         \\ conj_tac >- metis_tac[]
         \\ simp[Abbr`g`, mk_chu_morphism_def, restrict_def])
       \\ qmatch_goalsub_abbrev_tac`homotopic _ (j o k -: _)`
-      \\ imp_res_tac maps_to_comp \\ fs[]
-      \\ conj_tac \\ irule homotopic_id
-      \\ (conj_tac >- metis_tac[maps_to_in_chu])
-      \\ (conj_tac >- metis_tac[maps_to_in_chu])
-      \\ simp_tac (srw_ss()) [pre_chu_def]
-      \\ (conj_tac >- metis_tac[maps_to_in_chu])
-      \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
-      \\ (conj_tac
-      >- (
-        simp[composable_in_def]
-        \\ simp_tac (srw_ss()) [pre_chu_def]
-        \\ metis_tac[maps_to_in_chu] ))
-      \\ simp[pre_chu_def, restrict_def]
+      \\ simp[homotopic_id_map_agent_id]
+      \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+      \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+      \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+      \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
       \\ simp[Abbr`j`, Abbr`k`, restrict_def]
       \\ simp[mk_chu_morphism_def, restrict_def]
       \\ simp[Abbr`d1`])
@@ -918,19 +910,11 @@ Proof
       \\ simp[Abbr`g`, mk_chu_morphism_def, restrict_def]
       \\ simp[Abbr`c1`, mk_cf_def])
     \\ qmatch_goalsub_abbrev_tac`homotopic _ (j o k -: _)`
-    \\ imp_res_tac maps_to_comp \\ fs[]
-    \\ conj_tac \\ irule homotopic_id
-    \\ (conj_tac >- metis_tac[maps_to_in_chu])
-    \\ (conj_tac >- metis_tac[maps_to_in_chu])
-    \\ simp_tac (srw_ss()) [pre_chu_def]
-    \\ (conj_tac >- metis_tac[maps_to_in_chu])
-    \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
-    \\ (conj_tac
-    >- (
-      simp[composable_in_def]
-      \\ simp_tac (srw_ss()) [pre_chu_def]
-      \\ metis_tac[maps_to_in_chu] ))
-    \\ simp[pre_chu_def, restrict_def]
+    \\ simp[homotopic_id_map_agent_id]
+    \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
     \\ simp[Abbr`j`, Abbr`k`, restrict_def]
     \\ simp[mk_chu_morphism_def, restrict_def]
     \\ simp[Abbr`d2`])
@@ -945,19 +929,19 @@ Proof
   \\ qmatch_goalsub_abbrev_tac`homotopic _ (j o k -: _)`
   \\ `s ∈ chu_objects c.world`
   by (
-    simp[chu_objects_def, Abbr`s`]
+    simp[in_chu_objects, Abbr`s`]
     \\ conj_tac
     >- (
       simp[image_def, SUBSET_DEF, PULL_EXISTS]
       \\ `tensor c1 c2 ∈ chu_objects c.world` by simp[]
       \\ pop_assum mp_tac
-      \\ simp_tac (srw_ss()) [chu_objects_def, wf_def, Excl"tensor_in_chu_objects", Excl"wf_tensor"]
+      \\ simp_tac (srw_ss()) [in_chu_objects, wf_def, Excl"tensor_in_chu_objects", Excl"wf_tensor"]
       \\ strip_tac \\ fs[] \\ rpt strip_tac
       \\ first_x_assum irule \\ simp[]
       \\ simp[tensor_def, hom_def])
     \\ `finite_cf c1 ∧ finite_cf c2 ∧ finite_cf d' ∧ finite_cf (tensor c1 c2)`
     by (
-      full_simp_tac std_ss [chu_objects_def, wf_def]
+      full_simp_tac std_ss [in_chu_objects, wf_def]
       \\ rpt(qpat_x_assum`_ ∈ _`mp_tac)
       \\ simp[] )
     \\ ntac 4 (pop_assum mp_tac)
@@ -1004,19 +988,11 @@ Proof
     \\ qmatch_goalsub_abbrev_tac`f _ _ xx`
     \\ `xx = x'` by metis_tac[BIJ_LINV_THM, combinTheory.o_THM]
     \\ simp[Abbr`g`, mk_chu_morphism_def, restrict_def])
-  \\ imp_res_tac maps_to_comp \\ fs[]
-  \\ conj_tac \\ irule homotopic_id
-  \\ (conj_tac >- metis_tac[maps_to_in_chu])
-  \\ (conj_tac >- metis_tac[maps_to_in_chu])
-  \\ simp_tac (srw_ss()) [pre_chu_def]
-  \\ (conj_tac >- metis_tac[maps_to_in_chu])
-  \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
-  \\ (conj_tac
-  >- (
-    simp[composable_in_def]
-    \\ simp_tac (srw_ss()) [pre_chu_def]
-    \\ metis_tac[maps_to_in_chu] ))
-  \\ simp[pre_chu_def, restrict_def]
+  \\ simp[homotopic_id_map_agent_id]
+  \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
   \\ simp[Abbr`j`, Abbr`k`, restrict_def]
   \\ simp[mk_chu_morphism_def, restrict_def]
   \\ simp[Abbr`s`, Abbr`d'`, PULL_EXISTS, EXISTS_PROD]

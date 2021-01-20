@@ -2175,4 +2175,93 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem morphism_decomposition:
+  (∃m. m :- c1 → c2 -: chu w) ⇔
+  (∃c. additive_subenvironment c1 c ∧
+       additive_subagent c c2 ∧
+       c1.world = w)
+Proof
+  eq_tac \\ strip_tac
+  >- (
+    qexists_tac`mk_cf <| world := w;
+      agent := c1.agent; env := c2.env;
+      eval := λa e. c1.eval a (m.map.map_env e) |>`
+    \\ simp[additive_subenvironment_def]
+    \\ simp[CONJ_ASSOC]
+    \\ reverse conj_tac >- metis_tac[maps_to_in_chu, in_chu_objects]
+    \\ pop_assum mp_tac
+    \\ qho_match_abbrev_tac`P m c1 c2 ⇒ Q m c1 c2 ∧ R m c1 c2`
+    \\ `∀m c1 c2. P m c1 c2 ⇒ R m c1 c2` suffices_by  (
+      rw[Abbr`P`, Abbr`R`, Abbr`Q`]
+      \\ first_x_assum(qspecl_then[`swap_morphism (op_mor m)`, `swap c2`, `swap c1`]mp_tac)
+      \\ simp[Once(GSYM swap_morphism_maps_to)]
+      \\ qmatch_goalsub_abbrev_tac`x y z ⇒ x y' z`
+      \\ `y = y'` suffices_by rw[]
+      \\ simp[Abbr`y`, Abbr`y'`, cf_component_equality]
+      \\ simp[mk_cf_def, FUN_EQ_THM]
+      \\ fs[maps_to_in_chu, is_chu_morphism_def]
+      \\ metis_tac[] )
+    \\ rw[Abbr`P`, Abbr`Q`, Abbr`R`]
+    \\ simp[additive_subagent_committing]
+    \\ qexists_tac`IMAGE m.map.map_agent c1.agent`
+    \\ qexists_tac`c2.agent`
+    \\ qexists_tac`c2.env`
+    \\ qexists_tac`c2.eval`
+    \\ conj_tac
+    >- fs[SUBSET_DEF, maps_to_in_chu, is_chu_morphism_def, PULL_EXISTS]
+    \\ reverse conj_tac
+    >- (
+      qmatch_goalsub_abbrev_tac`c2 ≃ c2' -: _`
+      \\ `c2 ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+      \\ `c2' = c2` suffices_by rw[]
+      \\ rw[Abbr`c2'`, cf_component_equality, mk_cf_def]
+      \\ fs[in_chu_objects, wf_def, FUN_EQ_THM]
+      \\ metis_tac[] )
+    \\ qmatch_goalsub_abbrev_tac`c ≃ c' -: _`
+    \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+    \\ `c ∈ chu_objects w ∧ c' ∈ chu_objects w`
+    by (
+      fs[in_chu_objects, Abbr`c`, Abbr`c'`]
+      \\ fs[wf_def, finite_cf_def]
+      \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
+      \\ fs[maps_to_in_chu, is_chu_morphism_def] )
+    \\ simp[homotopy_equiv_def]
+    \\ qexists_tac`mk_chu_morphism c c' <| map_agent := m.map.map_agent;
+         map_env := I |>`
+    \\ qexists_tac`mk_chu_morphism c' c <| map_agent := λa. @b. b ∈ c1.agent ∧ m.map.map_agent b = a; map_env := I |>`
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[Abbr`c`, Abbr`c'`, mk_cf_def]
+      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[Abbr`c`, Abbr`c'`, mk_cf_def, PULL_EXISTS]
+      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    \\ qmatch_goalsub_abbrev_tac`j o k -: _`
+    \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then drule \\ strip_tac
+    \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then (qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ simp[homotopic_id_map_env_id]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`k`, Abbr`j`, mk_chu_morphism_def, restrict_def]
+    \\ `c'.env = c.env` by simp[Abbr`c'`, Abbr`c`]
+    \\ simp[] )
+  \\ fs[additive_subenvironment_def]
+  \\ fs[additive_subagent_categorical]
+  \\ `(swap c1).world = c.world` by metis_tac[maps_to_in_chu, in_chu_objects]
+  \\ fs[] \\ rfs[]
+  \\ qmatch_assum_rename_tac`m1 :- c → c2 -: _`
+  \\ qexists_tac`m1 o (swap_morphism (op_mor m0)) -: chu w`
+  \\ irule (DISCH_ALL(CONJUNCT1(UNDISCH compose_in_chu)))
+  \\ qexists_tac`c`
+  \\ simp[Once(GSYM(swap_morphism_maps_to))]
+QED
+
 val _ = export_theory();

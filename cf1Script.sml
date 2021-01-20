@@ -66,6 +66,12 @@ Definition chu_objects_def:
   chu_objects w = { c | wf c ∧ c.world = w }
 End
 
+Theorem in_chu_objects:
+  c ∈ chu_objects w ⇔ wf c ∧ c.world = w
+Proof
+  rw[chu_objects_def]
+QED
+
 Theorem in_chu_objects_finite_world[simp]:
   c ∈ chu_objects w ⇒ FINITE w
 Proof
@@ -167,6 +173,23 @@ Theorem maps_to_in_chu:
 Proof
   rw[maps_to_in_def, pre_chu_def]
   \\ metis_tac[]
+QED
+
+Theorem compose_in_chu:
+  f :- c1 → c2 -: chu w ∧
+  g :- c2 → c3 -: chu w
+  ⇒
+  g o f -: chu w :- c1 → c3 -: chu w ∧
+  (g o f -: chu w).map =
+    <| map_agent := restrict (g.map.map_agent o f.map.map_agent) c1.agent;
+       map_env := restrict (f.map.map_env o g.map.map_env) c3.env |>
+Proof
+  strip_tac
+  \\ conj_tac >- (
+    irule maps_to_comp \\ simp[] \\ metis_tac[] )
+  \\ DEP_REWRITE_TAC[compose_in_thm, compose_thm, chu_comp]
+  \\ simp[composable_in_def, pre_chu_def]
+  \\ fs[maps_to_in_chu]
 QED
 
 Theorem is_chu_morphism_maps_to:

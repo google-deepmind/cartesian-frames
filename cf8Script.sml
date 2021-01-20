@@ -2108,4 +2108,71 @@ Proof
                in_chu_objects, subenvironment_def]
 QED
 
+Theorem subagent_decomposition:
+  c1 ◁ c2 -: w ⇔
+    ∃c. multiplicative_subagent c1 c ∧
+        additive_subagent c c2 ∧
+        c1.world = w ∧ c2.world = w
+Proof
+  reverse eq_tac
+  >- PROVE_TAC[multiplicative_subagent_subagent, additive_subagent_subagent,
+               subagent_trans, subagent_def, in_chu_objects]
+  \\ strip_tac
+  \\ `c1.world = w ∧ c2.world = w` by metis_tac[subagent_def, in_chu_objects]
+  \\ simp[]
+  \\ fs[subagent_currying, currying_subagent_def]
+  \\ qexists_tac`mk_cf <| world := w; agent := image z; env := c2.env; eval := c2.eval |>`
+  \\ qmatch_goalsub_abbrev_tac`additive_subagent c`
+  \\ `c ∈ chu_objects w`
+  by (
+    simp[in_chu_objects, Abbr`c`]
+    \\ imp_res_tac in_chu_objects_finite_world
+    \\ fs[in_chu_objects, finite_cf_def, wf_def]
+    \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
+    \\ metis_tac[] )
+  \\ reverse conj_tac
+  >- (
+    simp[additive_subagent_committing]
+    \\ qexistsl_tac[`c.agent`,`c2.agent`,`c.env`,`c2.eval`]
+    \\ conj_tac
+    >- (
+      simp[Abbr`c`, SUBSET_DEF]
+      \\ fs[in_chu_objects, wf_def]
+      \\ simp[image_def, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ `c.world = w` by simp[Abbr`c`]
+    \\ conj_tac
+    >- (
+      qmatch_goalsub_abbrev_tac`c ≃ c' -: _`
+      \\ `c' = c` suffices_by rw[]
+      \\ simp[cf_component_equality, Abbr`c'`]
+      \\ simp[Abbr`c`, mk_cf_def, FUN_EQ_THM])
+    \\ qmatch_goalsub_abbrev_tac`c2 ≃ c2' -: _`
+    \\ `c2'.world = w` by simp[Abbr`c2'`]
+    \\ `c2' = c2` suffices_by simp[]
+    \\ simp[cf_component_equality, Abbr`c2'`, Abbr`c`]
+    \\ simp[mk_cf_def, FUN_EQ_THM]
+    \\ fs[in_chu_objects, wf_def]
+    \\ metis_tac[] )
+  \\ simp[multiplicative_subagent_currying]
+  \\ qexists_tac`z with world := c.agent`
+  \\ conj_tac
+  >- (
+    fs[in_chu_objects]
+    \\ fs[wf_def, Abbr`c`]
+    \\ fs[finite_cf_def]
+    \\ fs[image_def]
+    \\ metis_tac[] )
+  \\ conj_tac
+  >- simp[image_def, Abbr`c`]
+  \\ `move c (z with world := c.agent) = move c2 z` suffices_by metis_tac[]
+  \\ simp[cf_component_equality]
+  \\ simp[Abbr`c`, mk_cf_def]
+  \\ simp[move_def, mk_cf_def, PULL_EXISTS, EXISTS_PROD, FUN_EQ_THM]
+  \\ rpt gen_tac
+  \\ IF_CASES_TAC \\ simp[] \\ fs[]
+  \\ simp[image_def]
+  \\ metis_tac[]
+QED
+
 val _ = export_theory();

@@ -1995,4 +1995,117 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem additive_subagent_subagent:
+  additive_subagent c d ⇒ subagent c.world c d
+Proof
+  rw[additive_subagent_currying, subagent_currying]
+  \\ rw[currying_subagent_def]
+  \\ metis_tac[homotopy_equiv_def, maps_to_in_chu]
+QED
+
+(* TODO: possibly, remove the unnecessary w argument from:
+  - subagent
+  - homotopy_equiv
+  - ...?
+*)
+
+Theorem additive_subagent_homotopy_equiv:
+  additive_subagent c1 d1 ∧
+  c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w
+  ⇒
+  additive_subagent c2 d2
+Proof
+  rw[additive_subagent_committing]
+  \\ `c1.world = w ∧ c2.world = w ∧ d1.world = w ∧ d2.world = w`
+  by metis_tac[homotopy_equiv_def, maps_to_in_chu, in_chu_objects]
+  \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
+QED
+
+Theorem multiplicative_subagent_homotopy_equiv:
+  multiplicative_subagent c1 d1 ∧
+  c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w
+  ⇒
+  multiplicative_subagent c2 d2
+Proof
+  rw[multiplicative_subagent_externalising]
+  \\ `c1.world = w ∧ c2.world = w ∧ d1.world = w ∧ d2.world = w`
+  by metis_tac[homotopy_equiv_def, maps_to_in_chu, in_chu_objects]
+  \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
+QED
+
+Theorem additive_subagent_refl[simp]:
+  c ∈ chu_objects w ⇒
+  additive_subagent c c
+Proof
+  rw[additive_subagent_categorical]
+  \\ qexists_tac`id c -: chu w`
+  \\ `c.world = w` by fs[in_chu_objects]
+  \\ rw[]
+  \\ qexists_tac`m` \\ simp[]
+  \\ DEP_REWRITE_TAC[id_comp1]
+  \\ simp[]
+  \\ conj_asm1_tac
+  >- ( fs[maps_to_in_chu] \\ simp[pre_chu_def] )
+  \\ simp[]
+QED
+
+Theorem multiplicative_subagent_refl[simp]:
+  c ∈ chu_objects w ⇒
+  multiplicative_subagent c c
+Proof
+  strip_tac
+  \\ `c.world = w` by fs[in_chu_objects]
+  \\ simp[multiplicative_subagent_categorical]
+  \\ rpt strip_tac
+  >- (
+    qexists_tac`id c -: chu w`
+    \\ qexists_tac`m` \\ simp[]
+    \\ DEP_REWRITE_TAC[id_comp1]
+    \\ simp[]
+    \\ fs[maps_to_in_chu] \\ simp[pre_chu_def] )
+  \\ qexists_tac`m`
+  \\ qexists_tac`id c -: chu w`
+  \\ simp[]
+  \\ DEP_REWRITE_TAC[id_comp2]
+  \\ simp[]
+  \\ fs[maps_to_in_chu] \\ simp[pre_chu_def]
+QED
+
+Theorem additive_subagent_trans:
+  additive_subagent c1 c2 ∧ additive_subagent c2 c3 ⇒
+  additive_subagent c1 c3
+Proof
+  rw[additive_subagent_categorical]
+  \\ qmatch_assum_abbrev_tac`m1 :- c2 → c3 -: chu w`
+  \\ `c1.world = w` by metis_tac[maps_to_in_chu, in_chu_objects]
+  \\ qexists_tac`m1 o m0 -: chu w` \\ fs[]
+  \\ qpat_assum`m0 :- _ → _ -:_`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then drule \\ strip_tac
+  \\ simp[]
+  \\ rpt strip_tac
+  \\ first_x_assum drule
+  \\ disch_then(qx_choose_then`m2`strip_assume_tac)
+  \\ first_x_assum drule
+  \\ disch_then(qx_choose_then`m3`strip_assume_tac)
+  \\ qexists_tac`m3` \\ simp[]
+  \\ `homotopic w (m2 o m0 -: chu w) ((m3 o m1 -: chu w) o m0 -: chu w)`
+  suffices_by metis_tac[homotopic_trans, comp_assoc, maps_to_composable, is_category_chu]
+  \\ irule homotopic_comp
+  \\ simp[]
+  \\ conj_tac >- metis_tac[maps_to_composable]
+  \\ conj_tac >- metis_tac[maps_to_composable, compose_in_chu]
+  \\ irule homotopic_refl
+  \\ simp[pre_chu_def]
+  \\ fs[maps_to_in_chu]
+QED
+
+Theorem multiplicative_subagent_trans:
+  multiplicative_subagent c1 c2 ∧ multiplicative_subagent c2 c3 ⇒
+  multiplicative_subagent c1 c3
+Proof
+  rw[multiplicative_subagent_subenvironment]
+  \\ metis_tac[subagent_trans, subagent_def,
+               in_chu_objects, subenvironment_def]
+QED
+
 val _ = export_theory();

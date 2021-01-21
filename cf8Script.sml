@@ -86,6 +86,24 @@ Proof
   \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
 QED
 
+Theorem is_brother_comm:
+  is_brother c d1 d2 ⇔ is_brother c d2 d1
+Proof
+  `∀c d1 d2. is_brother c d1 d2 ⇒ is_brother c d2 d1` suffices_by metis_tac[]
+  \\ rw[is_brother_def]
+  \\ fs[]
+  \\ first_assum(mp_then Any (qspec_then`d1.world`mp_tac) is_subsum_comm_subsum)
+  \\ impl_tac >- metis_tac[is_subsum_def, homotopy_equiv_def, maps_to_in_chu]
+  \\ disch_then(goal_assum o C (mp_then Any mp_tac))
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule iso_homotopy_equiv
+  \\ irule comm_subsum_iso
+  \\ conj_tac >- metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ fs[is_subsum_def]
+  \\ metis_tac[SUBSET_REFL]
+QED
+
 Theorem sister_in_chu_objects:
   is_sister d c c' ⇒
     d ∈ chu_objects c.world ∧

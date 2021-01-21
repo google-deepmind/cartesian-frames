@@ -142,6 +142,23 @@ Proof
   \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
 QED
 
+Theorem is_sister_comm:
+  is_sister c d1 d2 ⇔ is_sister c d2 d1
+Proof
+  `∀c d1 d2. is_sister c d1 d2 ⇒ is_sister c d2 d1` suffices_by metis_tac[]
+  \\ rw[is_sister_def]
+  \\ fs[]
+  \\ first_assum(mp_then Any (qspec_then`d1.world`mp_tac) is_subtensor_comm_subtensor)
+  \\ impl_tac >- metis_tac[is_subtensor_def, homotopy_equiv_def, maps_to_in_chu]
+  \\ disch_then(goal_assum o C (mp_then Any mp_tac))
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule iso_homotopy_equiv
+  \\ irule comm_subtensor_iso
+  \\ conj_tac >- metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ fs[is_subtensor_def]
+QED
+
 Theorem additive_subagent_brother:
   additive_subagent c d ⇔ ∃c'. is_brother d c c'
 Proof

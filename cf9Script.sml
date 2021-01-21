@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory pred_setTheory listTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf4Theory cf7Theory cf8Theory
+  cf0Theory cf1Theory cf2Theory cf4Theory cf5Theory cf7Theory cf8Theory
 
 val _ = new_theory"cf9";
 
@@ -403,7 +403,7 @@ Definition external_mod_def:
                          (SND (decode_pair e)) |>
 End
 
-Theorem external_in_chu_objects:
+Theorem external_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
   external c b ∈ chu_objects w
 Proof
@@ -420,7 +420,7 @@ Proof
   \\ metis_tac[SUBSET_DEF]
 QED
 
-Theorem external_mod_in_chu_objects:
+Theorem external_mod_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
   external_mod c b ∈ chu_objects w
 Proof
@@ -435,6 +435,199 @@ Proof
   \\ simp[restrict_def]
   \\ fs[is_repfn_def, partitions_thm]
   \\ metis_tac[SUBSET_DEF]
+QED
+
+Theorem is_sister_external_mod:
+  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  is_sister c (external c b) (external_mod c b)
+Proof
+  rw[is_sister_def]
+  \\ `c.world = w` by fs[in_chu_objects]
+  \\ `∀e. e ∈ c.env ⇒
+        (mk_chu_morphism (external c b) (swap (external_mod c b)) <|
+         map_agent := λq. encode_pair (q, e);
+         map_env := λx. encode_pair (x, e) |>)
+          :- external c b → (swap (external_mod c b)) -: chu w`
+  by (
+    rw[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[external_def, external_mod_def, mk_cf_def] )
+  \\ pop_assum mp_tac
+  \\ qho_match_abbrev_tac`(∀e. e ∈ c.env ⇒ h e :- _ → _ -: _) ⇒ _`
+  \\ strip_tac
+  \\ qexists_tac`mk_cf <| world := w;
+       agent := IMAGE encode_pair (repfns b × IMAGE encode_set b);
+       env := IMAGE (encode_morphism o h) c.env;
+       eval := λp e. (external c b).eval (FST (decode_pair p))
+                     ((decode_morphism (external c b) (swap (external_mod c b)) e).map.map_env (SND (decode_pair p))) |>`
+  \\ qmatch_goalsub_abbrev_tac`c ≃ d -: _`
+  \\ `d ∈ chu_objects w`
+  by (
+    simp[in_chu_objects, Abbr`d`]
+    \\ reverse conj_tac
+    >- (
+      simp[finite_cf_def]
+      \\ drule partitions_FINITE
+      \\ imp_res_tac in_chu_objects_finite_world
+      \\ fs[in_chu_objects, wf_def, finite_cf_def] )
+    \\ simp[SUBSET_DEF, image_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rpt strip_tac
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ simp[]
+    \\ `external c b ∈ chu_objects w` by simp[]
+    \\ fs[in_chu_objects, wf_def] \\ fs[]
+    \\ first_x_assum irule
+    \\ simp[external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
+    \\ simp[external_mod_def]
+    \\ metis_tac[])
+  \\ `FINITE b ∧ EVERY_FINITE b` by (
+    drule partitions_FINITE
+    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[homotopy_equiv_def]
+    \\ CONV_TAC SWAP_EXISTS_CONV
+    \\ qexists_tac`mk_chu_morphism d c <|
+         map_agent := λp. decode_function (FST (decode_pair p)) (SND (decode_pair p));
+         map_env := encode_morphism o h |>`
+    \\ qmatch_goalsub_abbrev_tac`k o _ -: _`
+    \\ qexists_tac`mk_chu_morphism c d <|
+         map_agent := λa. @b. b ∈ d.agent ∧ k.map.map_agent b = a;
+         map_env := λe. @f. f ∈ c.env ∧ k.map.map_env f = e |>`
+    \\ qmatch_goalsub_abbrev_tac`_ o j -: _`
+    \\ `(external c b).world = w` by simp[external_def]
+    \\ simp[]
+    \\ `SURJ k.map.map_agent d.agent c.agent`
+    by (
+      simp[Abbr`d`, SURJ_DEF, Abbr`k`, PULL_EXISTS,
+           mk_chu_morphism_def, EXISTS_PROD, restrict_def]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ conj_tac
+      >- (
+        rpt strip_tac
+        \\ DEP_REWRITE_TAC[decode_encode_function]
+        \\ simp[]
+        \\ simp[restrict_def]
+        \\ fs[is_repfn_def, partitions_thm]
+        \\ metis_tac[SUBSET_DEF] )
+      \\ rpt strip_tac
+      \\ qunabbrev_tac`j`
+      \\ `∃!s. s ∈ b ∧ x ∈ s` by metis_tac[partitions_thm]
+      \\ fs[EXISTS_UNIQUE_ALT]
+      \\ qexists_tac`s`
+      \\ qexists_tac`λz. if z = s then x else if z ∈ b then CHOICE z else ARB`
+      \\ conj_asm1_tac
+      >- (
+        simp[is_repfn_def, extensional_def]
+        \\ metis_tac[CHOICE_DEF, partitions_thm] )
+      \\ conj_asm1_tac >- metis_tac[]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ simp[restrict_def]
+      \\ metis_tac[] )
+    \\ `SURJ k.map.map_env c.env d.env`
+    by (
+      simp[SURJ_DEF, Abbr`k`, mk_chu_morphism_def, restrict_def]
+      \\ simp[Abbr`d`, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ `b ≠ ∅ ⇒ INJ k.map.map_env c.env d.env`
+    by (
+      strip_tac
+      \\ simp[INJ_DEF]
+      \\ conj_tac >- fs[SURJ_DEF]
+      \\ simp[Abbr`k`, mk_chu_morphism_def, restrict_def]
+      \\ rpt gen_tac \\ strip_tac
+      \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism (external c b) (swap (external_mod c b))`)
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ simp[]
+      \\ simp[Abbr`h`, morphism_component_equality]
+      \\ simp[mk_chu_morphism_def, restrict_def]
+      \\ simp[external_def, external_mod_def]
+      \\ rw[FUN_EQ_THM]
+      \\ fs[GSYM MEMBER_NOT_EMPTY]
+      \\ qmatch_assum_rename_tac`z ∈ b`
+      \\ first_x_assum(qspec_then`encode_set z`mp_tac)
+      \\ reverse IF_CASES_TAC >- metis_tac[] \\ simp[] )
+    \\ simp[Once CONJ_COMM, GSYM CONJ_ASSOC]
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu, Abbr`k`]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[Abbr`d`, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
+      \\ conj_tac >- metis_tac[]
+      \\ conj_asm1_tac
+      >- (
+        simp[repfns_def, PULL_EXISTS]
+        \\ simp[restrict_def]
+        \\ simp[is_repfn_def]
+        \\ PROVE_TAC[partitions_thm, SUBSET_DEF] )
+      \\ rpt strip_tac
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ qunabbrev_tac`j`
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ simp[]
+      \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
+      \\ simp[external_mod_def]
+      \\ simp[external_def, mk_cf_def]
+      \\ metis_tac[] )
+    \\ simp[Once CONJ_COMM, CONJ_ASSOC]
+    \\ simp[GSYM CONJ_ASSOC]
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu]
+      \\ simp[Abbr`j`]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ conj_tac >- metis_tac[SURJ_DEF]
+      \\ conj_tac >- metis_tac[SURJ_DEF]
+      \\ rpt gen_tac \\ strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac >- metis_tac[SURJ_DEF]
+      \\ rpt gen_tac \\ strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac >- metis_tac[SURJ_DEF]
+      \\ rpt gen_tac \\ strip_tac
+      \\ BasicProvers.VAR_EQ_TAC
+      \\ BasicProvers.VAR_EQ_TAC
+      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    \\ simp[homotopic_id_map_env_id]
+    \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ simp[restrict_def]
+    \\ simp[Abbr`j`, mk_chu_morphism_def, restrict_def]
+    \\ ntac 3 (pop_assum kall_tac)
+    \\ reverse conj_tac >- metis_tac[SURJ_DEF]
+    \\ rpt strip_tac
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ reverse(Cases_on`a ∈ c.agent`)
+    >- metis_tac[in_chu_objects, wf_def]
+    \\ `b ≠ ∅` by (
+      metis_tac[partitions_thm, MEMBER_NOT_EMPTY, EXISTS_UNIQUE_THM] )
+    \\ metis_tac[INJ_DEF])
+  \\ reverse conj_tac >- simp[external_def, external_mod_def]
+  (* pull out the proof of bijection from earlier conjunct first *)
+  \\ cheat
+QED
+
+Theorem external_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  multiplicative_subagent (external c b) c
+Proof
+  metis_tac[multiplicative_subagent_sister, is_sister_external_mod]
+QED
+
+Theorem external_mod_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  multiplicative_subagent (external_mod c b) c
+Proof
+  metis_tac[multiplicative_subagent_sister,
+            is_sister_external_mod, is_sister_comm]
 QED
 
 val _ = export_theory();

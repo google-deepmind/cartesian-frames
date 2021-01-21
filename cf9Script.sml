@@ -216,4 +216,40 @@ Proof
   \\ simp[commit_diff_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c2`]
 QED
 
+Definition assume_def:
+  assume c f = mk_cf (c with env := f)
+End
+
+Definition assume_diff_def:
+  assume_diff c f = mk_cf (c with env := c.env DIFF f)
+End
+
+(* TODO: example of assume_diff for meteor example *)
+
+Theorem swap_assume:
+  swap (assume c f) = commit (swap c) f
+Proof
+  simp[assume_def, commit_def, cf_component_equality]
+  \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
+QED
+
+Theorem swap_assume_diff:
+  swap (assume_diff c f) = commit_diff (swap c) f
+Proof
+  simp[assume_diff_def, commit_diff_def, cf_component_equality]
+  \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
+QED
+
+Theorem swap_commit:
+  swap (commit c b) = assume (swap c) b
+Proof
+  metis_tac[swap_swap, swap_assume]
+QED
+
+Theorem swap_commit_diff:
+  swap (commit_diff c b) = assume_diff (swap c) b
+Proof
+  metis_tac[swap_swap, swap_assume_diff]
+QED
+
 val _ = export_theory();

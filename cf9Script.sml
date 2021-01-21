@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-open HolKernel boolLib bossLib Parse
-  pairTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf7Theory cf8Theory
+open HolKernel boolLib bossLib Parse dep_rewrite
+  pairTheory pred_setTheory listTheory categoryTheory
+  cf0Theory cf1Theory cf2Theory cf4Theory cf7Theory cf8Theory
 
 val _ = new_theory"cf9";
 
@@ -268,6 +268,173 @@ Proof
   rw[additive_subenvironment_def, swap_assume_diff]
   \\ irule commit_diff_additive_subagent
   \\ simp[] \\ metis_tac[]
+QED
+
+Definition partitions_def:
+  partitions X Y ⇔ ∃R. R equiv_on Y ∧ X = partition R Y
+End
+
+Theorem partitions_thm:
+  partitions X Y ⇔
+  ((∀x. x ∈ X ⇒ x ≠ ∅ ∧ x ⊆ Y) ∧
+   (∀y. y ∈ Y ⇒ ∃!x. x ∈ X ∧ y ∈ x))
+Proof
+  simp[partitions_def]
+  \\ eq_tac \\ strip_tac
+  >- (
+    simp[partition_def]
+    \\ conj_tac
+    >- (
+      CCONTR_TAC \\ fs[]
+      \\ pop_assum mp_tac
+      \\ simp[GSYM MEMBER_NOT_EMPTY, SUBSET_DEF]
+      \\ metis_tac[equiv_on_def] )
+    \\ rpt strip_tac
+    \\ simp[EXISTS_UNIQUE_THM, PULL_EXISTS]
+    \\ qexists_tac`y`
+    \\ rw[]
+    >- metis_tac[equiv_on_def]
+    \\ metis_tac[equiv_class_eq])
+  \\ fs[EXISTS_UNIQUE_ALT]
+  \\ fs[Once (GSYM RIGHT_EXISTS_IMP_THM)]
+  \\ fs[SKOLEM_THM]
+  \\ qexists_tac`λy z. f y = f z`
+  \\ simp[equiv_on_def]
+  \\ conj_tac >- metis_tac[]
+  \\ simp[partition_def, Once EXTENSION]
+  \\ rw[EQ_IMP_THM]
+  >- (
+    `∃a. a ∈ x ∧ a ∈ Y` by metis_tac[MEMBER_NOT_EMPTY, SUBSET_DEF]
+    \\ qexists_tac`a` \\ simp[]
+    \\ `f a = x` by metis_tac[]
+    \\ simp[EXTENSION]
+    \\ metis_tac[SUBSET_DEF] )
+  \\ `f y ∈ X ∧ y ∈ f y` by metis_tac[]
+  \\ qmatch_goalsub_abbrev_tac`z ∈ X`
+  \\ `z = f y` suffices_by rw[]
+  \\ rw[Abbr`z`, EXTENSION]
+  \\ reverse(Cases_on`x ∈ Y`) \\ simp[]
+  >- metis_tac[SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
+Theorem partitions_FINITE:
+  partitions X Y ∧ FINITE Y ⇒
+  FINITE X ∧ EVERY_FINITE X
+Proof
+  rw[partitions_def]
+  \\ metis_tac[FINITE_partition]
+QED
+
+Definition is_repfn_def:
+  is_repfn X q ⇔
+  extensional q X ∧ ∀x. x ∈ X ⇒ q x ∈ x
+End
+
+Definition encode_set_def:
+  encode_set = encode_list o SET_TO_LIST
+End
+
+Definition decode_set_def:
+  decode_set = set o decode_list
+End
+
+Theorem decode_encode_set[simp]:
+  FINITE s ⇒ decode_set (encode_set s) = s
+Proof
+  rw[decode_set_def, encode_set_def, SET_TO_LIST_INV]
+QED
+
+Definition repfns_def:
+  repfns b =
+    { encode_function (IMAGE encode_set b)
+        (restrict (q o decode_set) (IMAGE encode_set b))
+      | q | is_repfn b q }
+End
+
+Theorem FINITE_repfns[simp]:
+  FINITE b ∧ EVERY_FINITE b ⇒ FINITE (repfns b)
+Proof
+  rw[repfns_def]
+  \\ qspec_then`λq. IMAGE (λx. (x, (decode_function q (encode_set x)))) b` irule FINITE_INJ
+  \\ qexists_tac`b`
+  \\ qexists_tac`{IMAGE (λx. (x, q x)) b | q | is_repfn b q}`
+  \\ conj_tac
+  >- (
+    irule SUBSET_FINITE
+    \\ qexists_tac`POW (b × BIGUNION b)`
+    \\ simp[SUBSET_DEF, PULL_EXISTS]
+    \\ simp[IN_POW, SUBSET_DEF, PULL_EXISTS]
+    \\ simp[is_repfn_def]
+    \\ metis_tac[] )
+  \\ simp[INJ_DEF, PULL_EXISTS]
+  \\ qho_match_abbrev_tac`(∀q. is_repfn b q ⇒ ∃q'. P q q') ∧ _`
+  \\ `∀q. is_repfn b q ⇒ P q q`
+  by (
+    simp[Abbr`P`]
+    \\ qx_gen_tac`q`
+    \\ strip_tac
+    \\ irule IMAGE_CONG
+    \\ simp[restrict_def, PULL_EXISTS]
+    \\ metis_tac[] )
+  \\ fs[Abbr`P`]
+  \\ conj_tac >- metis_tac[]
+  \\ rw[Once EXTENSION, FORALL_PROD]
+  \\ AP_TERM_TAC
+  \\ simp[restrict_def, PULL_EXISTS, FUN_EQ_THM]
+  \\ rw[] \\ simp[]
+  \\ metis_tac[]
+QED
+
+Definition external_def:
+  external c b = mk_cf <| world := c.world;
+    agent := repfns b;
+    env := IMAGE encode_pair (IMAGE encode_set b × c.env);
+    eval := λq p. c.eval
+      (decode_function q (FST (decode_pair p)))
+      (SND (decode_pair p)) |>
+End
+
+Definition external_mod_def:
+  external_mod c b = mk_cf <| world := c.world;
+    agent := IMAGE encode_set b;
+    env := IMAGE encode_pair (repfns b × c.env);
+    eval := λa e. c.eval (decode_function (FST (decode_pair e)) a)
+                         (SND (decode_pair e)) |>
+End
+
+Theorem external_in_chu_objects:
+  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  external c b ∈ chu_objects w
+Proof
+  simp[in_chu_objects, external_def]
+  \\ strip_tac
+  \\ fs[wf_def, finite_cf_def]
+  \\ drule partitions_FINITE
+  \\ rw[]
+  \\ rw[image_def, SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+  \\ first_x_assum irule \\ rw[]
+  \\ fs[repfns_def]
+  \\ simp[restrict_def]
+  \\ fs[is_repfn_def, partitions_thm]
+  \\ metis_tac[SUBSET_DEF]
+QED
+
+Theorem external_mod_in_chu_objects:
+  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  external_mod c b ∈ chu_objects w
+Proof
+  simp[in_chu_objects, external_mod_def]
+  \\ strip_tac
+  \\ fs[wf_def, finite_cf_def]
+  \\ drule partitions_FINITE
+  \\ rw[]
+  \\ rw[image_def, SUBSET_DEF, PULL_EXISTS, EXISTS_PROD]
+  \\ first_x_assum irule \\ rw[]
+  \\ fs[repfns_def]
+  \\ simp[restrict_def]
+  \\ fs[is_repfn_def, partitions_thm]
+  \\ metis_tac[SUBSET_DEF]
 QED
 
 val _ = export_theory();

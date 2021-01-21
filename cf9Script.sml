@@ -252,4 +252,22 @@ Proof
   metis_tac[swap_swap, swap_assume_diff]
 QED
 
+Theorem assume_additive_subenvironment:
+  c ∈ chu_objects w ∧ f ⊆ c.env ⇒
+  additive_subenvironment c (assume c f)
+Proof
+  rw[additive_subenvironment_def, swap_assume]
+  \\ irule commit_additive_subagent
+  \\ simp[] \\ metis_tac[]
+QED
+
+Theorem assume_diff_additive_subenvironment:
+  c ∈ chu_objects w ∧ f ⊆ c.env ⇒
+  additive_subenvironment c (assume_diff c f)
+Proof
+  rw[additive_subenvironment_def, swap_assume_diff]
+  \\ irule commit_diff_additive_subagent
+  \\ simp[] \\ metis_tac[]
+QED
+
 val _ = export_theory();

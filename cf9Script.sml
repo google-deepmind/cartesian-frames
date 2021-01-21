@@ -895,4 +895,68 @@ Proof
             is_sister_external_mod, is_sister_comm]
 QED
 
+Definition internal_def:
+  internal c f = mk_cf <| world := c.world;
+    agent := IMAGE encode_pair (IMAGE encode_set f × c.agent);
+    env := repfns f;
+    eval := λp q. c.eval (SND (decode_pair p))
+                         (decode_function q (FST (decode_pair p))) |>
+End
+
+Definition internal_mod_def:
+  internal_mod c f = mk_cf <| world := c.world;
+    agent := IMAGE encode_pair (repfns f × c.agent);
+    env := IMAGE encode_set f;
+    eval := λa e. c.eval (SND (decode_pair a))
+                         (decode_function (FST (decode_pair a)) e) |>
+End
+
+Theorem swap_internal:
+  swap (internal c f) = external (swap c) f
+Proof
+  rw[cf_component_equality, internal_def, external_def]
+  \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
+QED
+
+Theorem swap_internal_mod:
+  swap (internal_mod c f) = external_mod (swap c) f
+Proof
+  rw[cf_component_equality, internal_mod_def, external_mod_def]
+  \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
+QED
+
+Theorem swap_external:
+  swap (external c f) = internal (swap c) f
+Proof
+  metis_tac[swap_internal, swap_swap]
+QED
+
+Theorem swap_external_mod:
+  swap (external_mod c f) = internal_mod (swap c) f
+Proof
+  metis_tac[swap_internal_mod, swap_swap]
+QED
+
+Theorem internal_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions f c.env ⇒
+  multiplicative_subagent c (internal c f)
+Proof
+  rw[GSYM multiplicative_subenvironment_subagent]
+  \\ rw[multiplicative_subenvironment_def]
+  \\ rw[swap_internal]
+  \\ irule external_multiplicative_subagent
+  \\ rw[] \\ metis_tac[]
+QED
+
+Theorem internal_mod_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions f c.env ⇒
+  multiplicative_subagent c (internal_mod c f)
+Proof
+  rw[GSYM multiplicative_subenvironment_subagent]
+  \\ rw[multiplicative_subenvironment_def]
+  \\ rw[swap_internal_mod]
+  \\ irule external_mod_multiplicative_subagent
+  \\ rw[] \\ metis_tac[]
+QED
+
 val _ = export_theory();

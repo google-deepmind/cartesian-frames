@@ -15,49 +15,49 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-  pairTheory pred_setTheory listTheory categoryTheory
+  pairTheory pred_setTheory listTheory helperSetTheory categoryTheory
   cf0Theory cf1Theory cf2Theory cf4Theory cf5Theory cf6Theory cf7Theory cf8Theory
 
 val _ = new_theory"cf9";
 
-Definition commit_def:
-  commit c b = mk_cf (c with agent := b)
+Definition cf_commit_def:
+  cf_commit c b = mk_cf (c with agent := b)
 End
 
-Definition commit_diff_def:
-  commit_diff c b = mk_cf (c with agent := c.agent DIFF b)
+Definition cf_commit_diff_def:
+  cf_commit_diff c b = mk_cf (c with agent := c.agent DIFF b)
 End
 
-Theorem commit_diff_commit:
-  commit_diff c b = commit c (c.agent DIFF b)
+Theorem cf_commit_diff_cf_commit:
+  cf_commit_diff c b = cf_commit c (c.agent DIFF b)
 Proof
-  rw[commit_def, commit_diff_def]
+  rw[cf_commit_def, cf_commit_diff_def]
 QED
 
-Theorem commit_in_chu_objects[simp]:
+Theorem cf_commit_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  commit c b ∈ chu_objects w
+  cf_commit c b ∈ chu_objects w
 Proof
-  rw[commit_def, in_chu_objects]
+  rw[cf_commit_def, in_chu_objects]
   \\ fs[wf_def, image_def, PULL_EXISTS, SUBSET_DEF, finite_cf_def]
   \\ metis_tac[SUBSET_DEF, SUBSET_FINITE]
 QED
 
-Theorem commit_diff_in_chu_objects[simp]:
+Theorem cf_commit_diff_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  commit_diff c b ∈ chu_objects w
+  cf_commit_diff c b ∈ chu_objects w
 Proof
-  rw[commit_diff_commit]
+  rw[cf_commit_diff_cf_commit]
 QED
 
-Theorem commit_additive_subagent:
+Theorem cf_commit_additive_subagent:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  additive_subagent (commit c b) c
+  additive_subagent (cf_commit c b) c
 Proof
   rw[additive_subagent_committing]
   \\ goal_assum(first_assum o mp_then Any mp_tac)
   \\ qexistsl_tac[`c.env`,`c.eval`]
-  \\ simp[commit_def]
+  \\ simp[cf_commit_def]
   \\ `c.world = w` by fs[in_chu_objects]
   \\ conj_tac \\ qmatch_goalsub_abbrev_tac`x ≃ y -: _`
   \\ `x ∈ chu_objects w ∧ y = x` suffices_by rw[]
@@ -67,43 +67,43 @@ Proof
   \\ metis_tac[SUBSET_DEF, SUBSET_FINITE]
 QED
 
-Theorem commit_diff_additive_subagent:
+Theorem cf_commit_diff_additive_subagent:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  additive_subagent (commit_diff c b) c
+  additive_subagent (cf_commit_diff c b) c
 Proof
-  rw[commit_diff_commit]
-  \\ irule commit_additive_subagent
+  rw[cf_commit_diff_cf_commit]
+  \\ irule cf_commit_additive_subagent
   \\ fs[SUBSET_DEF]
   \\ metis_tac[]
 QED
 
-Theorem is_brother_commit_diff:
+Theorem is_brother_cf_commit_diff:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  is_brother c (commit c b) (commit_diff c b)
+  is_brother c (cf_commit c b) (cf_commit_diff c b)
 Proof
   rw[is_brother_def]
   \\ qexists_tac`mk_cf <| world := w;
-       agent := (sum (commit c b) (commit_diff c b)).agent;
+       agent := (sum (cf_commit c b) (cf_commit_diff c b)).agent;
        env := IMAGE (W (CURRY encode_pair)) c.env;
        eval := sum_eval c.eval c.eval |>`
   \\ qmatch_goalsub_abbrev_tac`c ≃ c' -: _`
   \\ `c.world = w` by fs[in_chu_objects]
-  \\ `(commit_diff c b).world = w ∧ (commit c b).world = w`
-  by simp[commit_diff_def, commit_def]
+  \\ `(cf_commit_diff c b).world = w ∧ (cf_commit c b).world = w`
+  by simp[cf_commit_diff_def, cf_commit_def]
   \\ `c' ∈ chu_objects w`
   by (
-    `sum (commit c b) (commit_diff c b) ∈ chu_objects w` by simp[]
+    `sum (cf_commit c b) (cf_commit_diff c b) ∈ chu_objects w` by simp[]
     \\ fs[in_chu_objects, Abbr`c'`, wf_def, Excl"sum_in_chu_objects"]
     \\ fs[finite_cf_def, image_def, PULL_EXISTS, SUBSET_DEF]
     \\ rpt strip_tac
     \\ first_x_assum drule
     \\ simp[Once sum_def, EXISTS_PROD, PULL_EXISTS]
-    \\ simp[Once commit_def, Once commit_diff_def]
+    \\ simp[Once cf_commit_def, Once cf_commit_diff_def]
     \\ disch_then drule \\ disch_then drule
-    \\ simp[sum_def, mk_cf_def, PULL_EXISTS, commit_def, commit_diff_def]
+    \\ simp[sum_def, mk_cf_def, PULL_EXISTS, cf_commit_def, cf_commit_diff_def]
     \\ rw[sum_eval_def] \\ rw[]
     \\ qpat_x_assum`a ∈ _` mp_tac
-    \\ simp_tac(srw_ss())[sum_def, commit_def, commit_diff_def]
+    \\ simp_tac(srw_ss())[sum_def, cf_commit_def, cf_commit_diff_def]
     \\ metis_tac[])
   \\ conj_tac
   >- (
@@ -120,7 +120,7 @@ Proof
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[Abbr`c'`, mk_cf_def, PULL_EXISTS]
-      \\ simp[sum_def, PULL_EXISTS, commit_def, commit_diff_def]
+      \\ simp[sum_def, PULL_EXISTS, cf_commit_def, cf_commit_diff_def]
       \\ rw[sum_eval_def]
       \\ Cases_on`a ∈ b` \\ fs[])
     \\ conj_asm1_tac
@@ -129,7 +129,7 @@ Proof
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[Abbr`c'`, mk_cf_def, PULL_EXISTS]
-      \\ simp[sum_def, PULL_EXISTS, commit_def, commit_diff_def]
+      \\ simp[sum_def, PULL_EXISTS, cf_commit_def, cf_commit_diff_def]
       \\ rw[sum_eval_def] \\ rw[]
       \\ rfs[SUBSET_DEF] )
     \\ simp[homotopic_id_map_env_id]
@@ -143,28 +143,28 @@ Proof
   \\ conj_tac >- simp[Abbr`c'`]
   \\ conj_tac >- (
     simp[Abbr`c'`, sum_def]
-    \\ simp[commit_def, commit_diff_def]
+    \\ simp[cf_commit_def, cf_commit_diff_def]
     \\ simp[SUBSET_DEF, PULL_EXISTS] )
   \\ conj_tac >- (
     simp[Abbr`c'`, restrict_def, mk_cf_def, sum_def,
-         PULL_EXISTS, EXISTS_PROD, commit_def, commit_diff_def]
+         PULL_EXISTS, EXISTS_PROD, cf_commit_def, cf_commit_diff_def]
     \\ rw[sum_eval_def, FUN_EQ_THM]
     \\ rw[] \\ rw[] \\ gs[] )
-  \\ qmatch_goalsub_abbrev_tac`commit c b ≃ c1 -: _`
-  \\ qmatch_goalsub_abbrev_tac`commit_diff c b ≃ c2 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_commit c b ≃ c1 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_commit_diff c b ≃ c2 -: _`
   \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
   by (
     fs[in_chu_objects, Abbr`c1`, Abbr`c2`]
     \\ fs[wf_def, finite_cf_def]
     \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
-    \\ simp[commit_def, commit_diff_def, sum_def, Abbr`c'`]
+    \\ simp[cf_commit_def, cf_commit_diff_def, sum_def, Abbr`c'`]
     \\ metis_tac[SUBSET_FINITE] )
   \\ conj_tac >- (
     simp[homotopy_equiv_def]
-    \\ qexists_tac`mk_chu_morphism (commit c b) c1 <|
+    \\ qexists_tac`mk_chu_morphism (cf_commit c b) c1 <|
          map_agent := encode_sum o INL;
          map_env := FST o decode_pair |>`
-    \\ qexists_tac`mk_chu_morphism c1 (commit c b) <|
+    \\ qexists_tac`mk_chu_morphism c1 (cf_commit c b) <|
          map_agent := OUTL o decode_sum;
          map_env := W (CURRY encode_pair) |>`
     \\ conj_asm1_tac
@@ -172,26 +172,26 @@ Proof
       simp[maps_to_in_chu]
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
-      \\ simp[Abbr`c1`, commit_def, mk_cf_def]
+      \\ simp[Abbr`c1`, cf_commit_def, mk_cf_def]
       \\ simp[Abbr`c'`, PULL_EXISTS, mk_cf_def]
-      \\ simp[sum_def, sum_eval_def, commit_def] )
+      \\ simp[sum_def, sum_eval_def, cf_commit_def] )
     \\ conj_asm1_tac
     >- (
       simp[maps_to_in_chu]
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
-      \\ simp[Abbr`c1`, commit_def, mk_cf_def, PULL_EXISTS]
+      \\ simp[Abbr`c1`, cf_commit_def, mk_cf_def, PULL_EXISTS]
       \\ simp[Abbr`c'`, PULL_EXISTS, mk_cf_def]
-      \\ simp[sum_def, sum_eval_def, commit_def] )
+      \\ simp[sum_def, sum_eval_def, cf_commit_def] )
     \\ simp[homotopic_id_map_agent_id]
     \\ imp_res_tac compose_in_chu
     \\ simp[restrict_def, mk_chu_morphism_def]
-    \\ simp[commit_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c1`] )
+    \\ simp[cf_commit_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c1`] )
   \\ simp[homotopy_equiv_def]
-  \\ qexists_tac`mk_chu_morphism (commit_diff c b) c2 <|
+  \\ qexists_tac`mk_chu_morphism (cf_commit_diff c b) c2 <|
        map_agent := encode_sum o INR;
        map_env := FST o decode_pair |>`
-  \\ qexists_tac`mk_chu_morphism c2 (commit_diff c b) <|
+  \\ qexists_tac`mk_chu_morphism c2 (cf_commit_diff c b) <|
        map_agent := OUTR o decode_sum;
        map_env := W (CURRY encode_pair) |>`
   \\ conj_asm1_tac
@@ -199,74 +199,74 @@ Proof
     simp[maps_to_in_chu]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
-    \\ simp[Abbr`c2`, commit_diff_def, mk_cf_def]
+    \\ simp[Abbr`c2`, cf_commit_diff_def, mk_cf_def]
     \\ simp[Abbr`c'`, PULL_EXISTS, mk_cf_def]
-    \\ simp[sum_def, sum_eval_def, commit_diff_def] )
+    \\ simp[sum_def, sum_eval_def, cf_commit_diff_def] )
   \\ conj_asm1_tac
   >- (
     simp[maps_to_in_chu]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
-    \\ simp[Abbr`c2`, commit_diff_def, mk_cf_def, PULL_EXISTS]
+    \\ simp[Abbr`c2`, cf_commit_diff_def, mk_cf_def, PULL_EXISTS]
     \\ simp[Abbr`c'`, PULL_EXISTS, mk_cf_def]
-    \\ simp[sum_def, sum_eval_def, commit_diff_def] )
+    \\ simp[sum_def, sum_eval_def, cf_commit_diff_def] )
   \\ simp[homotopic_id_map_agent_id]
   \\ imp_res_tac compose_in_chu
   \\ simp[restrict_def, mk_chu_morphism_def]
-  \\ simp[commit_diff_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c2`]
+  \\ simp[cf_commit_diff_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c2`]
 QED
 
-Definition assume_def:
-  assume c f = mk_cf (c with env := f)
+Definition cf_assume_def:
+  cf_assume c f = mk_cf (c with env := f)
 End
 
-Definition assume_diff_def:
-  assume_diff c f = mk_cf (c with env := c.env DIFF f)
+Definition cf_assume_diff_def:
+  cf_assume_diff c f = mk_cf (c with env := c.env DIFF f)
 End
 
-(* TODO: example of assume_diff for meteor example *)
+(* TODO: example of cf_assume_diff for meteor example *)
 
-Theorem swap_assume:
-  swap (assume c f) = commit (swap c) f
+Theorem swap_cf_assume:
+  swap (cf_assume c f) = cf_commit (swap c) f
 Proof
-  simp[assume_def, commit_def, cf_component_equality]
+  simp[cf_assume_def, cf_commit_def, cf_component_equality]
   \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
 QED
 
-Theorem swap_assume_diff:
-  swap (assume_diff c f) = commit_diff (swap c) f
+Theorem swap_cf_assume_diff:
+  swap (cf_assume_diff c f) = cf_commit_diff (swap c) f
 Proof
-  simp[assume_diff_def, commit_diff_def, cf_component_equality]
+  simp[cf_assume_diff_def, cf_commit_diff_def, cf_component_equality]
   \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
 QED
 
-Theorem swap_commit:
-  swap (commit c b) = assume (swap c) b
+Theorem swap_cf_commit:
+  swap (cf_commit c b) = cf_assume (swap c) b
 Proof
-  metis_tac[swap_swap, swap_assume]
+  metis_tac[swap_swap, swap_cf_assume]
 QED
 
-Theorem swap_commit_diff:
-  swap (commit_diff c b) = assume_diff (swap c) b
+Theorem swap_cf_commit_diff:
+  swap (cf_commit_diff c b) = cf_assume_diff (swap c) b
 Proof
-  metis_tac[swap_swap, swap_assume_diff]
+  metis_tac[swap_swap, swap_cf_assume_diff]
 QED
 
-Theorem assume_additive_subenvironment:
+Theorem cf_assume_additive_subenvironment:
   c ∈ chu_objects w ∧ f ⊆ c.env ⇒
-  additive_subenvironment c (assume c f)
+  additive_subenvironment c (cf_assume c f)
 Proof
-  rw[additive_subenvironment_def, swap_assume]
-  \\ irule commit_additive_subagent
+  rw[additive_subenvironment_def, swap_cf_assume]
+  \\ irule cf_commit_additive_subagent
   \\ simp[] \\ metis_tac[]
 QED
 
-Theorem assume_diff_additive_subenvironment:
+Theorem cf_assume_diff_additive_subenvironment:
   c ∈ chu_objects w ∧ f ⊆ c.env ⇒
-  additive_subenvironment c (assume_diff c f)
+  additive_subenvironment c (cf_assume_diff c f)
 Proof
-  rw[additive_subenvironment_def, swap_assume_diff]
-  \\ irule commit_diff_additive_subagent
+  rw[additive_subenvironment_def, swap_cf_assume_diff]
+  \\ irule cf_commit_diff_additive_subagent
   \\ simp[] \\ metis_tac[]
 QED
 
@@ -397,8 +397,8 @@ Proof
   \\ AP_TERM_TAC \\ rw[FUN_EQ_THM]
 QED
 
-Definition external_def:
-  external c b = mk_cf <| world := c.world;
+Definition cf_external_def:
+  cf_external c b = mk_cf <| world := c.world;
     agent := repfns b;
     env := IMAGE encode_pair (IMAGE encode_set b × c.env);
     eval := λq p. c.eval
@@ -406,19 +406,19 @@ Definition external_def:
       (SND (decode_pair p)) |>
 End
 
-Definition external_mod_def:
-  external_mod c b = mk_cf <| world := c.world;
+Definition cf_external_mod_def:
+  cf_external_mod c b = mk_cf <| world := c.world;
     agent := IMAGE encode_set b;
     env := IMAGE encode_pair (repfns b × c.env);
     eval := λa e. c.eval (decode_function (FST (decode_pair e)) a)
                          (SND (decode_pair e)) |>
 End
 
-Theorem external_in_chu_objects[simp]:
+Theorem cf_external_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  external c b ∈ chu_objects w
+  cf_external c b ∈ chu_objects w
 Proof
-  simp[in_chu_objects, external_def]
+  simp[in_chu_objects, cf_external_def]
   \\ strip_tac
   \\ fs[wf_def, finite_cf_def]
   \\ drule partitions_FINITE
@@ -431,11 +431,11 @@ Proof
   \\ metis_tac[SUBSET_DEF]
 QED
 
-Theorem external_mod_in_chu_objects[simp]:
+Theorem cf_external_mod_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  external_mod c b ∈ chu_objects w
+  cf_external_mod c b ∈ chu_objects w
 Proof
-  simp[in_chu_objects, external_mod_def]
+  simp[in_chu_objects, cf_external_mod_def]
   \\ strip_tac
   \\ fs[wf_def, finite_cf_def]
   \\ drule partitions_FINITE
@@ -448,30 +448,30 @@ Proof
   \\ metis_tac[SUBSET_DEF]
 QED
 
-Theorem is_sister_external_mod:
+Theorem is_sister_cf_external_mod:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  is_sister c (external c b) (external_mod c b)
+  is_sister c (cf_external c b) (cf_external_mod c b)
 Proof
   rw[is_sister_def]
   \\ `c.world = w` by fs[in_chu_objects]
   \\ `∀e. e ∈ c.env ⇒
-        (mk_chu_morphism (external c b) (swap (external_mod c b)) <|
+        (mk_chu_morphism (cf_external c b) (swap (cf_external_mod c b)) <|
          map_agent := λq. encode_pair (q, e);
          map_env := λx. encode_pair (x, e) |>)
-          :- external c b → (swap (external_mod c b)) -: chu w`
+          :- cf_external c b → (swap (cf_external_mod c b)) -: chu w`
   by (
     rw[maps_to_in_chu]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
-    \\ simp[external_def, external_mod_def, mk_cf_def] )
+    \\ simp[cf_external_def, cf_external_mod_def, mk_cf_def] )
   \\ pop_assum mp_tac
   \\ qho_match_abbrev_tac`(∀e. e ∈ c.env ⇒ h e :- _ → _ -: _) ⇒ _`
   \\ strip_tac
   \\ qexists_tac`mk_cf <| world := w;
        agent := IMAGE encode_pair (repfns b × IMAGE encode_set b);
        env := IMAGE (encode_morphism o h) c.env;
-       eval := λp e. (external c b).eval (FST (decode_pair p))
-                     ((decode_morphism (external c b) (swap (external_mod c b)) e).map.map_env (SND (decode_pair p))) |>`
+       eval := λp e. (cf_external c b).eval (FST (decode_pair p))
+                     ((decode_morphism (cf_external c b) (swap (cf_external_mod c b)) e).map.map_env (SND (decode_pair p))) |>`
   \\ qmatch_goalsub_abbrev_tac`c ≃ d -: _`
   \\ `d ∈ chu_objects w`
   by (
@@ -486,17 +486,17 @@ Proof
     \\ rpt strip_tac
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[]
-    \\ `external c b ∈ chu_objects w` by simp[]
+    \\ `cf_external c b ∈ chu_objects w` by simp[]
     \\ fs[in_chu_objects, wf_def] \\ fs[]
     \\ first_x_assum irule
-    \\ simp[external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[cf_external_def, PULL_EXISTS, EXISTS_PROD]
     \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-    \\ simp[external_mod_def]
+    \\ simp[cf_external_mod_def]
     \\ metis_tac[])
   \\ `FINITE b ∧ EVERY_FINITE b` by (
     drule partitions_FINITE
     \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
-  \\ `(external c b).world = w` by simp[external_def]
+  \\ `(cf_external c b).world = w` by simp[cf_external_def]
   \\ `SURJ (encode_morphism o h) c.env d.env`
   by (
     simp[SURJ_DEF, mk_chu_morphism_def, restrict_def]
@@ -509,12 +509,12 @@ Proof
     \\ conj_tac >- fs[SURJ_DEF]
     \\ simp[mk_chu_morphism_def, restrict_def]
     \\ rpt gen_tac \\ strip_tac
-    \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism (external c b) (swap (external_mod c b))`)
+    \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism (cf_external c b) (swap (cf_external_mod c b))`)
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[]
     \\ simp[Abbr`h`, morphism_component_equality]
     \\ simp[mk_chu_morphism_def, restrict_def]
-    \\ simp[external_def, external_mod_def]
+    \\ simp[cf_external_def, cf_external_mod_def]
     \\ rw[FUN_EQ_THM]
     \\ fs[GSYM MEMBER_NOT_EMPTY]
     \\ qmatch_assum_rename_tac`z ∈ b`
@@ -582,8 +582,8 @@ Proof
       \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
       \\ simp[]
       \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-      \\ simp[external_mod_def]
-      \\ simp[external_def, mk_cf_def]
+      \\ simp[cf_external_mod_def]
+      \\ simp[cf_external_def, mk_cf_def]
       \\ metis_tac[] )
     \\ simp[Once CONJ_COMM, CONJ_ASSOC]
     \\ simp[GSYM CONJ_ASSOC]
@@ -629,15 +629,15 @@ Proof
       fs[INJ_DEF, Abbr`k`, mk_chu_morphism_def, restrict_def]
       \\ metis_tac[] )
     \\ metis_tac[INJ_DEF])
-  \\ reverse conj_tac >- simp[external_def, external_mod_def]
+  \\ reverse conj_tac >- simp[cf_external_def, cf_external_mod_def]
   \\ simp[is_subtensor_def]
   \\ `d.world = w` by metis_tac[homotopy_equiv_def, maps_to_in_chu, in_chu_objects]
-  \\ `(external_mod c b).world = w` by simp[external_mod_def]
+  \\ `(cf_external_mod c b).world = w` by simp[cf_external_mod_def]
   \\ simp[Once tensor_def]
   \\ conj_tac
   >- (
     simp[Once tensor_def, Abbr`d`]
-    \\ simp[external_def, external_mod_def] )
+    \\ simp[cf_external_def, cf_external_mod_def] )
   \\ conj_tac
   >- (
     simp[tensor_def, Abbr`d`, SUBSET_DEF, hom_def, PULL_EXISTS]
@@ -649,18 +649,18 @@ Proof
     \\ rpt gen_tac
     \\ irule EQ_SYM
     \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ simp[Once external_def]
-    \\ simp[Once external_mod_def, hom_def]
+    \\ simp[Once cf_external_def]
+    \\ simp[Once cf_external_mod_def, hom_def]
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ pop_assum strip_assume_tac
     \\ BasicProvers.VAR_EQ_TAC
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ metis_tac[] )
-  \\ qmatch_goalsub_abbrev_tac`external c b ≃ e1 -: _`
-  \\ qmatch_goalsub_abbrev_tac`external_mod c b ≃ e2 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_external c b ≃ e1 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_external_mod c b ≃ e2 -: _`
   \\ Cases_on`b = ∅` >- (
-    simp[external_def, external_mod_def, Abbr`e1`, Abbr`e2`]
+    simp[cf_external_def, cf_external_mod_def, Abbr`e1`, Abbr`e2`]
     \\ qmatch_goalsub_abbrev_tac`x ≃ y -: _`
     \\ conj_asm1_tac
     >- (
@@ -728,10 +728,10 @@ Proof
   \\ conj_tac
   >- (
     simp[homotopy_equiv_def]
-    \\ qexists_tac`mk_chu_morphism (external c b) e1 <| map_agent := I;
+    \\ qexists_tac`mk_chu_morphism (cf_external c b) e1 <| map_agent := I;
          map_env := encode_pair o pair$## I (LINV he c.env)
                     o decode_pair |>`
-    \\ qexists_tac`mk_chu_morphism e1 (external c b) <| map_agent := I;
+    \\ qexists_tac`mk_chu_morphism e1 (cf_external c b) <| map_agent := I;
          map_env := encode_pair o pair$## I he o decode_pair |>`
     \\ conj_asm1_tac
     >- (
@@ -744,34 +744,34 @@ Proof
         \\ simp[image_def, PULL_EXISTS, SUBSET_DEF, EXISTS_PROD]
         \\ simp[Abbr`d`, PULL_EXISTS, mk_cf_def]
         \\ reverse conj_tac
-        >- metis_tac[external_in_chu_objects, external_mod_in_chu_objects,
+        >- metis_tac[cf_external_in_chu_objects, cf_external_mod_in_chu_objects,
                      in_chu_objects, wf_def, finite_cf_def, IMAGE_FINITE]
-        \\ simp[Once external_def, Once external_mod_def, PULL_EXISTS]
+        \\ simp[Once cf_external_def, Once cf_external_mod_def, PULL_EXISTS]
         \\ rpt gen_tac \\ strip_tac
         \\ reverse IF_CASES_TAC >- metis_tac[]
         \\ simp[Abbr`he`]
         \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
         \\ conj_tac >- metis_tac[]
-        \\ `(external c b) ∈ chu_objects w` by simp[]
-        \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"external_in_chu_objects"]
+        \\ `(cf_external c b) ∈ chu_objects w` by simp[]
+        \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"cf_external_in_chu_objects"]
         \\ simp[wf_def]
         \\ strip_tac
         \\ first_x_assum irule
-        \\ simp[Once external_def]
-        \\ `is_chu_morphism (external c b) (swap (external_mod c b)) (h x).map` by metis_tac[maps_to_in_chu]
+        \\ simp[Once cf_external_def]
+        \\ `is_chu_morphism (cf_external c b) (swap (cf_external_mod c b)) (h x).map` by metis_tac[maps_to_in_chu]
         \\ pop_assum mp_tac \\ simp[is_chu_morphism_def]
         \\ strip_tac
         \\ first_x_assum irule
-        \\ simp[external_mod_def])
+        \\ simp[cf_external_mod_def])
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[Abbr`e1`, mk_cf_def, PULL_EXISTS, EXISTS_PROD]
       \\ simp[Abbr`d`, PULL_EXISTS, mk_cf_def]
       \\ conj_tac
-      >- (simp[external_mod_def, external_def] \\ metis_tac[BIJ_LINV_THM])
+      >- (simp[cf_external_mod_def, cf_external_def] \\ metis_tac[BIJ_LINV_THM])
       \\ rpt strip_tac
       \\ reverse IF_CASES_TAC
-      >- (gs[external_mod_def, external_def] \\ metis_tac[])
+      >- (gs[cf_external_mod_def, cf_external_def] \\ metis_tac[])
       \\ drule BIJ_LINV_THM
       \\ simp[] \\ strip_tac
       \\ simp[Abbr`he`]
@@ -784,20 +784,20 @@ Proof
       \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
       \\ simp[restrict_def]
       \\ simp[Abbr`e1`, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
-      \\ simp[Once external_def, PULL_EXISTS, EXISTS_PROD]
-      \\ simp[Once external_mod_def]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once cf_external_mod_def]
       \\ conj_tac >- metis_tac[INJ_DEF]
-      \\ simp[Once external_def, PULL_EXISTS, EXISTS_PROD, SimpR``(/\)``]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD, SimpR``(/\)``]
       \\ simp[PULL_EXISTS]
       \\ simp[Abbr`d`, mk_cf_def, PULL_EXISTS]
-      \\ simp[Once external_def]
+      \\ simp[Once cf_external_def]
       \\ rpt gen_tac \\ strip_tac
-      \\ simp[Once external_mod_def]
+      \\ simp[Once cf_external_mod_def]
       \\ reverse IF_CASES_TAC >- metis_tac[]
       \\ simp[Abbr`he`]
       \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
       \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-      \\ simp[Once external_mod_def])
+      \\ simp[Once cf_external_mod_def])
     \\ `e1 ∈ chu_objects w` by metis_tac[maps_to_in_chu]
     \\ simp[homotopic_id_map_agent_id]
     \\ imp_res_tac compose_in_chu
@@ -811,28 +811,28 @@ Proof
     \\ simp[image_def, PULL_EXISTS, SUBSET_DEF, EXISTS_PROD]
     \\ simp[Abbr`d`, PULL_EXISTS, mk_cf_def]
     \\ reverse conj_tac
-    >- metis_tac[external_in_chu_objects, external_mod_in_chu_objects,
+    >- metis_tac[cf_external_in_chu_objects, cf_external_mod_in_chu_objects,
                  in_chu_objects, wf_def, finite_cf_def, IMAGE_FINITE]
-    \\ simp[Once external_def, Once external_mod_def, PULL_EXISTS]
+    \\ simp[Once cf_external_def, Once cf_external_mod_def, PULL_EXISTS]
     \\ rpt gen_tac \\ strip_tac
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ simp[Abbr`he`]
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ conj_tac >- metis_tac[]
-    \\ `(external c b) ∈ chu_objects w` by simp[]
-    \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"external_in_chu_objects"]
+    \\ `(cf_external c b) ∈ chu_objects w` by simp[]
+    \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"cf_external_in_chu_objects"]
     \\ simp[wf_def]
     \\ strip_tac
     \\ first_x_assum irule
-    \\ simp[Once external_def]
+    \\ simp[Once cf_external_def]
     \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-    \\ simp[external_def, external_mod_def]
+    \\ simp[cf_external_def, cf_external_mod_def]
     \\ metis_tac[])
   \\ simp[homotopy_equiv_def]
-  \\ qexists_tac`mk_chu_morphism (external_mod c b) e2 <| map_agent := I;
+  \\ qexists_tac`mk_chu_morphism (cf_external_mod c b) e2 <| map_agent := I;
        map_env := encode_pair o pair$## I (LINV he c.env)
                   o decode_pair |>`
-  \\ qexists_tac`mk_chu_morphism e2 (external_mod c b) <| map_agent := I;
+  \\ qexists_tac`mk_chu_morphism e2 (cf_external_mod c b) <| map_agent := I;
        map_env := encode_pair o pair$## I he o decode_pair |>`
   \\ conj_asm1_tac
   >- (
@@ -840,12 +840,12 @@ Proof
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
     \\ simp[Abbr`e2`, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
-    \\ simp[Once external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once external_mod_def]
+    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def]
     \\ conj_tac >- metis_tac[BIJ_LINV_BIJ, INJ_DEF, BIJ_DEF]
     \\ simp[Abbr`d`, mk_cf_def, PULL_EXISTS]
-    \\ simp[Once external_def]
-    \\ simp[Once external_mod_def, PULL_EXISTS]
+    \\ simp[Once cf_external_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS]
     \\ rpt gen_tac \\ strip_tac
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ drule BIJ_LINV_THM
@@ -853,109 +853,109 @@ Proof
     \\ simp[Abbr`he`]
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-    \\ simp[external_mod_def, external_def, mk_cf_def])
+    \\ simp[cf_external_mod_def, cf_external_def, mk_cf_def])
   \\ conj_asm1_tac
   >- (
     simp[maps_to_in_chu]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
     \\ simp[Abbr`e2`, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
-    \\ simp[Once external_mod_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once external_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_def]
     \\ conj_tac >- metis_tac[BIJ_LINV_BIJ, INJ_DEF, BIJ_DEF]
     \\ simp[Abbr`d`, mk_cf_def, PULL_EXISTS]
-    \\ simp[Once external_mod_def, PULL_EXISTS]
-    \\ simp[Once external_mod_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once external_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_def]
     \\ rpt gen_tac \\ strip_tac
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ simp[Abbr`he`]
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[Abbr`h`, mk_chu_morphism_def, restrict_def]
-    \\ simp[external_mod_def, external_def, mk_cf_def])
+    \\ simp[cf_external_mod_def, cf_external_def, mk_cf_def])
   \\ simp[homotopic_id_map_agent_id]
   \\ imp_res_tac compose_in_chu
   \\ simp[mk_chu_morphism_def, restrict_def]
   \\ simp[Abbr`e2`]
 QED
 
-Theorem external_multiplicative_subagent:
+Theorem cf_external_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  multiplicative_subagent (external c b) c
+  multiplicative_subagent (cf_external c b) c
 Proof
-  metis_tac[multiplicative_subagent_sister, is_sister_external_mod]
+  metis_tac[multiplicative_subagent_sister, is_sister_cf_external_mod]
 QED
 
-Theorem external_mod_multiplicative_subagent:
+Theorem cf_external_mod_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  multiplicative_subagent (external_mod c b) c
+  multiplicative_subagent (cf_external_mod c b) c
 Proof
   metis_tac[multiplicative_subagent_sister,
-            is_sister_external_mod, is_sister_comm]
+            is_sister_cf_external_mod, is_sister_comm]
 QED
 
-Definition internal_def:
-  internal c f = mk_cf <| world := c.world;
+Definition cf_internal_def:
+  cf_internal c f = mk_cf <| world := c.world;
     agent := IMAGE encode_pair (IMAGE encode_set f × c.agent);
     env := repfns f;
     eval := λp q. c.eval (SND (decode_pair p))
                          (decode_function q (FST (decode_pair p))) |>
 End
 
-Definition internal_mod_def:
-  internal_mod c f = mk_cf <| world := c.world;
+Definition cf_internal_mod_def:
+  cf_internal_mod c f = mk_cf <| world := c.world;
     agent := IMAGE encode_pair (repfns f × c.agent);
     env := IMAGE encode_set f;
     eval := λa e. c.eval (SND (decode_pair a))
                          (decode_function (FST (decode_pair a)) e) |>
 End
 
-Theorem swap_internal:
-  swap (internal c f) = external (swap c) f
+Theorem swap_cf_internal:
+  swap (cf_internal c f) = cf_external (swap c) f
 Proof
-  rw[cf_component_equality, internal_def, external_def]
+  rw[cf_component_equality, cf_internal_def, cf_external_def]
   \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
 QED
 
-Theorem swap_internal_mod:
-  swap (internal_mod c f) = external_mod (swap c) f
+Theorem swap_cf_internal_mod:
+  swap (cf_internal_mod c f) = cf_external_mod (swap c) f
 Proof
-  rw[cf_component_equality, internal_mod_def, external_mod_def]
+  rw[cf_component_equality, cf_internal_mod_def, cf_external_mod_def]
   \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
 QED
 
-Theorem swap_external:
-  swap (external c f) = internal (swap c) f
+Theorem swap_cf_external:
+  swap (cf_external c f) = cf_internal (swap c) f
 Proof
-  metis_tac[swap_internal, swap_swap]
+  metis_tac[swap_cf_internal, swap_swap]
 QED
 
-Theorem swap_external_mod:
-  swap (external_mod c f) = internal_mod (swap c) f
+Theorem swap_cf_external_mod:
+  swap (cf_external_mod c f) = cf_internal_mod (swap c) f
 Proof
-  metis_tac[swap_internal_mod, swap_swap]
+  metis_tac[swap_cf_internal_mod, swap_swap]
 QED
 
-Theorem internal_multiplicative_subagent:
+Theorem cf_internal_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions f c.env ⇒
-  multiplicative_subagent c (internal c f)
+  multiplicative_subagent c (cf_internal c f)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
   \\ rw[multiplicative_subenvironment_def]
-  \\ rw[swap_internal]
-  \\ irule external_multiplicative_subagent
+  \\ rw[swap_cf_internal]
+  \\ irule cf_external_multiplicative_subagent
   \\ rw[] \\ metis_tac[]
 QED
 
-Theorem internal_mod_multiplicative_subagent:
+Theorem cf_internal_mod_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions f c.env ⇒
-  multiplicative_subagent c (internal_mod c f)
+  multiplicative_subagent c (cf_internal_mod c f)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
   \\ rw[multiplicative_subenvironment_def]
-  \\ rw[swap_internal_mod]
-  \\ irule external_mod_multiplicative_subagent
+  \\ rw[swap_cf_internal_mod]
+  \\ irule cf_external_mod_multiplicative_subagent
   \\ rw[] \\ metis_tac[]
 QED
 

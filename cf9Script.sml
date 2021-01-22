@@ -1076,20 +1076,41 @@ Proof
             swap_in_chu_objects, commit_diff_in_chu_objects]
 QED
 
+Definition fn_partition_def:
+  fn_partition s t f v =
+    { { x' | x' ∈ s ∧
+             ∀y. y ∈ t ⇒
+                   (@w. w ∈ v ∧ f x y ∈ w) =
+                   (@w. w ∈ v ∧ f x' y ∈ w) }
+      | x | x ∈ s }
+End
+
+Theorem partitions_fn_partition:
+  partitions v w ∧ (∀x y. x ∈ s ∧ y ∈ t ⇒ f x y ∈ w) ⇒
+  partitions (fn_partition s t f v) s
+Proof
+  rw[partitions_thm, PULL_EXISTS]
+  >- (
+    fs[fn_partition_def]
+    \\ simp[GSYM MEMBER_NOT_EMPTY]
+    \\ metis_tac[])
+  >- fs[fn_partition_def, SUBSET_DEF]
+  \\ fs[EXISTS_UNIQUE_ALT]
+  \\ simp[fn_partition_def]
+  \\ qho_match_abbrev_tac`∃x. ∀x'. (∃x. x' = A x ∧ x ∈ s) ∧ y ∈ x' ⇔ x = x'`
+  \\ qexists_tac`A y`
+  \\ rw[EQ_IMP_THM]
+  \\ gvs[Abbr`A`]
+  \\ qexists_tac`y`
+  \\ simp[]
+QED
+
 Definition external_def:
-  external v c = cf_external
-    { { a' | a' ∈ c.agent ∧
-             ∀e. e ∈ c.env ⇒
-               (@s. s ∈ v ∧ c.eval a e ∈ s) =
-               (@s. s ∈ v ∧ c.eval a' e ∈ s) } | a | a ∈ c.agent } c
+  external v c = cf_external (fn_partition c.agent c.env c.eval v) c
 End
 
 Definition external_mod_def:
-  external_mod v c = cf_external_mod
-    { { a' | a' ∈ c.agent ∧
-             ∀e. e ∈ c.env ⇒
-               (@s. s ∈ v ∧ c.eval a e ∈ s) =
-               (@s. s ∈ v ∧ c.eval a' e ∈ s) } | a | a ∈ c.agent } c
+  external_mod v c = cf_external_mod (fn_partition c.agent c.env c.eval v) c
 End
 
 Theorem is_sister_external_mod:
@@ -1099,22 +1120,9 @@ Proof
   rw[external_def, external_mod_def]
   \\ irule is_sister_cf_external_mod
   \\ conj_tac >- metis_tac[]
-  \\ fs[partitions_thm, PULL_EXISTS]
-  \\ conj_tac
-  >- (
-    rpt gen_tac
-    \\ strip_tac
-    \\ simp[SUBSET_DEF]
-    \\ simp[GSYM MEMBER_NOT_EMPTY]
-    \\ qexists_tac`a` \\ simp[] )
-  \\ gen_tac \\ strip_tac
-  \\ fs[EXISTS_UNIQUE_ALT]
-  \\ qho_match_abbrev_tac`∃x. ∀x'. (∃a. (x' = A a ∧ a ∈ c.agent) ∧ y ∈ x') ⇔ x = x'`
-  \\ qexists_tac`A y`
-  \\ gen_tac
-  \\ reverse eq_tac \\ strip_tac
-  >- ( qexists_tac`y` \\ gvs[] \\ simp[Abbr`A`] )
-  \\ gvs[Abbr`A`]
+  \\ irule partitions_fn_partition
+  \\ fs[in_chu_objects, wf_def]
+  \\ metis_tac[]
 QED
 
 Theorem external_multiplicative_subagent:
@@ -1131,44 +1139,73 @@ Proof
   metis_tac[is_sister_external_mod, multiplicative_subagent_sister, is_sister_comm]
 QED
 
+Theorem external_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ partitions v w ⇒ external v c ∈ chu_objects w
+Proof
+  rw[external_def]
+  \\ irule cf_external_in_chu_objects
+  \\ simp[]
+  \\ irule partitions_fn_partition
+  \\ fs[in_chu_objects, wf_def]
+  \\ metis_tac[]
+QED
+
+Theorem external_mod_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ partitions v w ⇒ external_mod v c ∈ chu_objects w
+Proof
+  rw[external_mod_def]
+  \\ irule cf_external_mod_in_chu_objects
+  \\ simp[]
+  \\ irule partitions_fn_partition
+  \\ fs[in_chu_objects, wf_def]
+  \\ metis_tac[]
+QED
+
 Definition internal_def:
-  internal v c = cf_internal
-    { { e' | e' ∈ c.env ∧
-             ∀a. a ∈ c.agent ⇒
-               (@s. s ∈ v ∧ c.eval a e ∈ s) =
-               (@s. s ∈ v ∧ c.eval a e' ∈ s) } | e | e ∈ c.env } c
+  internal v c = cf_internal (fn_partition c.env c.agent (flip c.eval) v) c
 End
 
 Definition internal_mod_def:
-  internal_mod v c = cf_internal_mod
-    { { e' | e' ∈ c.env ∧
-             ∀a. a ∈ c.agent ⇒
-               (@s. s ∈ v ∧ c.eval a e ∈ s) =
-               (@s. s ∈ v ∧ c.eval a e' ∈ s) } | e | e ∈ c.env } c
+  internal_mod v c = cf_internal_mod (fn_partition c.env c.agent (flip c.eval) v) c
 End
 
 Theorem swap_internal:
   swap (internal v c) = external v (swap c)
 Proof
   rw[internal_def, external_def, swap_cf_internal]
+  \\ rpt (AP_TERM_TAC ORELSE AP_THM_TAC) \\ simp[FUN_EQ_THM]
 QED
 
 Theorem swap_internal_mod:
   swap (internal_mod v c) = external_mod v (swap c)
 Proof
   rw[internal_mod_def, external_mod_def, swap_cf_internal_mod]
+  \\ rpt (AP_TERM_TAC ORELSE AP_THM_TAC) \\ simp[FUN_EQ_THM]
 QED
 
 Theorem swap_external:
   swap (external v c) = internal v (swap c)
 Proof
-  rw[external_def, internal_def, swap_cf_external]
+  metis_tac[swap_swap, swap_internal]
 QED
 
 Theorem swap_external_mod:
   swap (external_mod v c) = internal_mod v (swap c)
 Proof
-  rw[external_mod_def, internal_mod_def, swap_cf_external_mod]
+  metis_tac[swap_swap, swap_internal_mod]
+QED
+
+Theorem internal_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ partitions v w ⇒ internal v c ∈ chu_objects w
+Proof
+  metis_tac[swap_internal, swap_swap, swap_in_chu_objects, external_in_chu_objects]
+QED
+
+Theorem internal_mod_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ partitions v w ⇒ internal_mod v c ∈ chu_objects w
+Proof
+  metis_tac[swap_internal_mod, swap_swap,
+            swap_in_chu_objects, external_mod_in_chu_objects]
 QED
 
 Theorem internal_multiplicative_subagent:

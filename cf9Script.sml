@@ -21,22 +21,22 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 val _ = new_theory"cf9";
 
 Definition cf_commit_def:
-  cf_commit c b = mk_cf (c with agent := b)
+  cf_commit b c = mk_cf (c with agent := b)
 End
 
 Definition cf_commit_diff_def:
-  cf_commit_diff c b = mk_cf (c with agent := c.agent DIFF b)
+  cf_commit_diff b c = mk_cf (c with agent := c.agent DIFF b)
 End
 
 Theorem cf_commit_diff_cf_commit:
-  cf_commit_diff c b = cf_commit c (c.agent DIFF b)
+  cf_commit_diff b c = cf_commit (c.agent DIFF b) c
 Proof
   rw[cf_commit_def, cf_commit_diff_def]
 QED
 
 Theorem cf_commit_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  cf_commit c b ∈ chu_objects w
+  cf_commit b c ∈ chu_objects w
 Proof
   rw[cf_commit_def, in_chu_objects]
   \\ fs[wf_def, image_def, PULL_EXISTS, SUBSET_DEF, finite_cf_def]
@@ -45,14 +45,14 @@ QED
 
 Theorem cf_commit_diff_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  cf_commit_diff c b ∈ chu_objects w
+  cf_commit_diff b c ∈ chu_objects w
 Proof
   rw[cf_commit_diff_cf_commit]
 QED
 
 Theorem cf_commit_additive_subagent:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  additive_subagent (cf_commit c b) c
+  additive_subagent (cf_commit b c) c
 Proof
   rw[additive_subagent_committing]
   \\ goal_assum(first_assum o mp_then Any mp_tac)
@@ -69,7 +69,7 @@ QED
 
 Theorem cf_commit_diff_additive_subagent:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  additive_subagent (cf_commit_diff c b) c
+  additive_subagent (cf_commit_diff b c) c
 Proof
   rw[cf_commit_diff_cf_commit]
   \\ irule cf_commit_additive_subagent
@@ -79,20 +79,20 @@ QED
 
 Theorem is_brother_cf_commit_diff:
   c ∈ chu_objects w ∧ b ⊆ c.agent ⇒
-  is_brother c (cf_commit c b) (cf_commit_diff c b)
+  is_brother c (cf_commit b c) (cf_commit_diff b c)
 Proof
   rw[is_brother_def]
   \\ qexists_tac`mk_cf <| world := w;
-       agent := (sum (cf_commit c b) (cf_commit_diff c b)).agent;
+       agent := (sum (cf_commit b c) (cf_commit_diff b c)).agent;
        env := IMAGE (W (CURRY encode_pair)) c.env;
        eval := sum_eval c.eval c.eval |>`
   \\ qmatch_goalsub_abbrev_tac`c ≃ c' -: _`
   \\ `c.world = w` by fs[in_chu_objects]
-  \\ `(cf_commit_diff c b).world = w ∧ (cf_commit c b).world = w`
+  \\ `(cf_commit_diff b c).world = w ∧ (cf_commit b c).world = w`
   by simp[cf_commit_diff_def, cf_commit_def]
   \\ `c' ∈ chu_objects w`
   by (
-    `sum (cf_commit c b) (cf_commit_diff c b) ∈ chu_objects w` by simp[]
+    `sum (cf_commit b c) (cf_commit_diff b c) ∈ chu_objects w` by simp[]
     \\ fs[in_chu_objects, Abbr`c'`, wf_def, Excl"sum_in_chu_objects"]
     \\ fs[finite_cf_def, image_def, PULL_EXISTS, SUBSET_DEF]
     \\ rpt strip_tac
@@ -150,8 +150,8 @@ Proof
          PULL_EXISTS, EXISTS_PROD, cf_commit_def, cf_commit_diff_def]
     \\ rw[sum_eval_def, FUN_EQ_THM]
     \\ rw[] \\ rw[] \\ gs[] )
-  \\ qmatch_goalsub_abbrev_tac`cf_commit c b ≃ c1 -: _`
-  \\ qmatch_goalsub_abbrev_tac`cf_commit_diff c b ≃ c2 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_commit b c ≃ c1 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_commit_diff b c ≃ c2 -: _`
   \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
   by (
     fs[in_chu_objects, Abbr`c1`, Abbr`c2`]
@@ -161,10 +161,10 @@ Proof
     \\ metis_tac[SUBSET_FINITE] )
   \\ conj_tac >- (
     simp[homotopy_equiv_def]
-    \\ qexists_tac`mk_chu_morphism (cf_commit c b) c1 <|
+    \\ qexists_tac`mk_chu_morphism (cf_commit b c) c1 <|
          map_agent := encode_sum o INL;
          map_env := FST o decode_pair |>`
-    \\ qexists_tac`mk_chu_morphism c1 (cf_commit c b) <|
+    \\ qexists_tac`mk_chu_morphism c1 (cf_commit b c) <|
          map_agent := OUTL o decode_sum;
          map_env := W (CURRY encode_pair) |>`
     \\ conj_asm1_tac
@@ -188,10 +188,10 @@ Proof
     \\ simp[restrict_def, mk_chu_morphism_def]
     \\ simp[cf_commit_def, mk_cf_def, PULL_EXISTS, FUN_EQ_THM, Abbr`c1`] )
   \\ simp[homotopy_equiv_def]
-  \\ qexists_tac`mk_chu_morphism (cf_commit_diff c b) c2 <|
+  \\ qexists_tac`mk_chu_morphism (cf_commit_diff b c) c2 <|
        map_agent := encode_sum o INR;
        map_env := FST o decode_pair |>`
-  \\ qexists_tac`mk_chu_morphism c2 (cf_commit_diff c b) <|
+  \\ qexists_tac`mk_chu_morphism c2 (cf_commit_diff b c) <|
        map_agent := OUTR o decode_sum;
        map_env := W (CURRY encode_pair) |>`
   \\ conj_asm1_tac
@@ -217,44 +217,44 @@ Proof
 QED
 
 Definition cf_assume_def:
-  cf_assume c f = mk_cf (c with env := f)
+  cf_assume f c = mk_cf (c with env := f)
 End
 
 Definition cf_assume_diff_def:
-  cf_assume_diff c f = mk_cf (c with env := c.env DIFF f)
+  cf_assume_diff f c = mk_cf (c with env := c.env DIFF f)
 End
 
 (* TODO: example of cf_assume_diff for meteor example *)
 
 Theorem swap_cf_assume:
-  swap (cf_assume c f) = cf_commit (swap c) f
+  swap (cf_assume f c) = cf_commit f (swap c)
 Proof
   simp[cf_assume_def, cf_commit_def, cf_component_equality]
   \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
 QED
 
 Theorem swap_cf_assume_diff:
-  swap (cf_assume_diff c f) = cf_commit_diff (swap c) f
+  swap (cf_assume_diff f c) = cf_commit_diff f (swap c)
 Proof
   simp[cf_assume_diff_def, cf_commit_diff_def, cf_component_equality]
   \\ simp[mk_cf_def, FUN_EQ_THM] \\ rw[] \\ fs[]
 QED
 
 Theorem swap_cf_commit:
-  swap (cf_commit c b) = cf_assume (swap c) b
+  swap (cf_commit b c) = cf_assume b (swap c)
 Proof
   metis_tac[swap_swap, swap_cf_assume]
 QED
 
 Theorem swap_cf_commit_diff:
-  swap (cf_commit_diff c b) = cf_assume_diff (swap c) b
+  swap (cf_commit_diff b c) = cf_assume_diff b (swap c)
 Proof
   metis_tac[swap_swap, swap_cf_assume_diff]
 QED
 
 Theorem cf_assume_additive_subenvironment:
   c ∈ chu_objects w ∧ f ⊆ c.env ⇒
-  additive_subenvironment c (cf_assume c f)
+  additive_subenvironment c (cf_assume f c)
 Proof
   rw[additive_subenvironment_def, swap_cf_assume]
   \\ irule cf_commit_additive_subagent
@@ -263,7 +263,7 @@ QED
 
 Theorem cf_assume_diff_additive_subenvironment:
   c ∈ chu_objects w ∧ f ⊆ c.env ⇒
-  additive_subenvironment c (cf_assume_diff c f)
+  additive_subenvironment c (cf_assume_diff f c)
 Proof
   rw[additive_subenvironment_def, swap_cf_assume_diff]
   \\ irule cf_commit_diff_additive_subagent
@@ -398,7 +398,7 @@ Proof
 QED
 
 Definition cf_external_def:
-  cf_external c b = mk_cf <| world := c.world;
+  cf_external b c = mk_cf <| world := c.world;
     agent := repfns b;
     env := IMAGE encode_pair (IMAGE encode_set b × c.env);
     eval := λq p. c.eval
@@ -407,7 +407,7 @@ Definition cf_external_def:
 End
 
 Definition cf_external_mod_def:
-  cf_external_mod c b = mk_cf <| world := c.world;
+  cf_external_mod b c = mk_cf <| world := c.world;
     agent := IMAGE encode_set b;
     env := IMAGE encode_pair (repfns b × c.env);
     eval := λa e. c.eval (decode_function (FST (decode_pair e)) a)
@@ -416,7 +416,7 @@ End
 
 Theorem cf_external_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  cf_external c b ∈ chu_objects w
+  cf_external b c ∈ chu_objects w
 Proof
   simp[in_chu_objects, cf_external_def]
   \\ strip_tac
@@ -433,7 +433,7 @@ QED
 
 Theorem cf_external_mod_in_chu_objects[simp]:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  cf_external_mod c b ∈ chu_objects w
+  cf_external_mod b c ∈ chu_objects w
 Proof
   simp[in_chu_objects, cf_external_mod_def]
   \\ strip_tac
@@ -450,15 +450,15 @@ QED
 
 Theorem is_sister_cf_external_mod:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  is_sister c (cf_external c b) (cf_external_mod c b)
+  is_sister c (cf_external b c) (cf_external_mod b c)
 Proof
   rw[is_sister_def]
   \\ `c.world = w` by fs[in_chu_objects]
   \\ `∀e. e ∈ c.env ⇒
-        (mk_chu_morphism (cf_external c b) (swap (cf_external_mod c b)) <|
+        (mk_chu_morphism (cf_external b c) (swap (cf_external_mod b c)) <|
          map_agent := λq. encode_pair (q, e);
          map_env := λx. encode_pair (x, e) |>)
-          :- cf_external c b → (swap (cf_external_mod c b)) -: chu w`
+          :- cf_external b c → (swap (cf_external_mod b c)) -: chu w`
   by (
     rw[maps_to_in_chu]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
@@ -470,8 +470,8 @@ Proof
   \\ qexists_tac`mk_cf <| world := w;
        agent := IMAGE encode_pair (repfns b × IMAGE encode_set b);
        env := IMAGE (encode_morphism o h) c.env;
-       eval := λp e. (cf_external c b).eval (FST (decode_pair p))
-                     ((decode_morphism (cf_external c b) (swap (cf_external_mod c b)) e).map.map_env (SND (decode_pair p))) |>`
+       eval := λp e. (cf_external b c).eval (FST (decode_pair p))
+                     ((decode_morphism (cf_external b c) (swap (cf_external_mod b c)) e).map.map_env (SND (decode_pair p))) |>`
   \\ qmatch_goalsub_abbrev_tac`c ≃ d -: _`
   \\ `d ∈ chu_objects w`
   by (
@@ -486,7 +486,7 @@ Proof
     \\ rpt strip_tac
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[]
-    \\ `cf_external c b ∈ chu_objects w` by simp[]
+    \\ `cf_external b c ∈ chu_objects w` by simp[]
     \\ fs[in_chu_objects, wf_def] \\ fs[]
     \\ first_x_assum irule
     \\ simp[cf_external_def, PULL_EXISTS, EXISTS_PROD]
@@ -496,7 +496,7 @@ Proof
   \\ `FINITE b ∧ EVERY_FINITE b` by (
     drule partitions_FINITE
     \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
-  \\ `(cf_external c b).world = w` by simp[cf_external_def]
+  \\ `(cf_external b c).world = w` by simp[cf_external_def]
   \\ `SURJ (encode_morphism o h) c.env d.env`
   by (
     simp[SURJ_DEF, mk_chu_morphism_def, restrict_def]
@@ -509,7 +509,7 @@ Proof
     \\ conj_tac >- fs[SURJ_DEF]
     \\ simp[mk_chu_morphism_def, restrict_def]
     \\ rpt gen_tac \\ strip_tac
-    \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism (cf_external c b) (swap (cf_external_mod c b))`)
+    \\ disch_then(mp_tac o Q.AP_TERM`decode_morphism (cf_external b c) (swap (cf_external_mod b c))`)
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ simp[]
     \\ simp[Abbr`h`, morphism_component_equality]
@@ -632,7 +632,7 @@ Proof
   \\ reverse conj_tac >- simp[cf_external_def, cf_external_mod_def]
   \\ simp[is_subtensor_def]
   \\ `d.world = w` by metis_tac[homotopy_equiv_def, maps_to_in_chu, in_chu_objects]
-  \\ `(cf_external_mod c b).world = w` by simp[cf_external_mod_def]
+  \\ `(cf_external_mod b c).world = w` by simp[cf_external_mod_def]
   \\ simp[Once tensor_def]
   \\ conj_tac
   >- (
@@ -657,8 +657,8 @@ Proof
     \\ BasicProvers.VAR_EQ_TAC
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ metis_tac[] )
-  \\ qmatch_goalsub_abbrev_tac`cf_external c b ≃ e1 -: _`
-  \\ qmatch_goalsub_abbrev_tac`cf_external_mod c b ≃ e2 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_external b c ≃ e1 -: _`
+  \\ qmatch_goalsub_abbrev_tac`cf_external_mod b c ≃ e2 -: _`
   \\ Cases_on`b = ∅` >- (
     simp[cf_external_def, cf_external_mod_def, Abbr`e1`, Abbr`e2`]
     \\ qmatch_goalsub_abbrev_tac`x ≃ y -: _`
@@ -728,10 +728,10 @@ Proof
   \\ conj_tac
   >- (
     simp[homotopy_equiv_def]
-    \\ qexists_tac`mk_chu_morphism (cf_external c b) e1 <| map_agent := I;
+    \\ qexists_tac`mk_chu_morphism (cf_external b c) e1 <| map_agent := I;
          map_env := encode_pair o pair$## I (LINV he c.env)
                     o decode_pair |>`
-    \\ qexists_tac`mk_chu_morphism e1 (cf_external c b) <| map_agent := I;
+    \\ qexists_tac`mk_chu_morphism e1 (cf_external b c) <| map_agent := I;
          map_env := encode_pair o pair$## I he o decode_pair |>`
     \\ conj_asm1_tac
     >- (
@@ -752,13 +752,13 @@ Proof
         \\ simp[Abbr`he`]
         \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
         \\ conj_tac >- metis_tac[]
-        \\ `(cf_external c b) ∈ chu_objects w` by simp[]
+        \\ `(cf_external b c) ∈ chu_objects w` by simp[]
         \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"cf_external_in_chu_objects"]
         \\ simp[wf_def]
         \\ strip_tac
         \\ first_x_assum irule
         \\ simp[Once cf_external_def]
-        \\ `is_chu_morphism (cf_external c b) (swap (cf_external_mod c b)) (h x).map` by metis_tac[maps_to_in_chu]
+        \\ `is_chu_morphism (cf_external b c) (swap (cf_external_mod b c)) (h x).map` by metis_tac[maps_to_in_chu]
         \\ pop_assum mp_tac \\ simp[is_chu_morphism_def]
         \\ strip_tac
         \\ first_x_assum irule
@@ -819,7 +819,7 @@ Proof
     \\ simp[Abbr`he`]
     \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
     \\ conj_tac >- metis_tac[]
-    \\ `(cf_external c b) ∈ chu_objects w` by simp[]
+    \\ `(cf_external b c) ∈ chu_objects w` by simp[]
     \\ pop_assum mp_tac \\ simp[in_chu_objects,Excl"cf_external_in_chu_objects"]
     \\ simp[wf_def]
     \\ strip_tac
@@ -829,10 +829,10 @@ Proof
     \\ simp[cf_external_def, cf_external_mod_def]
     \\ metis_tac[])
   \\ simp[homotopy_equiv_def]
-  \\ qexists_tac`mk_chu_morphism (cf_external_mod c b) e2 <| map_agent := I;
+  \\ qexists_tac`mk_chu_morphism (cf_external_mod b c) e2 <| map_agent := I;
        map_env := encode_pair o pair$## I (LINV he c.env)
                   o decode_pair |>`
-  \\ qexists_tac`mk_chu_morphism e2 (cf_external_mod c b) <| map_agent := I;
+  \\ qexists_tac`mk_chu_morphism e2 (cf_external_mod b c) <| map_agent := I;
        map_env := encode_pair o pair$## I he o decode_pair |>`
   \\ conj_asm1_tac
   >- (
@@ -882,21 +882,21 @@ QED
 
 Theorem cf_external_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  multiplicative_subagent (cf_external c b) c
+  multiplicative_subagent (cf_external b c) c
 Proof
   metis_tac[multiplicative_subagent_sister, is_sister_cf_external_mod]
 QED
 
 Theorem cf_external_mod_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions b c.agent ⇒
-  multiplicative_subagent (cf_external_mod c b) c
+  multiplicative_subagent (cf_external_mod b c) c
 Proof
   metis_tac[multiplicative_subagent_sister,
             is_sister_cf_external_mod, is_sister_comm]
 QED
 
 Definition cf_internal_def:
-  cf_internal c f = mk_cf <| world := c.world;
+  cf_internal f c = mk_cf <| world := c.world;
     agent := IMAGE encode_pair (IMAGE encode_set f × c.agent);
     env := repfns f;
     eval := λp q. c.eval (SND (decode_pair p))
@@ -904,7 +904,7 @@ Definition cf_internal_def:
 End
 
 Definition cf_internal_mod_def:
-  cf_internal_mod c f = mk_cf <| world := c.world;
+  cf_internal_mod f c = mk_cf <| world := c.world;
     agent := IMAGE encode_pair (repfns f × c.agent);
     env := IMAGE encode_set f;
     eval := λa e. c.eval (SND (decode_pair a))
@@ -912,34 +912,34 @@ Definition cf_internal_mod_def:
 End
 
 Theorem swap_cf_internal:
-  swap (cf_internal c f) = cf_external (swap c) f
+  swap (cf_internal f c) = cf_external f (swap c)
 Proof
   rw[cf_component_equality, cf_internal_def, cf_external_def]
   \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
 QED
 
 Theorem swap_cf_internal_mod:
-  swap (cf_internal_mod c f) = cf_external_mod (swap c) f
+  swap (cf_internal_mod f c) = cf_external_mod f (swap c)
 Proof
   rw[cf_component_equality, cf_internal_mod_def, cf_external_mod_def]
   \\ rw[mk_cf_def, FUN_EQ_THM] \\ metis_tac[]
 QED
 
 Theorem swap_cf_external:
-  swap (cf_external c f) = cf_internal (swap c) f
+  swap (cf_external f c) = cf_internal f (swap c)
 Proof
   metis_tac[swap_cf_internal, swap_swap]
 QED
 
 Theorem swap_cf_external_mod:
-  swap (cf_external_mod c f) = cf_internal_mod (swap c) f
+  swap (cf_external_mod f c) = cf_internal_mod f (swap c)
 Proof
   metis_tac[swap_cf_internal_mod, swap_swap]
 QED
 
 Theorem cf_internal_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions f c.env ⇒
-  multiplicative_subagent c (cf_internal c f)
+  multiplicative_subagent c (cf_internal f c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
   \\ rw[multiplicative_subenvironment_def]
@@ -950,13 +950,218 @@ QED
 
 Theorem cf_internal_mod_multiplicative_subagent:
   c ∈ chu_objects w ∧ partitions f c.env ⇒
-  multiplicative_subagent c (cf_internal_mod c f)
+  multiplicative_subagent c (cf_internal_mod f c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
   \\ rw[multiplicative_subenvironment_def]
   \\ rw[swap_cf_internal_mod]
   \\ irule cf_external_mod_multiplicative_subagent
   \\ rw[] \\ metis_tac[]
+QED
+
+Definition commit_def:
+  commit s c =
+    cf_commit { a | a ∈ c.agent ∧ ∀e. e ∈ c.env ⇒ c.eval a e ∈ s } c
+End
+
+Definition commit_diff_def:
+  commit_diff s c =
+    cf_commit_diff { a | a ∈ c.agent ∧ ∀e. e ∈ c.env ⇒ c.eval a e ∈ s } c
+End
+
+Theorem is_brother_commit_diff:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  is_brother c (commit s c) (commit_diff s c)
+Proof
+  rw[commit_def, commit_diff_def]
+  \\ irule is_brother_cf_commit_diff
+  \\ rw[SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
+Theorem commit_additive_subagent:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  additive_subagent (commit s c) c
+Proof
+  metis_tac[is_brother_commit_diff, additive_subagent_brother]
+QED
+
+Theorem commit_diff_additive_subagent:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  additive_subagent (commit_diff s c) c
+Proof
+  metis_tac[is_brother_commit_diff, additive_subagent_brother, is_brother_comm]
+QED
+
+(* TODO: example of ¬(commit_diff s c ≅ commit (w DIFF s) c) *)
+
+Definition assume_def:
+  assume s c =
+    cf_assume { e | e ∈ c.env ∧ ∀a. a ∈ c.agent ⇒ c.eval a e ∈ s } c
+End
+
+Definition assume_diff_def:
+  assume_diff s c =
+    cf_assume_diff { e | e ∈ c.env ∧ ∀a. a ∈ c.agent ⇒ c.eval a e ∈ s } c
+End
+
+Theorem swap_assume:
+  swap (assume s c) = commit s (swap c)
+Proof
+  rw[assume_def, swap_cf_assume, commit_def]
+QED
+
+Theorem swap_assume_diff:
+  swap (assume_diff s c) = commit_diff s (swap c)
+Proof
+  rw[assume_diff_def, swap_cf_assume_diff, commit_diff_def]
+QED
+
+Theorem swap_commit:
+  swap (commit s c) = assume s (swap c)
+Proof
+  rw[commit_def, swap_cf_commit, assume_def]
+QED
+
+Theorem swap_commit_diff:
+  swap (commit_diff s c) = assume_diff s (swap c)
+Proof
+  rw[commit_diff_def, swap_cf_commit_diff, assume_diff_def]
+QED
+
+Theorem assume_additive_subenvironment:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  additive_subenvironment c (assume s c)
+Proof
+  rw[assume_def]
+  \\ irule cf_assume_additive_subenvironment
+  \\ rw[SUBSET_DEF] \\ metis_tac[]
+QED
+
+Theorem assume_diff_additive_subenvironment:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  additive_subenvironment c (assume_diff s c)
+Proof
+  rw[assume_diff_def]
+  \\ irule cf_assume_diff_additive_subenvironment
+  \\ rw[SUBSET_DEF] \\ metis_tac[]
+QED
+
+Definition external_def:
+  external v c = cf_external
+    { { a' | a' ∈ c.agent ∧
+             ∀e. e ∈ c.env ⇒
+               (@s. s ∈ v ∧ c.eval a e ∈ s) =
+               (@s. s ∈ v ∧ c.eval a' e ∈ s) } | a | a ∈ c.agent } c
+End
+
+Definition external_mod_def:
+  external_mod v c = cf_external_mod
+    { { a' | a' ∈ c.agent ∧
+             ∀e. e ∈ c.env ⇒
+               (@s. s ∈ v ∧ c.eval a e ∈ s) =
+               (@s. s ∈ v ∧ c.eval a' e ∈ s) } | a | a ∈ c.agent } c
+End
+
+Theorem is_sister_external_mod:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  is_sister c (external v c) (external_mod v c)
+Proof
+  rw[external_def, external_mod_def]
+  \\ irule is_sister_cf_external_mod
+  \\ conj_tac >- metis_tac[]
+  \\ fs[partitions_thm, PULL_EXISTS]
+  \\ conj_tac
+  >- (
+    rpt gen_tac
+    \\ strip_tac
+    \\ simp[SUBSET_DEF]
+    \\ simp[GSYM MEMBER_NOT_EMPTY]
+    \\ qexists_tac`a` \\ simp[] )
+  \\ gen_tac \\ strip_tac
+  \\ fs[EXISTS_UNIQUE_ALT]
+  \\ qho_match_abbrev_tac`∃x. ∀x'. (∃a. (x' = A a ∧ a ∈ c.agent) ∧ y ∈ x') ⇔ x = x'`
+  \\ qexists_tac`A y`
+  \\ gen_tac
+  \\ reverse eq_tac \\ strip_tac
+  >- ( qexists_tac`y` \\ gvs[] \\ simp[Abbr`A`] )
+  \\ gvs[Abbr`A`]
+QED
+
+Theorem external_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  multiplicative_subagent (external v c) c
+Proof
+  metis_tac[is_sister_external_mod, multiplicative_subagent_sister]
+QED
+
+Theorem external_mod_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  multiplicative_subagent (external_mod v c) c
+Proof
+  metis_tac[is_sister_external_mod, multiplicative_subagent_sister, is_sister_comm]
+QED
+
+Definition internal_def:
+  internal v c = cf_internal
+    { { e' | e' ∈ c.env ∧
+             ∀a. a ∈ c.agent ⇒
+               (@s. s ∈ v ∧ c.eval a e ∈ s) =
+               (@s. s ∈ v ∧ c.eval a e' ∈ s) } | e | e ∈ c.env } c
+End
+
+Definition internal_mod_def:
+  internal_mod v c = cf_internal_mod
+    { { e' | e' ∈ c.env ∧
+             ∀a. a ∈ c.agent ⇒
+               (@s. s ∈ v ∧ c.eval a e ∈ s) =
+               (@s. s ∈ v ∧ c.eval a e' ∈ s) } | e | e ∈ c.env } c
+End
+
+Theorem swap_internal:
+  swap (internal v c) = external v (swap c)
+Proof
+  rw[internal_def, external_def, swap_cf_internal]
+QED
+
+Theorem swap_internal_mod:
+  swap (internal_mod v c) = external_mod v (swap c)
+Proof
+  rw[internal_mod_def, external_mod_def, swap_cf_internal_mod]
+QED
+
+Theorem swap_external:
+  swap (external v c) = internal v (swap c)
+Proof
+  rw[external_def, internal_def, swap_cf_external]
+QED
+
+Theorem swap_external_mod:
+  swap (external_mod v c) = internal_mod v (swap c)
+Proof
+  rw[external_mod_def, internal_mod_def, swap_cf_external_mod]
+QED
+
+Theorem internal_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  multiplicative_subagent c (internal v c)
+Proof
+  rw[GSYM multiplicative_subenvironment_subagent]
+  \\ rw[multiplicative_subenvironment_def]
+  \\ rw[swap_internal]
+  \\ irule external_multiplicative_subagent
+  \\ simp[] \\ metis_tac[]
+QED
+
+Theorem internal_mod_multiplicative_subagent:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  multiplicative_subagent c (internal_mod v c)
+Proof
+  rw[GSYM multiplicative_subenvironment_subagent]
+  \\ rw[multiplicative_subenvironment_def]
+  \\ rw[swap_internal_mod]
+  \\ irule external_mod_multiplicative_subagent
+  \\ simp[] \\ metis_tac[]
 QED
 
 val _ = export_theory();

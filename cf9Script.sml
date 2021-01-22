@@ -993,6 +993,22 @@ Proof
   metis_tac[is_brother_commit_diff, additive_subagent_brother, is_brother_comm]
 QED
 
+Theorem commit_in_chu_objects[simp]:
+  c ∈ chu_objects w ⇒ commit s c ∈ chu_objects w
+Proof
+  rw[commit_def]
+  \\ irule cf_commit_in_chu_objects
+  \\ rw[SUBSET_DEF]
+QED
+
+Theorem commit_diff_in_chu_objects[simp]:
+  c ∈ chu_objects w ⇒ commit_diff s c ∈ chu_objects w
+Proof
+  rw[commit_diff_def]
+  \\ irule cf_commit_diff_in_chu_objects
+  \\ rw[SUBSET_DEF]
+QED
+
 (* TODO: example of ¬(commit_diff s c ≅ commit (w DIFF s) c) *)
 
 Definition assume_def:
@@ -1045,6 +1061,19 @@ Proof
   rw[assume_diff_def]
   \\ irule cf_assume_diff_additive_subenvironment
   \\ rw[SUBSET_DEF] \\ metis_tac[]
+QED
+
+Theorem assume_in_chu_objects[simp]:
+  c ∈ chu_objects w ⇒ assume s c ∈ chu_objects w
+Proof
+  metis_tac[swap_assume, swap_swap, swap_in_chu_objects, commit_in_chu_objects]
+QED
+
+Theorem assume_diff_in_chu_objects[simp]:
+  c ∈ chu_objects w ⇒ assume_diff s c ∈ chu_objects w
+Proof
+  metis_tac[swap_assume_diff, swap_swap,
+            swap_in_chu_objects, commit_diff_in_chu_objects]
 QED
 
 Definition external_def:
@@ -1162,6 +1191,142 @@ Proof
   \\ rw[swap_internal_mod]
   \\ irule external_mod_multiplicative_subagent
   \\ simp[] \\ metis_tac[]
+QED
+
+Theorem homotopy_equiv_commit:
+  c1 ≃ c2 -: w ∧ s ⊆ w ⇒
+  commit s c1 ≃ commit s c2 -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism (commit s c1) (commit s c2) f.map`
+  \\ qexists_tac`mk_chu_morphism (commit s c2) (commit s c1) g.map`
+  \\ conj_asm1_tac
+  >- (
+    fs[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ fs[SUBSET_DEF]
+    \\ simp[commit_def, cf_commit_def]
+    \\ simp[mk_cf_def]
+    \\ metis_tac[] )
+  \\ conj_asm1_tac
+  >- (
+    fs[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ fs[SUBSET_DEF]
+    \\ simp[commit_def, cf_commit_def]
+    \\ simp[mk_cf_def]
+    \\ metis_tac[] )
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+  \\ qmatch_goalsub_abbrev_tac`j o k -: _`
+  \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`f :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ fs[homotopic_id_map_agent_id]
+  \\ ntac 8 (pop_assum kall_tac)
+  \\ qpat_x_assum`k :- _ → _ -: _`kall_tac
+  \\ qpat_x_assum`j :- _ → _ -: _`kall_tac
+  \\ gs[restrict_def, Abbr`j`, Abbr`k`, mk_chu_morphism_def, SUBSET_DEF]
+  \\ fs[in_chu_objects, wf_def]
+  \\ simp[commit_def, cf_commit_def, mk_cf_def, FUN_EQ_THM]
+  \\ rw[] \\ rw[]
+  \\ metis_tac[maps_to_in_chu, is_chu_morphism_def]
+QED
+
+Theorem homotopy_equiv_commit_diff:
+  c1 ≃ c2 -: w ∧ s ⊆ w ⇒
+  commit_diff s c1 ≃ commit_diff s c2 -: w
+Proof
+  rw[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism (commit_diff s c1) (commit_diff s c2) f.map`
+  \\ qexists_tac`mk_chu_morphism (commit_diff s c2) (commit_diff s c1) g.map`
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by metis_tac[maps_to_in_chu]
+  \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`f :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`c1 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_agent_id)
+  \\ qpat_assum`c2 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_agent_id)
+  \\ qpat_assum`c1 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_env_id)
+  \\ qpat_assum`c2 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_env_id)
+  \\ fs[restrict_def]
+  \\ ntac 4 (pop_assum mp_tac)
+  \\ ntac 4 (pop_assum kall_tac)
+  \\ ntac 4 strip_tac
+  \\ conj_asm1_tac
+  >- (
+    fs[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ fs[SUBSET_DEF]
+    \\ simp[commit_diff_def, cf_commit_diff_def]
+    \\ simp[mk_cf_def]
+    \\ metis_tac[] )
+  \\ conj_asm1_tac
+  >- (
+    fs[maps_to_in_chu]
+    \\ fs[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ fs[SUBSET_DEF]
+    \\ simp[commit_diff_def, cf_commit_diff_def]
+    \\ simp[mk_cf_def]
+    \\ metis_tac[] )
+  \\ qmatch_goalsub_abbrev_tac`j o k -: _`
+  \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ `commit_diff s c1 ∈ chu_objects w ∧ commit_diff s c2 ∈ chu_objects w`
+  by simp[]
+  \\ qpat_assum`_ _ c1 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_agent_id)
+  \\ qpat_assum`_ _ c2 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_agent_id)
+  \\ qpat_assum`_ _ c1 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_env_id)
+  \\ qpat_assum`_ _ c2 ∈ _`(mp_then Any strip_assume_tac homotopic_id_map_env_id)
+  \\ simp[restrict_def]
+  \\ ntac 6 (pop_assum mp_tac)
+  \\ ntac 4 (pop_assum kall_tac)
+  \\ ntac 6 strip_tac
+  \\ qpat_x_assum`k :- _ → _ -: _`kall_tac
+  \\ qpat_x_assum`j :- _ → _ -: _`kall_tac
+  \\ gs[restrict_def, Abbr`j`, Abbr`k`, mk_chu_morphism_def, SUBSET_DEF]
+  \\ fs[in_chu_objects, wf_def]
+  \\ simp[commit_diff_def, cf_commit_diff_def, mk_cf_def, FUN_EQ_THM]
+  \\ rw[] \\ rw[] \\ gs[]
+  \\ metis_tac[maps_to_in_chu, is_chu_morphism_def]
+QED
+
+Theorem homotopy_equiv_assume:
+  c1 ≃ c2 -: w ∧ s ⊆ w ⇒
+  assume s c1 ≃ assume s c2 -: w
+Proof
+  strip_tac
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
+  by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ DEP_ONCE_REWRITE_TAC[GSYM homotopy_equiv_swap]
+  \\ simp_tac std_ss [swap_assume]
+  \\ simp[]
+  \\ irule homotopy_equiv_commit
+  \\ simp[]
+QED
+
+Theorem homotopy_equiv_assume_diff:
+  c1 ≃ c2 -: w ∧ s ⊆ w ⇒
+  assume_diff s c1 ≃ assume_diff s c2 -: w
+Proof
+  strip_tac
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
+  by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ DEP_ONCE_REWRITE_TAC[GSYM homotopy_equiv_swap]
+  \\ simp_tac std_ss [swap_assume_diff]
+  \\ simp[]
+  \\ irule homotopy_equiv_commit_diff
+  \\ simp[]
 QED
 
 val _ = export_theory();

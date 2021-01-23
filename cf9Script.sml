@@ -2016,4 +2016,117 @@ Proof
   \\ simp[GSYM swap_tensor_par]
 QED
 
+Theorem commit_subagent_cfbot:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  commit s c ◁ cfbot w s -: w
+Proof
+  simp[subagent_cfbot_image]
+  \\ simp[image_def, commit_def, cf_commit_def,
+          PULL_EXISTS, SUBSET_DEF, mk_cf_def]
+QED
+
+Theorem assume_subagent_cfbot:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  assume s c ◁ cfbot w s -: w
+Proof
+  simp[subagent_cfbot_image]
+  \\ simp[image_def, assume_def, cf_assume_def,
+          PULL_EXISTS, SUBSET_DEF, mk_cf_def]
+QED
+
+Theorem subagent_cfbot_commit_assume_eq:
+  s ⊆ w ∧ c ◁ cfbot w s -: w ⇒
+  commit s c = c ∧ assume s c = c
+Proof
+  strip_tac
+  \\ `c ∈ chu_objects w ∧ FINITE w`
+  by metis_tac[subagent_def, in_chu_objects_finite_world]
+  \\ gs[subagent_cfbot_image]
+  \\ simp[commit_def, cf_commit_def, assume_def, cf_assume_def]
+  \\ qmatch_goalsub_abbrev_tac`c with agent := a`
+  \\ qmatch_goalsub_abbrev_tac`c with env := e`
+  \\ `a = c.agent` by (
+    simp[SET_EQ_SUBSET, SUBSET_DEF, Abbr`a`]
+    \\ fs[image_def, PULL_EXISTS, SUBSET_DEF] )
+  \\ `e = c.env` by (
+    simp[SET_EQ_SUBSET, SUBSET_DEF, Abbr`e`]
+    \\ fs[image_def, PULL_EXISTS, SUBSET_DEF] )
+  \\ simp[cf_component_equality, mk_cf_def, FUN_EQ_THM]
+  \\ metis_tac[in_chu_objects, wf_def]
+QED
+
+Theorem commit_idem:
+  s ⊆ w ∧ c ∈ chu_objects w ⇒
+  commit s (commit s c) = commit s c
+Proof
+  metis_tac[subagent_cfbot_commit_assume_eq, commit_subagent_cfbot]
+QED
+
+Theorem assume_idem:
+  s ⊆ w ∧ c ∈ chu_objects w ⇒
+  assume s (assume s c) = assume s c
+Proof
+  metis_tac[subagent_cfbot_commit_assume_eq, assume_subagent_cfbot]
+QED
+
+Theorem commit_diff_exists_not_in:
+  ∀a. a ∈ (commit_diff s c).agent ⇒
+      ∃e. e ∈ (commit_diff s c).env ∧
+          (commit_diff s c).eval a e ∉ s
+Proof
+  rw[commit_diff_def, cf_commit_diff_def, PULL_EXISTS, mk_cf_def]
+  \\ qexists_tac`e` \\ rw[]
+QED
+
+Theorem exists_not_in_commit_diff_eq:
+  wf c ∧
+  (∀a. a ∈ c.agent ⇒ ∃e. e ∈ c.env ∧ c.eval a e ∉ s) ⇒
+  commit_diff s c = c
+Proof
+  rw[commit_diff_def, cf_commit_diff_def]
+  \\ qmatch_goalsub_abbrev_tac`c with agent := b`
+  \\ `b = c.agent`
+  by ( simp[Abbr`b`, SET_EQ_SUBSET, SUBSET_DEF, PULL_EXISTS] )
+  \\ simp[cf_component_equality, mk_cf_def, FUN_EQ_THM]
+  \\ metis_tac[wf_def]
+QED
+
+Theorem commit_diff_idem:
+  c ∈ chu_objects w ⇒
+  commit_diff s (commit_diff s c) = commit_diff s c
+Proof
+  metis_tac[in_chu_objects, exists_not_in_commit_diff_eq,
+            commit_diff_exists_not_in, commit_diff_in_chu_objects]
+QED
+
+Theorem assume_diff_exists_not_in:
+  ∀e. e ∈ (assume_diff s c).env ⇒
+      ∃a. a ∈ (assume_diff s c).agent ∧
+          (assume_diff s c).eval a e ∉ s
+Proof
+  rw[assume_diff_def, cf_assume_diff_def, PULL_EXISTS, mk_cf_def]
+  \\ qexists_tac`a` \\ rw[]
+QED
+
+Theorem exists_not_in_assume_diff_eq:
+  wf c ∧
+  (∀e. e ∈ c.env ⇒ ∃a. a ∈ c.agent ∧ c.eval a e ∉ s) ⇒
+  assume_diff s c = c
+Proof
+  rw[assume_diff_def, cf_assume_diff_def]
+  \\ qmatch_goalsub_abbrev_tac`c with env := b`
+  \\ `b = c.env`
+  by ( simp[Abbr`b`, SET_EQ_SUBSET, SUBSET_DEF, PULL_EXISTS] )
+  \\ simp[cf_component_equality, mk_cf_def, FUN_EQ_THM]
+  \\ metis_tac[wf_def]
+QED
+
+Theorem assume_diff_idem:
+  c ∈ chu_objects w ⇒
+  assume_diff s (assume_diff s c) = assume_diff s c
+Proof
+  metis_tac[in_chu_objects, exists_not_in_assume_diff_eq,
+            assume_diff_exists_not_in, assume_diff_in_chu_objects]
+QED
+
 val _ = export_theory();

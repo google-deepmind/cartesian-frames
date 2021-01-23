@@ -2412,4 +2412,92 @@ Proof
   \\ strip_tac \\ simp[]
 QED
 
+Theorem internal_equal_parts:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  (internal v c).env ≠ ∅ ∧
+  (∀a e1 e2.
+    e1 ∈ (internal v c).env ∧
+    e2 ∈ (internal v c).env ∧
+    a ∈ (internal v c).agent
+    ⇒
+    (@w. w ∈ v ∧ ((internal v c).eval a e1) ∈ w) =
+    (@w. w ∈ v ∧ ((internal v c).eval a e2) ∈ w))
+Proof
+  strip_tac
+  \\ fs[Once (GSYM swap_in_chu_objects), Excl"swap_in_chu_objects"]
+  \\ drule external_equal_parts
+  \\ disch_then drule
+  \\ simp[GSYM swap_internal]
+QED
+
+Theorem equal_parts_internal_iso:
+  c ∈ chu_objects w ∧ partitions v w ∧
+  c.env ≠ ∅ ∧
+  (∀e1 e2 a.
+    e1 ∈ c.env ∧ e2 ∈ c.env ∧ a ∈ c.agent ⇒
+    (@w. w ∈ v ∧ (c.eval a e1) ∈ w) =
+    (@w. w ∈ v ∧ (c.eval a e2) ∈ w))
+  ⇒ internal v c ≅ c -: chu w
+Proof
+  strip_tac
+  \\ fs[Once (GSYM swap_in_chu_objects), Excl"swap_in_chu_objects"]
+  \\ drule equal_parts_external_iso
+  \\ disch_then drule
+  \\ simp[GSYM swap_internal]
+QED
+
+Theorem internal_idem:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  internal v (internal v c) ≅ internal v c -: chu w
+Proof
+  strip_tac
+  \\ irule equal_parts_internal_iso
+  \\ drule internal_equal_parts
+  \\ disch_then drule
+  \\ strip_tac \\ simp[]
+QED
+
+Theorem internal_mod_unequal_parts:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  (∀e1 e2.
+    e1 ∈ (internal_mod v c).env ∧
+    e2 ∈ (internal_mod v c).env ∧
+    e1 ≠ e2 ⇒
+    ∃a. a ∈ (internal_mod v c).agent ∧
+    (@w. w ∈ v ∧ ((internal_mod v c).eval a e1) ∈ w) ≠
+    (@w. w ∈ v ∧ ((internal_mod v c).eval a e2) ∈ w))
+Proof
+  strip_tac
+  \\ fs[Once (GSYM swap_in_chu_objects), Excl"swap_in_chu_objects"]
+  \\ drule external_mod_unequal_parts
+  \\ disch_then drule
+  \\ simp[GSYM swap_internal_mod]
+QED
+
+Theorem unequal_parts_internal_mod_iso:
+  c ∈ chu_objects w ∧ partitions v w ∧
+  (∀e1 e2. e1 ∈ c.env ∧ e2 ∈ c.env ∧ e1 ≠ e2 ⇒
+     ∃a. a ∈ c.agent ∧ (@w. w ∈ v ∧ c.eval a e1 ∈ w) ≠
+                       (@w. w ∈ v ∧ c.eval a e2 ∈ w))
+  ⇒
+  internal_mod v c ≅ c -: chu w
+Proof
+  strip_tac
+  \\ fs[Once (GSYM swap_in_chu_objects), Excl"swap_in_chu_objects"]
+  \\ drule unequal_parts_external_mod_iso
+  \\ disch_then drule
+  \\ simp[GSYM swap_internal_mod]
+QED
+
+Theorem internal_mod_idem:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  internal_mod v (internal_mod v c) ≅ internal_mod v c -: chu w
+Proof
+  strip_tac
+  \\ irule unequal_parts_internal_mod_iso
+  \\ drule internal_mod_unequal_parts
+  \\ disch_then drule
+  \\ strip_tac \\ simp[]
+QED
+
 val _ = export_theory();

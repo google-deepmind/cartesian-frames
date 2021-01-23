@@ -2247,4 +2247,169 @@ Proof
   \\ strip_tac \\ simp[]
 QED
 
+Theorem external_mod_unequal_parts:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  (∀a1 a2.
+    a1 ∈ (external_mod v c).agent ∧
+    a2 ∈ (external_mod v c).agent ∧
+    a1 ≠ a2 ⇒
+    ∃e. e ∈ (external_mod v c).env ∧
+    (@w. w ∈ v ∧ ((external_mod v c).eval a1 e) ∈ w) ≠
+    (@w. w ∈ v ∧ ((external_mod v c).eval a2 e) ∈ w))
+Proof
+  rw[external_mod_def]
+  \\ qmatch_goalsub_abbrev_tac`cf_external_mod b`
+  \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+  \\ `∃q. q ∈ repfns b`
+  by (
+    rw[repfns_def, is_repfn_def]
+    \\ qexists_tac`restrict (λx. @a. a ∈ x) b`
+    \\ simp[]
+    \\ rw[restrict_def]
+    \\ SELECT_ELIM_TAC \\ rw[]
+    \\ fs[Abbr`b`, fn_partition_def]
+    \\ simp[fn_part_def]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ simp[] )
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ `FINITE c.agent` by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+  \\ `FINITE b ∧ EVERY_FINITE b`
+  by (
+    simp[Abbr`b`]
+    \\ irule FINITE_fn_partition
+    \\ rw[] )
+  \\ fs[cf_external_mod_def, mk_cf_def]
+  \\ fs[repfns_def]
+  \\ BasicProvers.VAR_EQ_TAC
+  \\ qmatch_assum_rename_tac`is_repfn b q`
+  \\ `q x ∈ x ∧ q x' ∈ x'` by metis_tac[is_repfn_def]
+  \\ `x ≠ x'` by metis_tac[decode_encode_set]
+  \\ simp[restrict_def]
+  \\ simp[Once(METIS_PROVE[]``(a ∧ b) ⇔ (a ∧ (a ⇒ b))``)]
+  \\ reverse CASE_TAC >- metis_tac[]
+  \\ reverse CASE_TAC >- metis_tac[]
+  \\ ntac 2 (pop_assum kall_tac)
+  \\ `∃a. a ∈ c.agent ∧ x = fn_part c.agent c.env c.eval v a`
+  by (fs[Abbr`b`, fn_partition_def] \\ metis_tac[])
+  \\ `∃a'. a' ∈ c.agent ∧ x' = fn_part c.agent c.env c.eval v a'`
+  by (fs[Abbr`b`, fn_partition_def] \\ metis_tac[])
+  \\ `a ≠ a'` by metis_tac[]
+  \\ qmatch_assum_abbrev_tac`qx ∈ x`
+  \\ qmatch_assum_abbrev_tac`qx' ∈ x'`
+  \\ fs[fn_part_def]
+  \\ Cases_on`c.env = ∅` \\ fs[]
+  \\ Cases_on`∀e. e ∈ c.env ⇒ (@w. w ∈ v ∧ c.eval qx e ∈ w) =
+                               (@w. w ∈ v ∧ c.eval qx' e ∈ w)`
+  >- (
+    fs[GSYM MEMBER_NOT_EMPTY]
+    \\ first_x_assum drule
+    \\ metis_tac[] )
+  \\ metis_tac[]
+QED
+
+Theorem unequal_parts_external_mod_iso:
+  c ∈ chu_objects w ∧ partitions v w ∧
+  (∀a1 a2. a1 ∈ c.agent ∧ a2 ∈ c.agent ∧ a1 ≠ a2 ⇒
+     ∃e. e ∈ c.env ∧ (@w. w ∈ v ∧ c.eval a1 e ∈ w) ≠
+                     (@w. w ∈ v ∧ c.eval a2 e ∈ w))
+  ⇒
+  external_mod v c ≅ c -: chu w
+Proof
+  strip_tac
+  \\ simp[external_mod_def]
+  \\ qmatch_goalsub_abbrev_tac`cf_external_mod b`
+  \\ `∀x. x ∈ b ⇒ SING x`
+  by (
+    simp[Abbr`b`, fn_partition_def, PULL_EXISTS]
+    \\ qx_gen_tac`x` \\ strip_tac
+    \\ simp[SING_DEF]
+    \\ qexists_tac`x`
+    \\ simp[fn_part_def]
+    \\ simp[Once SET_EQ_SUBSET, SUBSET_DEF, PULL_EXISTS]
+    \\ rw[] \\ CCONTR_TAC
+    \\ res_tac
+    \\ gs[])
+  \\ `∃!q. is_repfn b q`
+  by (
+    simp[EXISTS_UNIQUE_ALT]
+    \\ simp[is_repfn_def]
+    \\ qexists_tac`restrict (λx. @a. a ∈ x) b`
+    \\ rw[EQ_IMP_THM] \\ rw[]
+    \\ rw[restrict_def, FUN_EQ_THM]
+    \\ gs[extensional_def, SING_DEF] \\ rw[]
+    \\ res_tac \\ gs[]
+    \\ metis_tac[IN_SING] )
+  \\ `partitions b c.agent`
+  by (
+    simp[Abbr`b`]
+    \\ irule partitions_fn_partition
+    \\ metis_tac[in_chu_objects, wf_def] )
+  \\ `∀q. is_repfn b q ⇒ BIJ q b c.agent`
+  by (
+    rw[is_repfn_def]
+    \\ simp[BIJ_DEF, INJ_DEF, SURJ_DEF]
+    \\ fs[partitions_thm, SUBSET_DEF]
+    \\ metis_tac[IN_SING, SING_DEF] )
+  \\ `SING (repfns b)`
+  by (
+    rw[repfns_def, SING_DEF]
+    \\ simp[Once EXTENSION, PULL_EXISTS]
+    \\ fs[EXISTS_UNIQUE_ALT]
+    \\ metis_tac[] )
+  \\ `FINITE b ∧ EVERY_FINITE b`
+  by (
+    simp[Abbr`b`]
+    \\ irule FINITE_fn_partition
+    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+  \\ fs[SING_DEF]
+  \\ simp[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (cf_external_mod b c) c <| map_agent := decode_function x;
+  map_env := λe. encode_pair (x, e) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[cf_external_mod_def, PULL_EXISTS, mk_cf_def]
+    \\ reverse conj_tac >- metis_tac[]
+    \\ `x ∈ repfns b` by metis_tac[IN_SING, EXTENSION]
+    \\ fs[Once repfns_def]
+    \\ simp[restrict_def]
+    \\ fs[is_repfn_def]
+    \\ qx_gen_tac`z`
+    \\ reverse(rw[]) >- metis_tac[]
+    \\ `z ⊆ c.agent` suffices_by metis_tac[SUBSET_DEF]
+    \\ qpat_x_assum`z ∈ _`mp_tac
+    \\ simp[Abbr`b`, fn_partition_def, PULL_EXISTS]
+    \\ rpt strip_tac
+    \\ simp[SUBSET_DEF, fn_part_def] )
+  \\ simp[chu_iso_bij]
+  \\ fs[maps_to_in_chu]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[cf_external_mod_def]
+  \\ fs[is_chu_morphism_def, mk_chu_morphism_def, restrict_def]
+  \\ fs[cf_external_mod_def, PULL_EXISTS, mk_cf_def]
+  \\ simp[BIJ_DEF, INJ_DEF, SURJ_DEF, PULL_EXISTS, EXISTS_PROD]
+  \\ `x ∈ repfns b` by metis_tac[IN_SING, EXTENSION]
+  \\ pop_assum mp_tac
+  \\ simp_tac(srw_ss())[repfns_def]
+  \\ strip_tac
+  \\ simp[]
+  \\ simp[restrict_def]
+  \\ `BIJ q b c.agent` by metis_tac[]
+  \\ fs[BIJ_DEF, INJ_DEF, SURJ_DEF]
+  \\ metis_tac[decode_encode_set]
+QED
+
+Theorem external_mod_idem:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  external_mod v (external_mod v c) ≅ external_mod v c -: chu w
+Proof
+  strip_tac
+  \\ irule unequal_parts_external_mod_iso
+  \\ drule external_mod_unequal_parts
+  \\ disch_then drule
+  \\ strip_tac \\ simp[]
+QED
+
 val _ = export_theory();

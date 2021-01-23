@@ -1409,11 +1409,13 @@ Proof
   \\ simp[SUBSET_DEF]
 QED
 
-Theorem homotopy_equiv_external:
+Theorem homotopy_equiv_external_mod_both[local]:
   c1 ≃ c2 -: w ∧ partitions v w ⇒
-  external v c1 ≃ external v c2 -: w
+  external v c1 ≃ external v c2 -: w ∧
+  external_mod v c1 ≃ external_mod v c2 -: w
 Proof
-  rw[homotopy_equiv_def]
+  simp[homotopy_equiv_def]
+  \\ strip_tac
   \\ qabbrev_tac`b1 = fn_part c1.agent c1.env c1.eval v`
   \\ qabbrev_tac`b2 = fn_part c2.agent c2.env c2.eval v`
   \\ `SURJ b1 c1.agent (fn_partition c1.agent c1.env c1.eval v)`
@@ -1558,22 +1560,6 @@ Proof
       \\ metis_tac[SURJ_DEF, INJ_DEF, maps_to_in_chu, is_chu_morphism_def] )
     \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
     \\ fs[restrict_def] \\ metis_tac[])
-  \\ qexists_tac`mk_chu_morphism (external v c1) (external v c2) <|
-       map_agent := λq.
-         encode_function (IMAGE encode_set p2)
-           (restrict (f.map.map_agent o (decode_function q o encode_set) o i2 o decode_set) (IMAGE encode_set p2));
-       map_env := λe. encode_pair
-         (encode_set (i2 (decode_set (FST (decode_pair e)))),
-          f.map.map_env (SND (decode_pair e))) |>`
-  \\ qmatch_goalsub_abbrev_tac`_ o k -: _`
-  \\ qexists_tac`mk_chu_morphism (external v c2) (external v c1) <|
-       map_agent := λq.
-         encode_function (IMAGE encode_set p1)
-           (restrict (g.map.map_agent o (decode_function q o encode_set) o i1 o decode_set) (IMAGE encode_set p1));
-       map_env := λe. encode_pair
-         (encode_set (i1 (decode_set (FST (decode_pair e)))),
-          g.map.map_env (SND (decode_pair e))) |>`
-  \\ qmatch_goalsub_abbrev_tac`j o k -: _`
   \\ `FINITE p1 ∧ EVERY_FINITE p1`
   by (
     simp[Abbr`p1`]
@@ -1588,70 +1574,194 @@ Proof
   by (
     simp[Abbr`i2`, Abbr`i1`]
     \\ metis_tac[INJ_DEF, SURJ_DEF, maps_to_in_chu, is_chu_morphism_def] )
+  \\ conj_tac
+  >- (
+    qexists_tac`mk_chu_morphism (external v c1) (external v c2) <|
+         map_agent := λq.
+           encode_function (IMAGE encode_set p2)
+             (restrict (f.map.map_agent o (decode_function q o encode_set) o i2 o decode_set) (IMAGE encode_set p2));
+         map_env := λe. encode_pair
+           (encode_set (i2 (decode_set (FST (decode_pair e)))),
+            f.map.map_env (SND (decode_pair e))) |>`
+    \\ qmatch_goalsub_abbrev_tac`_ o k -: _`
+    \\ qexists_tac`mk_chu_morphism (external v c2) (external v c1) <|
+         map_agent := λq.
+           encode_function (IMAGE encode_set p1)
+             (restrict (g.map.map_agent o (decode_function q o encode_set) o i1 o decode_set) (IMAGE encode_set p1));
+         map_env := λe. encode_pair
+           (encode_set (i1 (decode_set (FST (decode_pair e)))),
+            g.map.map_env (SND (decode_pair e))) |>`
+    \\ qmatch_goalsub_abbrev_tac`j o k -: _`
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu, Abbr`k`]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[external_def]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_asm1_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ qho_match_abbrev_tac`(∀q. is_repfn p1 q ⇒ ∃q'. P q q') ∧ _`
+      \\ `∀q. is_repfn p1 q ⇒ P q (restrict (f.map.map_agent o q o i2) p2)`
+      by (
+        rpt strip_tac
+        \\ simp[Abbr`P`]
+        \\ AP_TERM_TAC
+        \\ simp[FUN_EQ_THM, restrict_def]
+        \\ gen_tac
+        \\ IF_CASES_TAC \\ simp[]
+        \\ pop_assum strip_assume_tac
+        \\ simp[]
+        \\ IF_CASES_TAC \\ simp[]
+        \\ metis_tac[] )
+      \\ conj_tac >- metis_tac[]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ simp[cf_external_def, mk_cf_def]
+      \\ rpt gen_tac \\ strip_tac
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ first_x_assum drule
+      \\ simp[Abbr`P`] \\ strip_tac
+      \\ qunabbrev_tac`j`
+      \\ simp[restrict_def]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ `q (i2 x) ∈ c1.agent` suffices_by
+      metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ `q (i2 x) ∈ i2 x` by metis_tac[is_repfn_def]
+      \\ `i2 x ∈ p1` by metis_tac[]
+      \\ ntac 2 (pop_assum mp_tac)
+      \\ simp_tac(srw_ss())[Abbr`p1`, fn_partition_def, PULL_EXISTS]
+      \\ rpt strip_tac \\ fs[fn_part_def] )
+    \\ conj_asm1_tac
+    >- (
+      simp[maps_to_in_chu, Abbr`j`]
+      \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+      \\ simp[restrict_def]
+      \\ simp[external_def]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ conj_asm1_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ qho_match_abbrev_tac`(∀q. is_repfn p2 q ⇒ ∃q'. P q q') ∧ _`
+      \\ `∀q. is_repfn p2 q ⇒ P q (restrict (g.map.map_agent o q o i1) p1)`
+      by (
+        rpt strip_tac
+        \\ simp[Abbr`P`]
+        \\ AP_TERM_TAC
+        \\ simp[FUN_EQ_THM, restrict_def]
+        \\ gen_tac
+        \\ IF_CASES_TAC \\ simp[]
+        \\ pop_assum strip_assume_tac
+        \\ simp[]
+        \\ IF_CASES_TAC \\ simp[]
+        \\ metis_tac[] )
+      \\ conj_tac >- metis_tac[]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ simp[cf_external_def, mk_cf_def]
+      \\ rpt gen_tac \\ strip_tac
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ first_x_assum drule
+      \\ simp[Abbr`P`] \\ strip_tac
+      \\ qunabbrev_tac`k`
+      \\ simp[restrict_def]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ `q (i1 x) ∈ c2.agent` suffices_by
+      metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ `q (i1 x) ∈ i1 x` by metis_tac[is_repfn_def]
+      \\ `i1 x ∈ p2` by metis_tac[]
+      \\ ntac 2 (pop_assum mp_tac)
+      \\ simp_tac(srw_ss())[Abbr`p2`, fn_partition_def, PULL_EXISTS]
+      \\ rpt strip_tac \\ fs[fn_part_def] )
+    \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ simp[homotopic_id_map_env_id]
+    \\ simp[restrict_def]
+    \\ ntac 6 (pop_assum kall_tac)
+    \\ simp[Abbr`j`, Abbr`k`, mk_chu_morphism_def, restrict_def]
+    \\ simp[external_def]
+    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once CONJ_COMM]
+    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ conj_tac
+    >- (
+      rpt gen_tac \\ strip_tac
+      \\ reverse IF_CASES_TAC
+      >- (
+        `F` suffices_by rw[]
+        \\ pop_assum mp_tac
+        \\ simp[cf_external_def]
+        \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+      \\ `i1 (i2 x) = x` by (fs[restrict_def] \\ metis_tac[])
+      \\ simp[]
+      \\ simp[cf_external_def, mk_cf_def]
+      \\ irule EQ_SYM
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+      \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+      \\ disch_then(qpat_assum`f :- _ → _ -: _` o mp_then Any strip_assume_tac)
+      \\ fs[homotopic_id_map_env_id, restrict_def] )
+    \\ rpt gen_tac \\ strip_tac
+    \\ reverse IF_CASES_TAC
+    >- (
+      `F` suffices_by rw[]
+      \\ pop_assum mp_tac
+      \\ simp[cf_external_def]
+      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    \\ `i2 (i1 x) = x` by (fs[restrict_def] \\ metis_tac[])
+    \\ simp[]
+    \\ simp[cf_external_def, mk_cf_def]
+    \\ irule EQ_SYM
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ fs[homotopic_id_map_env_id, restrict_def])
+  \\ qexists_tac`mk_chu_morphism (external_mod v c1) (external_mod v c2) <|
+       map_agent := encode_set o i1 o decode_set;
+       map_env := λe. encode_pair
+         (encode_function (IMAGE encode_set p1) (restrict (g.map.map_agent o (decode_function (FST (decode_pair e)) o encode_set) o i1 o decode_set) (IMAGE encode_set p1)),
+          f.map.map_env (SND (decode_pair e))) |>`
+  \\ qmatch_goalsub_abbrev_tac`_ o k -: _`
+  \\ qexists_tac`mk_chu_morphism (external_mod v c2) (external_mod v c1) <|
+       map_agent := encode_set o i2 o decode_set;
+       map_env := λe. encode_pair
+         (encode_function (IMAGE encode_set p2) (restrict (f.map.map_agent o (decode_function (FST (decode_pair e)) o encode_set) o i2 o decode_set) (IMAGE encode_set p2)),
+          g.map.map_env (SND (decode_pair e))) |>`
+  \\ qmatch_goalsub_abbrev_tac`j o k -: _`
   \\ conj_asm1_tac
   >- (
     simp[maps_to_in_chu, Abbr`k`]
     \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
     \\ simp[restrict_def]
-    \\ simp[external_def]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ conj_asm1_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[external_mod_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
     \\ simp[repfns_def, PULL_EXISTS]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
     \\ simp[repfns_def, PULL_EXISTS]
-    \\ qho_match_abbrev_tac`(∀q. is_repfn p1 q ⇒ ∃q'. P q q') ∧ _`
-    \\ `∀q. is_repfn p1 q ⇒ P q (restrict (f.map.map_agent o q o i2) p2)`
-    by (
-      rpt strip_tac
-      \\ simp[Abbr`P`]
-      \\ AP_TERM_TAC
-      \\ simp[FUN_EQ_THM, restrict_def]
-      \\ gen_tac
-      \\ IF_CASES_TAC \\ simp[]
-      \\ pop_assum strip_assume_tac
-      \\ simp[]
-      \\ IF_CASES_TAC \\ simp[]
-      \\ metis_tac[] )
-    \\ conj_tac >- metis_tac[]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[repfns_def, PULL_EXISTS]
-    \\ simp[cf_external_def, mk_cf_def]
-    \\ rpt gen_tac \\ strip_tac
-    \\ simp[repfns_def, PULL_EXISTS]
-    \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ pop_assum kall_tac
-    \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ pop_assum kall_tac
-    \\ first_x_assum drule
-    \\ simp[Abbr`P`] \\ strip_tac
-    \\ qunabbrev_tac`j`
-    \\ simp[restrict_def]
-    \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ `q (i2 x) ∈ c1.agent` suffices_by
-    metis_tac[maps_to_in_chu, is_chu_morphism_def]
-    \\ `q (i2 x) ∈ i2 x` by metis_tac[is_repfn_def]
-    \\ `i2 x ∈ p1` by metis_tac[]
-    \\ ntac 2 (pop_assum mp_tac)
-    \\ simp_tac(srw_ss())[Abbr`p1`, fn_partition_def, PULL_EXISTS]
-    \\ rpt strip_tac \\ fs[fn_part_def] )
-  \\ conj_asm1_tac
-  >- (
-    simp[maps_to_in_chu, Abbr`j`]
-    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
-    \\ simp[restrict_def]
-    \\ simp[external_def]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ conj_asm1_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[repfns_def, PULL_EXISTS]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[repfns_def, PULL_EXISTS]
-    \\ qho_match_abbrev_tac`(∀q. is_repfn p2 q ⇒ ∃q'. P q q') ∧ _`
+    \\ qho_match_abbrev_tac`(∀e q. is_repfn p2 q ∧ e ∈ c2.env ⇒
+          ∃q'. P q q' ∧ f.map.map_env e ∈ c1.env ) ∧ _ ∧ _`
     \\ `∀q. is_repfn p2 q ⇒ P q (restrict (g.map.map_agent o q o i1) p1)`
     by (
       rpt strip_tac
@@ -1664,23 +1774,29 @@ Proof
       \\ simp[]
       \\ IF_CASES_TAC \\ simp[]
       \\ metis_tac[] )
-    \\ conj_tac >- metis_tac[]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
-    \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
     \\ simp[repfns_def, PULL_EXISTS]
-    \\ simp[cf_external_def, mk_cf_def]
+    \\ simp[cf_external_mod_def, mk_cf_def]
     \\ rpt gen_tac \\ strip_tac
     \\ simp[repfns_def, PULL_EXISTS]
-    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
     \\ pop_assum kall_tac
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ pop_assum kall_tac
     \\ first_x_assum drule
-    \\ simp[Abbr`P`] \\ strip_tac
-    \\ qunabbrev_tac`k`
+    \\ simp[Abbr`P`]
+    \\ disch_then kall_tac
+    \\ qunabbrev_tac`j`
     \\ simp[restrict_def]
     \\ reverse IF_CASES_TAC >- metis_tac[]
     \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`f :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ fs[homotopic_id_map_agent_id, restrict_def]
     \\ `q (i1 x) ∈ c2.agent` suffices_by
     metis_tac[maps_to_in_chu, is_chu_morphism_def]
     \\ `q (i1 x) ∈ i1 x` by metis_tac[is_repfn_def]
@@ -1688,52 +1804,122 @@ Proof
     \\ ntac 2 (pop_assum mp_tac)
     \\ simp_tac(srw_ss())[Abbr`p2`, fn_partition_def, PULL_EXISTS]
     \\ rpt strip_tac \\ fs[fn_part_def] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, Abbr`j`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[external_mod_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ qho_match_abbrev_tac`(∀e q. is_repfn p1 q ∧ e ∈ c1.env ⇒
+          ∃q'. P q q' ∧ g.map.map_env e ∈ c2.env ) ∧ _ ∧ _`
+    \\ `∀q. is_repfn p1 q ⇒ P q (restrict (f.map.map_agent o q o i2) p2)`
+    by (
+      rpt strip_tac
+      \\ simp[Abbr`P`]
+      \\ AP_TERM_TAC
+      \\ simp[FUN_EQ_THM, restrict_def]
+      \\ gen_tac
+      \\ IF_CASES_TAC \\ simp[]
+      \\ pop_assum strip_assume_tac
+      \\ simp[]
+      \\ IF_CASES_TAC \\ simp[]
+      \\ metis_tac[] )
+    \\ conj_tac >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ simp[cf_external_mod_def, mk_cf_def]
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ pop_assum kall_tac
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ pop_assum kall_tac
+    \\ first_x_assum drule
+    \\ simp[Abbr`P`]
+    \\ disch_then kall_tac
+    \\ qunabbrev_tac`k`
+    \\ simp[restrict_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+    \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
+    \\ fs[homotopic_id_map_agent_id, restrict_def]
+    \\ `q (i2 x) ∈ c1.agent` suffices_by
+    metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ `q (i2 x) ∈ i2 x` by metis_tac[is_repfn_def]
+    \\ `i2 x ∈ p1` by metis_tac[]
+    \\ ntac 2 (pop_assum mp_tac)
+    \\ simp_tac(srw_ss())[Abbr`p1`, fn_partition_def, PULL_EXISTS]
+    \\ rpt strip_tac \\ fs[fn_part_def] )
   \\ qpat_assum`k :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
   \\ disch_then(qpat_assum`j :- _ → _ -: _` o mp_then Any strip_assume_tac)
   \\ qpat_assum`j :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
   \\ disch_then(qpat_assum`k :- _ → _ -: _` o mp_then Any strip_assume_tac)
-  \\ simp[homotopic_id_map_env_id]
+  \\ simp[homotopic_id_map_agent_id]
   \\ simp[restrict_def]
   \\ ntac 6 (pop_assum kall_tac)
   \\ simp[Abbr`j`, Abbr`k`, mk_chu_morphism_def, restrict_def]
-  \\ simp[external_def]
-  \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[external_mod_def]
+  \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
   \\ simp[Once CONJ_COMM]
-  \\ simp[Once cf_external_def, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[Once cf_external_mod_def, PULL_EXISTS, EXISTS_PROD]
   \\ conj_tac
   >- (
     rpt gen_tac \\ strip_tac
     \\ reverse IF_CASES_TAC
-    >- (
-      `F` suffices_by rw[]
-      \\ pop_assum mp_tac
-      \\ simp[cf_external_def]
-      \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+    >- ( `F` suffices_by rw[] \\ pop_assum mp_tac \\ simp[cf_external_mod_def])
     \\ `i1 (i2 x) = x` by (fs[restrict_def] \\ metis_tac[])
-    \\ simp[]
-    \\ simp[cf_external_def, mk_cf_def]
-    \\ irule EQ_SYM
-    \\ reverse IF_CASES_TAC >- metis_tac[]
-    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
-    \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
-    \\ disch_then(qpat_assum`f :- _ → _ -: _` o mp_then Any strip_assume_tac)
-    \\ fs[homotopic_id_map_env_id, restrict_def] )
+    \\ simp[])
   \\ rpt gen_tac \\ strip_tac
   \\ reverse IF_CASES_TAC
-  >- (
-    `F` suffices_by rw[]
-    \\ pop_assum mp_tac
-    \\ simp[cf_external_def]
-    \\ metis_tac[maps_to_in_chu, is_chu_morphism_def] )
+  >- ( `F` suffices_by rw[] \\ pop_assum mp_tac \\ simp[cf_external_mod_def])
   \\ `i2 (i1 x) = x` by (fs[restrict_def] \\ metis_tac[])
   \\ simp[]
-  \\ simp[cf_external_def, mk_cf_def]
-  \\ irule EQ_SYM
-  \\ reverse IF_CASES_TAC >- metis_tac[]
-  \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
-  \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
-  \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
-  \\ fs[homotopic_id_map_env_id, restrict_def]
+QED
+
+Theorem homotopy_equiv_external:
+  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  external v c1 ≃ external v c2 -: w
+Proof
+  metis_tac[homotopy_equiv_external_mod_both]
+QED
+
+Theorem homotopy_equiv_external_mod:
+  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  external_mod v c1 ≃ external_mod v c2 -: w
+Proof
+  metis_tac[homotopy_equiv_external_mod_both]
+QED
+
+Theorem homotopy_equiv_internal:
+  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  internal v c1 ≃ internal v c2 -: w
+Proof
+  strip_tac
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ DEP_ONCE_REWRITE_TAC[GSYM homotopy_equiv_swap]
+  \\ simp[swap_internal, Excl"homotopy_equiv_swap"]
+  \\ irule homotopy_equiv_external
+  \\ simp[]
+QED
+
+Theorem homotopy_equiv_internal_mod:
+  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  internal_mod v c1 ≃ internal_mod v c2 -: w
+Proof
+  strip_tac
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w` by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  \\ DEP_ONCE_REWRITE_TAC[GSYM homotopy_equiv_swap]
+  \\ simp[swap_internal_mod, Excl"homotopy_equiv_swap"]
+  \\ irule homotopy_equiv_external_mod
+  \\ simp[]
 QED
 
 val _ = export_theory();

@@ -1439,4 +1439,11 @@ Proof
   rw[lollipop_eq_par]
 QED
 
+Theorem lollipop_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ⇒
+  lollipop c d ∈ chu_objects w
+Proof
+  rw[lollipop_eq_par]
+QED
+
 val _ = export_theory();

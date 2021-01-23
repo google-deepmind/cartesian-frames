@@ -1922,5 +1922,98 @@ Proof
   \\ simp[]
 QED
 
-val _ = export_theory();
+Theorem commit_lollipop_cf1:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  commit s c ≅ lollipop (cf1 w s) c -: chu w
+Proof
+  strip_tac
+  \\ simp[Once iso_objs_sym]
+  \\ rw[iso_objs_thm]
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ qexists_tac`mk_chu_morphism (lollipop (cf1 w s) c) (commit s c)
+       <| map_agent := λm. (decode_morphism (cf1 w s) c m).map.map_agent "";
+          map_env := λe. encode_pair ("", e) |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[lollipop_def, commit_def, cf_commit_def, hom_def,
+            PULL_EXISTS, mk_cf_def]
+    \\ conj_asm1_tac
+    >- (
+      gen_tac \\ strip_tac
+      \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+      \\ fs[maps_to_in_chu, is_chu_morphism_def]
+      \\ rfs[cf1_def, mk_cf_def] \\ metis_tac[] )
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[]
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ simp[]
+    \\ fs[maps_to_in_chu, is_chu_morphism_def] )
+  \\ simp[chu_iso_bij, CONJ_ASSOC]
+  \\ fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ gs[mk_chu_morphism_def, restrict_def]
+  \\ reverse conj_tac
+  >- (
+    simp[BIJ_IFF_INV, PULL_EXISTS]
+    \\ gs[lollipop_def, commit_def, cf_commit_def, mk_cf_def,
+          PULL_EXISTS, EXISTS_PROD]
+    \\ qexists_tac`SND o decode_pair` \\ simp[] )
+  \\ simp[BIJ_DEF]
+  \\ simp[INJ_DEF]
+  \\ simp[Once lollipop_def, PULL_EXISTS]
+  \\ simp[Once lollipop_def, PULL_EXISTS]
+  \\ conj_tac
+  >- (
+    rpt gen_tac
+    \\ simp[hom_def]
+    \\ strip_tac
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ simp[] \\ strip_tac
+    \\ AP_TERM_TAC
+    \\ simp[morphism_component_equality]
+    \\ fs[maps_to_in_chu]
+    \\ simp[chu_morphism_map_component_equality, FUN_EQ_THM]
+    \\ fs[is_chu_morphism_def]
+    \\ fs[extensional_def]
+    \\ conj_tac >- metis_tac[]
+    \\ qx_gen_tac`e`
+    \\ reverse(Cases_on`e ∈ c.env`) >- metis_tac[]
+    \\ gs[cf1_def, mk_cf_def] )
+  \\ simp[SURJ_DEF]
+  \\ gs[commit_def, cf_commit_def, mk_cf_def, PULL_EXISTS]
+  \\ rpt strip_tac
+  \\ simp[lollipop_def, PULL_EXISTS, hom_def]
+  \\ qexists_tac`mk_chu_morphism (cf1 w s) c <| map_agent := K x; map_env := λb. c.eval x b |>`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[cf1_def, mk_cf_def] )
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ simp[]
+  \\ simp[mk_chu_morphism_def]
+  \\ rw[restrict_def]
+QED
 
+Theorem assume_tensor_cf1:
+  c ∈ chu_objects w ∧ s ⊆ w ⇒
+  assume s c ≅ tensor (cf1 w s) c -: chu w
+Proof
+  strip_tac
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ irule iso_objs_trans \\ simp[]
+  \\ qexists_tac`swap (commit s (swap c))`
+  \\ simp[Once swap_commit]
+  \\ irule iso_objs_trans \\ simp[]
+  \\ qexists_tac`swap (lollipop (cf1 w s) (swap c))`
+  \\ conj_tac >- simp[commit_lollipop_cf1]
+  \\ simp[lollipop_eq_par]
+  \\ simp[GSYM swap_tensor_par]
+QED
+
+val _ = export_theory();

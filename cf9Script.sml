@@ -1107,6 +1107,47 @@ Proof
   \\ gvs[fn_part_def]
 QED
 
+Theorem is_repfn_fn_partition:
+  (is_repfn (fn_partition a e f v) q ⇔
+   (extensional q (fn_partition a e f v)) ∧
+   (IMAGE q (fn_partition a e f v) ⊆ a) ∧
+   (∀x. x ∈ fn_partition a e f v ⇒ fn_part a e f v (q x) = x))
+Proof
+  rw[is_repfn_def]
+  \\ Cases_on`extensional q (fn_partition a e f v)` \\ rw[]
+  \\ eq_tac \\ strip_tac
+  >- (
+    simp[SUBSET_DEF, PULL_EXISTS]
+    \\ rw[]
+    \\ first_x_assum drule
+    \\ fs[fn_partition_def]
+    \\ qmatch_goalsub_abbrev_tac`qq ∈ _`
+    \\ simp[Once fn_part_def]
+    \\ strip_tac
+    \\ simp[fn_part_def] )
+  \\ rpt strip_tac
+  \\ `q x ∈ fn_part a e f v (q x)` suffices_by metis_tac[]
+  \\ simp_tac (srw_ss()) [fn_part_def]
+  \\ fs[SUBSET_DEF, PULL_EXISTS]
+QED
+
+Theorem FINITE_fn_partition:
+  FINITE a ⇒
+  FINITE (fn_partition a e f v) ∧
+  EVERY_FINITE (fn_partition a e f v)
+Proof
+  rw[fn_partition_def]
+  >- (
+    qmatch_goalsub_abbrev_tac`FINITE s`
+    \\ `s = IMAGE (fn_part a e f v) a`
+    by ( rw[Abbr`s`, EXTENSION] )
+    \\ rw[] )
+  \\ rw[fn_part_def]
+  \\ irule SUBSET_FINITE
+  \\ qexists_tac`a`
+  \\ simp[SUBSET_DEF]
+QED
+
 Definition external_def:
   external v c = cf_external (fn_partition c.agent c.env c.eval v) c
 End
@@ -1366,47 +1407,6 @@ Proof
   \\ simp[]
   \\ irule homotopy_equiv_commit_diff
   \\ simp[]
-QED
-
-Theorem is_repfn_fn_partition:
-  (is_repfn (fn_partition a e f v) q ⇔
-   (extensional q (fn_partition a e f v)) ∧
-   (IMAGE q (fn_partition a e f v) ⊆ a) ∧
-   (∀x. x ∈ fn_partition a e f v ⇒ fn_part a e f v (q x) = x))
-Proof
-  rw[is_repfn_def]
-  \\ Cases_on`extensional q (fn_partition a e f v)` \\ rw[]
-  \\ eq_tac \\ strip_tac
-  >- (
-    simp[SUBSET_DEF, PULL_EXISTS]
-    \\ rw[]
-    \\ first_x_assum drule
-    \\ fs[fn_partition_def]
-    \\ qmatch_goalsub_abbrev_tac`qq ∈ _`
-    \\ simp[Once fn_part_def]
-    \\ strip_tac
-    \\ simp[fn_part_def] )
-  \\ rpt strip_tac
-  \\ `q x ∈ fn_part a e f v (q x)` suffices_by metis_tac[]
-  \\ simp_tac (srw_ss()) [fn_part_def]
-  \\ fs[SUBSET_DEF, PULL_EXISTS]
-QED
-
-Theorem FINITE_fn_partition:
-  FINITE a ⇒
-  FINITE (fn_partition a e f v) ∧
-  EVERY_FINITE (fn_partition a e f v)
-Proof
-  rw[fn_partition_def]
-  >- (
-    qmatch_goalsub_abbrev_tac`FINITE s`
-    \\ `s = IMAGE (fn_part a e f v) a`
-    by ( rw[Abbr`s`, EXTENSION] )
-    \\ rw[] )
-  \\ rw[fn_part_def]
-  \\ irule SUBSET_FINITE
-  \\ qexists_tac`a`
-  \\ simp[SUBSET_DEF]
 QED
 
 Theorem homotopy_equiv_external_mod_both[local]:
@@ -2127,6 +2127,124 @@ Theorem assume_diff_idem:
 Proof
   metis_tac[in_chu_objects, exists_not_in_assume_diff_eq,
             assume_diff_exists_not_in, assume_diff_in_chu_objects]
+QED
+
+Theorem external_equal_parts:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  (external v c).agent ≠ ∅ ∧
+  (∀a1 a2 e.
+    a1 ∈ (external v c).agent ∧
+    a2 ∈ (external v c).agent ∧
+    e ∈ (external v c).env
+    ⇒
+    (@w. w ∈ v ∧ ((external v c).eval a1 e) ∈ w) =
+    (@w. w ∈ v ∧ ((external v c).eval a2 e) ∈ w))
+Proof
+  rw[external_def, cf_external_def, EXISTS_PROD]
+  >- (
+    rw[repfns_def, GSYM MEMBER_NOT_EMPTY]
+    \\ rw[is_repfn_fn_partition]
+    \\ rw[fn_partition_def, PULL_EXISTS]
+    \\ qmatch_goalsub_abbrev_tac`extensional _ s`
+    \\ qexists_tac`restrict (λp. @x. x ∈ c.agent ∧ p = fn_part c.agent c.env c.eval v x) s`
+    \\ simp[]
+    \\ simp[SUBSET_DEF, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[Abbr`s`, PULL_EXISTS]
+    \\ metis_tac[] )
+  \\ simp[mk_cf_def]
+  \\ IF_CASES_TAC \\ simp[]
+  \\ pop_assum kall_tac
+  \\ qmatch_assum_rename_tac`e ∈ c.env`
+  \\ fs[repfns_def]
+  \\ DEP_REWRITE_TAC[decode_encode_function]
+  \\ `FINITE c.agent` by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+  \\ simp[FINITE_fn_partition]
+  \\ simp[restrict_def]
+  \\ imp_res_tac FINITE_fn_partition
+  \\ fs[is_repfn_def]
+  \\ IF_CASES_TAC \\ simp[]
+  \\ pop_assum kall_tac
+  \\ qpat_x_assum`a1 = _`kall_tac
+  \\ qpat_x_assum`a2 = _`kall_tac
+  \\ fs[partitions_thm, EXISTS_UNIQUE_ALT]
+  \\ `q x ∈ x ∧ q' x ∈ x` by metis_tac[]
+  \\ `∃a. a ∈ c.agent ∧ x = fn_part c.agent c.env c.eval v a`
+  by (fs[fn_partition_def] \\ metis_tac[])
+  \\ qmatch_assum_abbrev_tac`q2 ∈ x`
+  \\ qpat_x_assum`q2 ∈ _`mp_tac
+  \\ qmatch_assum_abbrev_tac`q1 ∈ x`
+  \\ strip_tac
+  \\ BasicProvers.VAR_EQ_TAC
+  \\ fs[fn_part_def]
+QED
+
+Theorem equal_parts_external_iso:
+  c ∈ chu_objects w ∧ partitions v w ∧
+  c.agent ≠ ∅ ∧
+  (∀a1 a2 e.
+    a1 ∈ c.agent ∧ a2 ∈ c.agent ∧ e ∈ c.env ⇒
+    (@w. w ∈ v ∧ (c.eval a1 e) ∈ w) =
+    (@w. w ∈ v ∧ (c.eval a2 e) ∈ w))
+  ⇒ external v c ≅ c -: chu w
+Proof
+  strip_tac
+  \\ simp[external_def]
+  \\ qmatch_goalsub_abbrev_tac`cf_external b`
+  \\ `b = {c.agent}`
+  by (
+    simp[Abbr`b`, fn_partition_def]
+    \\ simp[Once SET_EQ_SUBSET, SUBSET_DEF, PULL_EXISTS]
+    \\ fs[GSYM MEMBER_NOT_EMPTY]
+    \\ qexists_tac`x` \\ simp[]
+    \\ conj_asm1_tac
+    >- (
+      qx_gen_tac`a` \\ strip_tac
+      \\ simp[fn_part_def]
+      \\ simp[Once EXTENSION]
+      \\ qx_gen_tac`a2`
+      \\ Cases_on`a2 ∈ c.agent` \\ simp[] )
+    \\ metis_tac[] )
+  \\ `partitions b c.agent`
+  by (
+    simp[partitions_thm, EXISTS_UNIQUE_ALT]
+    \\ metis_tac[] )
+  \\ `FINITE c.agent` by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+  \\ simp[iso_objs_thm]
+  \\ qexists_tac`mk_chu_morphism (cf_external b c) c <|
+       map_agent := λq. decode_function q (encode_set c.agent);
+       map_env := λe. encode_pair (encode_set c.agent, e) |>`
+  \\ conj_asm1_tac
+  >- (
+    gs[maps_to_in_chu]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[cf_external_def, mk_cf_def]
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ simp[restrict_def]
+    \\ simp[is_repfn_def] )
+  \\ simp[chu_iso_bij]
+  \\ gs[maps_to_in_chu]
+  \\ simp[mk_chu_morphism_def]
+  \\ simp[cf_external_def, repfns_def]
+  \\ simp[BIJ_DEF, INJ_DEF, SURJ_DEF, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[restrict_def]
+  \\ simp[is_repfn_def]
+  \\ simp[extensional_def, PULL_EXISTS]
+  \\ rw[]
+  \\ qexists_tac`λs. if s = c.agent then x else ARB`
+  \\ rw[]
+QED
+
+Theorem external_idem:
+  c ∈ chu_objects w ∧ partitions v w ⇒
+  external v (external v c) ≅ external v c -: chu w
+Proof
+  strip_tac
+  \\ irule equal_parts_external_iso
+  \\ drule external_equal_parts
+  \\ disch_then drule
+  \\ strip_tac \\ simp[]
 QED
 
 val _ = export_theory();

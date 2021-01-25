@@ -1244,6 +1244,15 @@ Proof
   rw[GSYM swap_sum_prod, sum_comm]
 QED
 
+Theorem prod_assoc:
+  c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧ c3 ∈ chu_objects w ⇒
+  prod c1 (prod c2 c3) ≅ prod (prod c1 c2) c3 -: chu w
+Proof
+  rw[GSYM swap_sum_prod]
+  \\ irule sum_assoc
+  \\ simp[]
+QED
+
 (* Scott proves this in the next post (i.e. our cf2Theory).
    We prove here since we'll sometimes prove isomorphism instead of equality in
    cf1 examples (ex1Theory). *)

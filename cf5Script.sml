@@ -425,8 +425,7 @@ Theorem homotopy_equiv_subagent:
 Proof
   simp[subagent_currying, currying_subagent_def]
   \\ strip_tac
-  \\ conj_asm1_tac >- (fs[homotopy_equiv_def, maps_to_in_chu])
-  \\ conj_asm1_tac >- (fs[homotopy_equiv_def, maps_to_in_chu])
+  \\ imp_res_tac homotopy_equiv_in_chu_objects \\ simp[]
   \\ qexists_tac`swap (cf1 c2.agent c2.agent)`
   \\ `FINITE c2.agent` by (fs[chu_objects_def] \\ metis_tac[wf_def, finite_cf_def])
   \\ simp[]

@@ -200,6 +200,14 @@ val _ = add_rule {
   block_style = (AroundEachPhrase, (PP.INCONSISTENT, 0))
 };
 
+Theorem homotopy_equiv_in_chu_objects[simp]:
+  c ≃ d -: w ⇒
+  c ∈ chu_objects w ∧
+  d ∈ chu_objects w
+Proof
+  metis_tac[homotopy_equiv_def, maps_to_in_chu]
+QED
+
 Theorem homotopy_equiv_refl[simp]:
   c ∈ chu_objects w ⇒ c ≃ c -: w
 Proof

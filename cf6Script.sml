@@ -1074,12 +1074,8 @@ Theorem homotopy_equiv_tensor:
   c1 ≃ c2 -: w ∧ d1 ≃ d2 -: w ⇒
   tensor c1 d1 ≃ tensor c2 d2 -: w
 Proof
-  strip_tac
-  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ∧
-      d1 ∈ chu_objects w ∧ d2 ∈ chu_objects w`
-      by fs[homotopy_equiv_def, maps_to_in_chu]
-  \\ PROVE_TAC[homotopy_equiv_trans, tensor_comm,
-               iso_homotopy_equiv, homotopy_equiv_tensor_right]
+  PROVE_TAC[homotopy_equiv_trans, tensor_comm, homotopy_equiv_in_chu_objects,
+            iso_homotopy_equiv, homotopy_equiv_tensor_right]
 QED
 
 Theorem tensor_distrib:
@@ -1390,8 +1386,8 @@ Proof
   rw[GSYM swap_tensor_par]
   \\ DEP_REWRITE_TAC[homotopy_equiv_swap]
   \\ DEP_REWRITE_TAC[tensor_in_chu_objects]
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
   \\ simp[]
-  \\ conj_asm1_tac >- fs[homotopy_equiv_def, maps_to_in_chu]
   \\ irule homotopy_equiv_tensor
   \\ simp[]
 QED

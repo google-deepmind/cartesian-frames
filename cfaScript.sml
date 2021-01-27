@@ -742,7 +742,7 @@ Definition obs_part_assuming_def:
           (MAP (flip assume c) (SET_TO_LIST v)) -: c.world }
 End
 
-Theorem obs_part_assuming_imp_additive:
+Theorem obs_part_assuming_imp_additive[local]:
   obs_part_assuming c ⊆ obs_part_additive c
 Proof
   rw[SUBSET_DEF, obs_part_additive_def, obs_part_assuming_def]
@@ -756,69 +756,82 @@ Proof
   \\ fs[partitions_thm]
 QED
 
-Theorem obs_part_assuming_imp:
-  obs_part_assuming c ⊆ obs_part c
+Theorem obs_part_additive_imp[local]:
+  obs_part_additive c ⊆ obs_part c
 Proof
-  rw[SUBSET_DEF, obs_part_assuming_def, obs_part_def]
-  \\ `c ∈ chu_objects c.world` by metis_tac[homotopy_equiv_def, maps_to_in_chu]
+  rw[SUBSET_DEF, obs_part_additive_def, obs_part_def]
+  \\ qmatch_assum_abbrev_tac`partitions _ w`
+  \\ qmatch_assum_rename_tac`partitions v w`
+  \\ `c ∈ chu_objects w` by imp_res_tac homotopy_equiv_in_chu_objects
   \\ imp_res_tac in_chu_objects_finite_world
-  \\ imp_res_tac partitions_FINITE
-  \\ qmatch_assum_abbrev_tac`partitions x w`
+  \\ drule partitions_FINITE
+  \\ simp[] \\ strip_tac
+  \\ `MEM s (SET_TO_LIST v)` by simp[]
+  \\ fs[MEM_EL]
+  \\ qmatch_assum_abbrev_tac`n < LENGTH ss`
+  \\ qabbrev_tac `tf = λi. if i = n then LENGTH ss - 1
+                           else if i = LENGTH ss - 1 then n
+                           else i`
+  \\ `tf PERMUTES (count (LENGTH ss))`
+  by (
+    simp[BIJ_IFF_INV]
+    \\ conj_tac >- simp[Abbr`tf`]
+    \\ qexists_tac`tf` \\ simp[Abbr`tf`] )
+  \\ `PERM ss (GENLIST (λi. EL (tf i) ss) (LENGTH ss))`
+  by metis_tac[PERM_BIJ_IFF]
+  \\ qmatch_assum_abbrev_tac`PERM ss ss0`
+  \\ `c ≃ FOLDL prod (cfT w) (MAP f ss0) -: w`
+  by (
+    irule homotopy_equiv_trans
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule FOLDL_PERM_equiv
+    \\ simp[EVERY_MAP, EVERY_MEM, PERM_MAP]
+    \\ simp[Abbr`ss`] \\ fs[EVERY_MEM]
+    \\ metis_tac[subagent_def])
   \\ DEP_REWRITE_TAC[obs_homotopy_equiv_prod_subagent]
-  \\ simp[]
-  \\ conj_asm1_tac >- fs[partitions_thm]
-  \\ qexists_tac`assume s c`
-  \\ simp[assume_subagent_cfbot]
-  \\ `x = s INSERT (x DELETE s)` by metis_tac[INSERT_DELETE]
-  \\ qmatch_assum_abbrev_tac`x = s INSERT y`
-  \\ `PERM (SET_TO_LIST x) (s :: SET_TO_LIST y)`
-  by metis_tac[PERM_SET_TO_LIST_INSERT, FINITE_DELETE, IN_DELETE]
-  \\ qspec_then`flip assume c`drule PERM_MAP
-  \\ disch_then(qspec_then`c`mp_tac)
-  \\ simp_tac std_ss [MAP] \\ strip_tac
-  \\ qmatch_asmsub_abbrev_tac`FOLDL prod e l1`
-  \\ qmatch_assum_abbrev_tac`PERM l1 l2`
-  \\ `FOLDL prod e l1 ≅ FOLDL prod e l2 -: chu w`
+  \\ `∃sr. ss0 = SNOC s sr`
   by (
-    irule FOLDL_PERM_iso
-    \\ simp[Abbr`e`]
-    \\ simp[Abbr`l1`, EVERY_MAP] )
-  \\ `FOLDL prod e l2 ≅ FOLDR prod e l2 -: chu w`
+    qspec_then`ss0`FULL_STRUCT_CASES_TAC SNOC_CASES \\ fs[]
+    \\ imp_res_tac PERM_LENGTH \\ fs[]
+    \\ fs[GENLIST, Abbr`tf`] )
+  \\ pop_assum SUBST_ALL_TAC
+  \\ fs[FOLDL_SNOC, MAP_SNOC]
+  \\ qmatch_assum_abbrev_tac`c ≃ c2 && c1 -: w`
+  \\ `c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w`
   by (
-    irule FOLDL_iso_FOLDR
-    \\ simp[Abbr`e`]
-    \\ irule EVERY2_refl
-    \\ simp[Abbr`l2`, MEM_MAP, PULL_EXISTS, Abbr`y`]
-    \\ rw[] \\ rw[] )
-  \\ `c ≃ FOLDR prod e l2 -: w`
-  by metis_tac[homotopy_equiv_trans, iso_homotopy_equiv]
-  \\ fs[Abbr`l2`]
+    simp[Abbr`c1`, Abbr`c2`]
+    \\ fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+    \\ conj_tac >- metis_tac[subagent_def]
+    \\ irule FOLDL_prod_in_chu_objects
+    \\ simp[EVERY_MAP, EVERY_MEM, MEM_EL, PULL_EXISTS]
+    \\ metis_tac[subagent_def, MEM_EL, MEM_PERM, MEM_SNOC])
+  \\ `c ≃ c1 && c2 -:w`
+  by metis_tac[homotopy_equiv_trans, iso_homotopy_equiv, prod_comm]
+  \\ conj_tac >- metis_tac[partitions_thm]
   \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+  \\ conj_tac >- metis_tac[]
   \\ DEP_REWRITE_TAC[subagent_cfbot_image]
-  \\ qmatch_goalsub_abbrev_tac`FOLDR prod e ls`
-  \\ `FOLDR prod e ls ≅ FOLDL prod e ls -: chu w`
-  by (
-    simp[Once iso_objs_sym]
-    \\ irule FOLDL_iso_FOLDR
-    \\ simp[Abbr`e`]
-    \\ irule EVERY2_refl
-    \\ simp[Abbr`ls`, MEM_MAP, PULL_EXISTS, Abbr`y`] )
-  \\ simp[]
-  \\ conj_tac >- metis_tac[is_category_chu, iso_objs_thm, maps_to_in_chu]
-  \\ drule image_iso
-  \\ simp[] \\ disch_then kall_tac
-  \\ simp[image_FOLDL_prod]
-  \\ IF_CASES_TAC \\ simp[]
-  \\ simp[Abbr`e`]
-  \\ simp[Abbr`ls`, SUBSET_DEF, PULL_EXISTS, MEM_MAP, Abbr`y`]
-  \\ qx_genl_tac[`v`,`t`]
-  \\ strip_tac
-  \\ `v ∈ image c INTER t` by metis_tac[image_assume_SUBSET, SUBSET_DEF]
-  \\ fs[partitions_thm, SUBSET_DEF, EXISTS_UNIQUE_ALT]
-  \\ metis_tac[]
+  \\ fs[Abbr`c2`]
+  \\ simp[image_FOLDL_prod] \\ rw[]
+  \\ simp[SUBSET_DEF, PULL_EXISTS, MEM_MAP]
+  \\ simp[image_def, PULL_EXISTS]
+  \\ `ALL_DISTINCT ss` by simp[Abbr`ss`]
+  \\ imp_res_tac ALL_DISTINCT_PERM
+  \\ imp_res_tac ALL_DISTINCT_SNOC
+  \\ rpt gen_tac \\ strip_tac
+  \\ qmatch_assum_rename_tac`MEM s1 sr`
+  \\ `MEM s1 ss` by metis_tac[MEM_PERM, MEM_SNOC]
+  \\ `f s1 ∈ chu_objects w` by metis_tac[MEM_EL, subagent_def]
+  \\ conj_tac >- metis_tac[in_chu_objects, wf_def]
+  \\ `f s1 ◁ cfbot w s1 -: w` by metis_tac[MEM_EL]
+  \\ `s1 ⊆ w` by metis_tac[MEM_SET_TO_LIST, partitions_thm]
+  \\ `image (f s1) ⊆ s1` by metis_tac[subagent_cfbot_image]
+  \\ fs[image_def, SUBSET_DEF, PULL_EXISTS]
+  \\ metis_tac[partitions_DISJOINT, IN_DISJOINT, MEM_SET_TO_LIST, MEM_EL]
 QED
 
-Theorem obs_part_imp_assuming:
+Theorem obs_part_imp_assuming[local]:
   c ∈ chu_objects w ∧ w ≠ ∅ ⇒
   obs_part c ⊆ obs_part_assuming c
 Proof
@@ -1316,6 +1329,26 @@ Proof
   \\ metis_tac[BIJ_LINV_BIJ, BIJ_LINV_THM, BIJ_DEF, INJ_DEF]
 QED
 
+Theorem obs_part_assuming:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_assuming c
+Proof
+  metis_tac[obs_part_imp_assuming,
+            obs_part_assuming_imp_additive,
+            obs_part_additive_imp,
+            SET_EQ_SUBSET, SUBSET_TRANS]
+QED
+
+Theorem obs_part_additive:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_additive c
+Proof
+  metis_tac[obs_part_imp_assuming,
+            obs_part_assuming_imp_additive,
+            obs_part_additive_imp,
+            SET_EQ_SUBSET, SUBSET_TRANS]
+QED
+
 (* TODO: additive definitions example *)
 
 Definition powerless_outside_def:
@@ -1418,38 +1451,26 @@ Proof
   \\ gs[assume_def, cf_assume_def, mk_cf_def]
 QED
 
+Theorem homotopy_equiv_obs_part_additive:
+  c1 ≃ c2 -: w ⇒ obs_part_additive c1 = obs_part_additive c2
+Proof
+  `∀c1 c2. c1 ≃ c2 -: w ⇒ obs_part_additive c1  ⊆ obs_part_additive c2`
+  suffices_by metis_tac[SET_EQ_SUBSET, homotopy_equiv_sym]
+  \\ rpt strip_tac
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ imp_res_tac in_chu_objects
+  \\ simp[obs_part_additive_def, SUBSET_DEF, PULL_EXISTS]
+  \\ qx_genl_tac[`v`,`f`] \\ strip_tac
+  \\ metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
+QED
+
 Theorem homotopy_equiv_obs_part:
   w ≠ ∅ ∧ c1 ≃ c2 -: w ⇒ obs_part c1 = obs_part c2
 Proof
   strip_tac
-  \\ pop_assum mp_tac
-  \\ `∀c1 c2. c1 ≃ c2 -: w ⇒ obs_part c1  ⊆ obs_part c2`
-  suffices_by metis_tac[SET_EQ_SUBSET, homotopy_equiv_sym]
-  \\ rpt strip_tac
   \\ imp_res_tac homotopy_equiv_in_chu_objects
-  \\ `obs_part_assuming c1 ⊆ obs_part_assuming c2`
-  suffices_by metis_tac[obs_part_assuming_imp, obs_part_imp_assuming, SET_EQ_SUBSET]
-  \\ simp[obs_part_assuming_def, SUBSET_DEF]
-  \\ imp_res_tac in_chu_objects
-  \\ imp_res_tac in_chu_objects_finite_world
-  \\ ntac 2 strip_tac \\ gs[]
-  \\ irule homotopy_equiv_trans
-  \\ simp[Once homotopy_equiv_sym]
-  \\ goal_assum(first_assum o mp_then Any mp_tac)
-  \\ irule homotopy_equiv_trans
-  \\ goal_assum(first_assum o mp_then Any mp_tac)
-  \\ `∀s. MEM s (SET_TO_LIST x) ⇒ s ⊆ w`
-  by ( imp_res_tac partitions_FINITE \\ fs[partitions_thm] )
-  \\ pop_assum mp_tac
-  \\ qspec_tac(`SET_TO_LIST x`,`ls`)
-  \\ ho_match_mp_tac SNOC_INDUCT
-  \\ simp[MAP_SNOC, FOLDL_SNOC]
-  \\ rpt strip_tac
-  \\ irule homotopy_equiv_prod \\ fs[]
-  \\ imp_res_tac homotopy_equiv_in_chu_objects
-  \\ simp[]
-  \\ irule homotopy_equiv_assume
-  \\ simp[]
+  \\ imp_res_tac obs_part_additive
+  \\ metis_tac[homotopy_equiv_obs_part_additive]
 QED
 
 Theorem obs_part_multiplicative_imp:
@@ -1608,7 +1629,7 @@ Theorem obs_part_assuming_imp_mult_constructive:
 Proof
   simp[SUBSET_DEF]
   \\ qx_gen_tac`v` \\ strip_tac
-  \\ `v ∈ obs_part c` by metis_tac[obs_part_assuming_imp, SUBSET_DEF]
+  \\ `v ∈ obs_part c` by metis_tac[obs_part_assuming_imp_additive, obs_part_additive_imp, SUBSET_DEF]
   \\ fs[obs_part_assuming_def, obs_part_mult_constructive_def]
   \\ qmatch_assum_abbrev_tac`partitions v w`
   \\ irule homotopy_equiv_trans

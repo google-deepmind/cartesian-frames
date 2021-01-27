@@ -17,7 +17,7 @@ limitations under the License.
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory pred_setTheory listTheory rich_listTheory indexedListsTheory
   arithmeticTheory sortingTheory helperSetTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf5Theory cf9Theory
+  cf0Theory cf1Theory cf2Theory cf3Theory cf5Theory cf6Theory cf9Theory
 
 val _ = new_theory"cfa";
 
@@ -142,6 +142,24 @@ Theorem prod_cong_upto_iso[simp]:
   cong_upto_iso prod
 Proof
   metis_tac[cong_upto_iso_def, sum_cong_upto_iso, swap_sum_prod, swap_iso]
+QED
+
+Theorem tensor_assoc_upto_iso[simp]:
+  assoc_upto_iso tensor
+Proof
+  metis_tac[tensor_assoc, assoc_upto_iso_def]
+QED
+
+Theorem tensor_comm_upto_iso[simp]:
+  comm_upto_iso tensor
+Proof
+  metis_tac[tensor_comm, comm_upto_iso_def]
+QED
+
+Theorem tensor_cong_upto_iso[simp]:
+  cong_upto_iso tensor
+Proof
+  metis_tac[cong_upto_iso_def, iso_tensor]
 QED
 
 Theorem FOLDL_PERM_iso:
@@ -476,6 +494,17 @@ Proof
   \\ rw[]
 QED
 
+Theorem FOLDL_tensor_in_chu_objects[simp]:
+  c ∈ chu_objects w ∧
+  EVERY (λc. c ∈ chu_objects w) cs
+  ⇒
+  FOLDL tensor c cs ∈ chu_objects w
+Proof
+  qid_spec_tac`c`
+  \\ Induct_on`cs`
+  \\ rw[]
+QED
+
 Theorem image_cfT[simp]:
   image (cfT w) = ∅
 Proof
@@ -489,6 +518,18 @@ Proof
   \\ rw[]
   \\ metis_tac[]
 QED
+
+Theorem partitions_DISJOINT:
+  partitions v w ∧ s1 ∈ v ∧ s2 ∈ v ∧ s1 ≠ s2 ⇒
+  DISJOINT s1 s2
+Proof
+  rw[partitions_thm, IN_DISJOINT]
+  \\ fs[EXISTS_UNIQUE_ALT, SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
+Overload "⊗" = ``tensor``
+val _ = set_fixity "⊗" (Infix (LEFT, 500))
 
 (* -- *)
 
@@ -1276,5 +1317,397 @@ Proof
 QED
 
 (* TODO: additive definitions example *)
+
+Definition powerless_outside_def:
+  powerless_outside c s ⇔
+    ∀a e. a ∈ c.agent ∧ e ∈ c.env ∧ c.eval a e ∉ s ⇒
+      ∀a'. a' ∈ c.agent ⇒ c.eval a' e = c.eval a e
+End
+
+Theorem powerless_outside_superset:
+  powerless_outside c s ∧ s ⊆ t ⇒
+  powerless_outside c t
+Proof
+  rw[powerless_outside_def, SUBSET_DEF]
+  \\ metis_tac[]
+QED
+
+Theorem powerless_outside_tensor:
+  powerless_outside c s ∧ powerless_outside d s ⇒
+  powerless_outside (tensor c d) s
+Proof
+  rw[powerless_outside_def, tensor_def, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
+  \\ gs[hom_def]
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ qmatch_assum_abbrev_tac`b` \\ gs[]
+  \\ qpat_x_assum`_ ∉ _`mp_tac
+  \\ DEP_REWRITE_TAC[Q.GEN`w`decode_encode_chu_morphism]
+  \\ conj_tac >- metis_tac[] \\ strip_tac
+  \\ qpat_x_assum`b`kall_tac \\ qunabbrev_tac`b`
+  \\ qmatch_goalsub_rename_tac`c.eval a (m.map.map_env e) = c.eval b (_ f)`
+  \\ irule EQ_TRANS
+  \\ qexists_tac`c.eval a (m.map.map_env f)`
+  \\ reverse conj_tac
+  >- (
+    first_x_assum irule \\ simp[]
+    \\ fs[maps_to_in_chu, is_chu_morphism_def] )
+  \\ fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ first_x_assum irule \\ simp[]
+  \\ metis_tac[]
+QED
+
+Theorem powerless_outside_FOLDL_tensor:
+  EVERY (flip powerless_outside s) (c::ls) ⇒
+  powerless_outside (FOLDL tensor c ls) s
+Proof
+  qid_spec_tac`ls`
+  \\ ho_match_mp_tac SNOC_INDUCT
+  \\ rw[FOLDL_SNOC]
+  \\ irule powerless_outside_tensor
+  \\ fs[EVERY_SNOC]
+QED
+
+Theorem powerless_outside_cf1[simp]:
+  powerless_outside (cf1 x y) z
+Proof
+  rw[powerless_outside_def]
+QED
+
+Definition obs_part_multiplicative_def:
+  obs_part_multiplicative c = { v |
+    let w = c.world in
+      partitions v w ∧
+      ∃cs.
+        LIST_REL (λc s. c ∈ chu_objects w ∧ powerless_outside c s)
+          cs (SET_TO_LIST v) ∧
+        c ≃ FOLDL tensor (cf1 w w) cs -: w }
+End
+
+Definition obs_part_mult_constructive_def:
+  obs_part_mult_constructive c = { v |
+    let w = c.world in
+      partitions v w ∧
+      c ≃ FOLDL tensor (cf1 w w)
+        (MAP (λs. assume s c && cf1 w ((w DIFF s) INTER image c))
+             (SET_TO_LIST v)) -: w }
+End
+
+Theorem obs_part_mult_constructive_imp_multiplicative:
+  obs_part_mult_constructive c ⊆ obs_part_multiplicative c
+Proof
+  simp[SUBSET_DEF, obs_part_multiplicative_def, obs_part_mult_constructive_def]
+  \\ rpt strip_tac
+  \\ `c ∈ chu_objects c.world` by imp_res_tac homotopy_equiv_in_chu_objects
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ simp[LIST_REL_MAP1]
+  \\ irule EVERY2_refl
+  \\ imp_res_tac in_chu_objects
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ fs[]
+  \\ drule partitions_FINITE
+  \\ simp[] \\ strip_tac
+  \\ qx_gen_tac`s` \\ strip_tac
+  \\ conj_asm1_tac
+  >- (
+    irule prod_in_chu_objects \\ simp[]
+    \\ irule cf1_in_chu_objects
+    \\ simp[SUBSET_DEF] )
+  \\ simp[powerless_outside_def]
+  \\ simp[prod_def, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
+  \\ rpt gen_tac \\ strip_tac \\ gs[sum_eval_def]
+  \\ gs[assume_def, cf_assume_def, mk_cf_def]
+QED
+
+Theorem homotopy_equiv_obs_part:
+  w ≠ ∅ ∧ c1 ≃ c2 -: w ⇒ obs_part c1 = obs_part c2
+Proof
+  strip_tac
+  \\ pop_assum mp_tac
+  \\ `∀c1 c2. c1 ≃ c2 -: w ⇒ obs_part c1  ⊆ obs_part c2`
+  suffices_by metis_tac[SET_EQ_SUBSET, homotopy_equiv_sym]
+  \\ rpt strip_tac
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ `obs_part_assuming c1 ⊆ obs_part_assuming c2`
+  suffices_by metis_tac[obs_part_assuming_imp, obs_part_imp_assuming, SET_EQ_SUBSET]
+  \\ simp[obs_part_assuming_def, SUBSET_DEF]
+  \\ imp_res_tac in_chu_objects
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ ntac 2 strip_tac \\ gs[]
+  \\ irule homotopy_equiv_trans
+  \\ simp[Once homotopy_equiv_sym]
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ `∀s. MEM s (SET_TO_LIST x) ⇒ s ⊆ w`
+  by ( imp_res_tac partitions_FINITE \\ fs[partitions_thm] )
+  \\ pop_assum mp_tac
+  \\ qspec_tac(`SET_TO_LIST x`,`ls`)
+  \\ ho_match_mp_tac SNOC_INDUCT
+  \\ simp[MAP_SNOC, FOLDL_SNOC]
+  \\ rpt strip_tac
+  \\ irule homotopy_equiv_prod \\ fs[]
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ simp[]
+  \\ irule homotopy_equiv_assume
+  \\ simp[]
+QED
+
+Theorem obs_part_multiplicative_imp:
+  obs_part_multiplicative c ⊆ obs_part c
+Proof
+  rw[SUBSET_DEF, obs_part_multiplicative_def]
+  \\ qmatch_assum_abbrev_tac`c ≃ d -: w`
+  \\ Cases_on`w = ∅`
+  >- (
+    fs[partitions_thm]
+    \\ `x = ∅` by metis_tac[MEMBER_NOT_EMPTY]
+    \\ simp[obs_part_def, partitions_thm] )
+  \\ `x ∈ obs_part d` suffices_by metis_tac[homotopy_equiv_obs_part]
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ imp_res_tac partitions_FINITE
+  \\ imp_res_tac in_chu_objects
+  \\ simp[obs_part_def]
+  \\ rpt strip_tac
+  \\ `MEM s (SET_TO_LIST x)` by simp[]
+  \\ fs[MEM_EL]
+  \\ qmatch_assum_abbrev_tac`n < LENGTH ss`
+  \\ qabbrev_tac `tf = λi. if i = n then LENGTH ss - 1
+                           else if i = LENGTH ss - 1 then n
+                           else i`
+  \\ `tf PERMUTES (count (LENGTH ss))`
+  by (
+    simp[BIJ_IFF_INV]
+    \\ conj_tac >- simp[Abbr`tf`]
+    \\ qexists_tac`tf` \\ simp[Abbr`tf`] )
+  \\ `PERM ss (GENLIST (λi. EL (tf i) ss) (LENGTH ss))`
+  by metis_tac[PERM_BIJ_IFF]
+  \\ `LENGTH cs = LENGTH ss` by metis_tac[LIST_REL_LENGTH]
+  \\ `PERM cs (GENLIST (λi. EL (tf i) cs) (LENGTH cs))`
+  by metis_tac[PERM_BIJ_IFF]
+  \\ qmatch_assum_abbrev_tac`LIST_REL P cs ss`
+  \\ qmatch_assum_abbrev_tac`PERM ss ss0`
+  \\ qmatch_assum_abbrev_tac`PERM cs cc0`
+  \\ `LIST_REL P cc0 ss0`
+  by (
+    simp[Abbr`cc0`,Abbr`ss0`,LIST_REL_GENLIST]
+    \\ metis_tac[LIST_REL_EL_EQN, BIJ_DEF, INJ_DEF, IN_COUNT] )
+  \\ `d ≅ FOLDL tensor (cf1 w w) cc0 -: chu w`
+  by (
+    simp[Abbr`d`]
+    \\ irule FOLDL_PERM_iso
+    \\ simp[EVERY_MEM]
+    \\ rpt strip_tac
+    \\ imp_res_tac LIST_REL_MEM_IMP
+    \\ fs[Abbr`P`] )
+  \\ qmatch_assum_abbrev_tac`d ≅ d0 -: _`
+  \\ `LAST ss0 ∈ obs d0` suffices_by (
+    Cases_on `ss0 = []` >- fs[]
+    \\ simp[Abbr`ss0`, LAST_EL]
+    \\ `tf (PRE (LENGTH ss)) = n` by rw[Abbr`tf`]
+    \\ metis_tac[obs_homotopy_equiv, iso_homotopy_equiv] )
+  \\ `∃c0 cr s0 sr. cc0 = SNOC c0 cr ∧ ss0 = SNOC s0 sr`
+  by (metis_tac[SNOC_CASES, LENGTH, prim_recTheory.NOT_LESS_0, PERM_LENGTH])
+  \\ ntac 2 BasicProvers.VAR_EQ_TAC
+  \\ fs[FOLDL_SNOC, Excl"SNOC_APPEND"]
+  \\ qmatch_asmsub_abbrev_tac`d0 = tensor d1 c0`
+  \\ `d1 ∈ chu_objects w ∧ c0 ∈ chu_objects w`
+  by (
+    fs[LIST_REL_SNOC, Abbr`P`]
+    \\ simp[Abbr`d1`]
+    \\ irule FOLDL_tensor_in_chu_objects
+    \\ simp[EVERY_MEM]
+    \\ rpt strip_tac
+    \\ imp_res_tac LIST_REL_MEM_IMP
+    \\ fs[] )
+  \\ `s0 ∈ obs (tensor c0 d1)` suffices_by
+    metis_tac[tensor_comm, obs_homotopy_equiv, iso_homotopy_equiv]
+  \\ `MEM s0 ss` by metis_tac[MEM_SNOC, MEM_PERM]
+  \\ `powerless_outside d1 (w DIFF s0)`
+  by (
+    simp[Abbr`d1`]
+    \\ irule powerless_outside_FOLDL_tensor
+    \\ simp[EVERY_MEM]
+    \\ simp[MEM_EL, PULL_EXISTS]
+    \\ fs[LIST_REL_EL_EQN]
+    \\ qx_gen_tac`m` \\ strip_tac
+    \\ first_x_assum(qspec_then`m`mp_tac)
+    \\ simp[EL_SNOC, Abbr`P`] \\ strip_tac
+    \\ irule powerless_outside_superset
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ `MEM (EL m sr) ss ∧ EL m sr ≠ s0`
+    by (
+      `MEM (EL m sr) sr` by metis_tac[MEM_EL]
+      \\ `MEM (EL m sr) (SNOC s0 sr)` by metis_tac[MEM_SNOC]
+      \\ conj_asm1_tac >- metis_tac[MEM_PERM]
+      \\ `ALL_DISTINCT ss` by metis_tac[ALL_DISTINCT_SET_TO_LIST]
+      \\ `ALL_DISTINCT (SNOC s0 sr)` by metis_tac[ALL_DISTINCT_PERM]
+      \\ metis_tac[ALL_DISTINCT_SNOC] )
+    \\ rfs[Abbr`ss`]
+    \\ fs[partitions_thm]
+    \\ simp[SUBSET_DEF]
+    \\ ntac 2 strip_tac
+    \\ conj_tac >- metis_tac[SUBSET_DEF]
+    \\ PROVE_TAC[SUBSET_DEF, EXISTS_UNIQUE_ALT])
+  \\ `powerless_outside c0 s0` by fs[LIST_REL_SNOC, Abbr`P`]
+  \\ imp_res_tac in_chu_objects
+  \\ simp[obs_def]
+  \\ simp[Ntimes tensor_def 3, PULL_EXISTS, EXISTS_PROD]
+  \\ conj_asm1_tac
+  >- ( rfs[Abbr`ss`] \\ metis_tac[partitions_thm] )
+  \\ qx_genl_tac[`a1`,`b1`,`a2`,`b2`]
+  \\ strip_tac
+  \\ simp[ifs_def]
+  \\ qexists_tac`encode_pair (a1,b2)`
+  \\ simp[Once tensor_def, PULL_EXISTS]
+  \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+  \\ gen_tac \\ strip_tac
+  \\ simp[tensor_def, mk_cf_def, hom_def]
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ pop_assum kall_tac \\ simp[]
+  \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+  \\ simp[]
+  \\ fs[maps_to_in_chu, is_chu_morphism_def]
+  \\ fs[powerless_outside_def]
+  \\ metis_tac[]
+QED
+
+Theorem cex:
+  c ∈ chu_objects w ∧ (1 < CARD c.agent) ⇒
+  ¬ (assume (s1 ∪ s2) c ≅ assume s1 c && assume s2 c -: chu w)
+Proof
+  rw[iso_objs_thm, chu_iso_bij]
+  \\ qmatch_goalsub_abbrev_tac`¬m ∨ _`
+  \\ Cases_on`m = F` \\ simp[]
+  \\ disj2_tac
+  \\ fs[Abbr`m`]
+  \\ disj1_tac
+  \\ fs[maps_to_in_chu]
+  \\ strip_tac
+  \\ qmatch_assum_abbrev_tac`BIJ _ a1 a2`
+  \\ `CARD a1 = CARD a2`
+  by (
+    irule FINITE_BIJ_CARD
+    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+  \\ pop_assum mp_tac
+  \\ simp[Abbr`a1`, assume_def, cf_assume_def]
+  \\ simp[Abbr`a2`, prod_def]
+  \\ DEP_REWRITE_TAC[INJ_CARD_IMAGE_EQN]
+  \\ DEP_REWRITE_TAC[CARD_CROSS]
+  \\ conj_asm1_tac
+  >- metis_tac[assume_in_chu_objects,
+               in_chu_objects, wf_def, finite_cf_def]
+  \\ simp[INJ_DEF]
+  \\ simp[assume_def, cf_assume_def]
+  \\ `CARD c.agent < (CARD c.agent) ** 2` by simp[]
+  \\ simp[]
+QED
+
+Theorem obs_part_assuming_imp_mult_constructive:
+  obs_part_assuming c ⊆ obs_part_mult_constructive c
+Proof
+  simp[SUBSET_DEF]
+  \\ qx_gen_tac`v` \\ strip_tac
+  \\ `v ∈ obs_part c` by metis_tac[obs_part_assuming_imp, SUBSET_DEF]
+  \\ fs[obs_part_assuming_def, obs_part_mult_constructive_def]
+  \\ qmatch_assum_abbrev_tac`partitions v w`
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ `c ∈ chu_objects w` by imp_res_tac homotopy_equiv_in_chu_objects
+  \\ qmatch_goalsub_abbrev_tac`MAP _ ls`
+  \\ `ALL_DISTINCT ls ∧ ∀x. MEM x ls ⇔ x ∈ v` by (
+    imp_res_tac in_chu_objects_finite_world
+    \\ imp_res_tac partitions_FINITE
+    \\ simp[Abbr`ls`])
+  \\ qpat_x_assum`c ≃ _ -: _`kall_tac
+  \\ Cases_on`w = ∅`
+  >- (
+    imp_res_tac partitions_FINITE
+    \\ fs[partitions_thm, EXISTS_UNIQUE_ALT]
+    \\ `v = ∅` by metis_tac[MEMBER_NOT_EMPTY, MEM_SET_TO_LIST, MEM]
+    \\ fs[Abbr`ls`]
+    \\ `cfT w = cf1 w w` suffices_by simp[]
+    \\ simp[cfT_def, cf0_def, cf1_def, cf_component_equality,
+            mk_cf_def, swap_def, FUN_EQ_THM])
+  \\ ntac 3 (pop_assum mp_tac)
+  \\ rpt(qhdtm_x_assum`Abbrev`kall_tac)
+  \\ ntac 3 (pop_assum mp_tac)
+  \\ qid_spec_tac`v`
+  \\ Induct_on`LENGTH ls`
+  >- (
+    rw[]
+    \\ `v = ∅` by metis_tac[MEMBER_NOT_EMPTY, MEM_SET_TO_LIST, MEM]
+    \\ fs[partitions_thm, EXISTS_UNIQUE_ALT]
+    \\ metis_tac[MEMBER_NOT_EMPTY])
+  \\ qmatch_goalsub_rename_tac`SUC n`
+  \\ rpt strip_tac
+  \\ qspec_then`ls`FULL_STRUCT_CASES_TAC SNOC_CASES
+  >- gs[]
+  \\ qmatch_asmsub_rename_tac`SNOC s1 ls`
+  \\ qspec_then`ls`FULL_STRUCT_CASES_TAC SNOC_CASES
+  >- (
+    gs[]
+    \\ irule homotopy_equiv_trans
+    \\ `assume s1 c ∈ chu_objects w` by simp[]
+    \\ `s1 = w` by (
+      fs[partitions_thm, EXISTS_UNIQUE_ALT]
+      \\ metis_tac[MEMBER_NOT_EMPTY, SUBSET_DEF, EXTENSION] )
+    \\ pop_assum SUBST_ALL_TAC
+    \\ simp[cf1_empty]
+    \\ imp_res_tac in_chu_objects_finite_world
+    \\ `cfT w ∈ chu_objects w` by simp[]
+    \\ `cf1 w w ∈ chu_objects w` by simp[]
+    \\ metis_tac[tensor_cf1, prod_cfT, homotopy_equiv_trans,
+                 homotopy_equiv_sym, iso_homotopy_equiv,
+                 tensor_in_chu_objects, prod_in_chu_objects])
+  \\ qmatch_asmsub_rename_tac`SNOC s1 (SNOC s2 ls)`
+  \\ `s1 ∪ s2 INSERT v DELETE s1 DELETE s2 ∈ obs_part c`
+  by (
+    fs[obs_part_def]
+    \\ imp_res_tac in_chu_objects \\ fs[]
+    \\ reverse conj_tac >- metis_tac[obs_union]
+    \\ fs[partitions_thm]
+    \\ conj_tac >- (
+      fs[SUBSET_DEF] \\ metis_tac[IN_UNION, EMPTY_UNION] )
+    \\ rpt strip_tac
+    \\ `∃!s. s ∈ v ∧ y ∈ s` by PROVE_TAC[]
+    \\ fs[EXISTS_UNIQUE_ALT]
+    \\ Cases_on`s = s1`
+    >- (
+      qexists_tac`s1 ∪ s2`
+      \\ rw[EQ_IMP_THM] \\ rw[]
+      \\ metis_tac[] )
+    \\ Cases_on`s = s2`
+    >- (
+      qexists_tac`s1 ∪ s2`
+      \\ rw[EQ_IMP_THM] \\ rw[]
+      \\ metis_tac[] )
+    \\ qexists_tac`s`
+    \\ rw[EQ_IMP_THM] \\ gs[]
+    \\ metis_tac[])
+  \\ qmatch_assum_abbrev_tac`v1 ∈ obs_part _`
+  \\ first_x_assum(qspec_then`SNOC (s1 ∪ s2) ls`mp_tac)
+  \\ impl_tac >- fs[LENGTH_SNOC]
+  \\ disch_then(qspec_then`v1`mp_tac)
+  \\ impl_tac >- gs[obs_part_def, in_chu_objects]
+  \\ simp[]
+  \\ impl_keep_tac
+  >- (
+    fs[ALL_DISTINCT_SNOC]
+    \\ strip_tac
+    \\ `s1 ∈ v ∧ s1 ∪ s2 ∈ v` by metis_tac[]
+    \\ `s1 ≠ ∅ ∧ s2 ≠ ∅` by metis_tac[partitions_thm]
+    \\ `s1 ≠ s1 ∪ s2` by metis_tac[SUBSET_UNION_ABSORPTION, SUBSET_REFL]
+    \\ `DISJOINT s1 (s1 ∪ s2)` by metis_tac[partitions_DISJOINT]
+    \\ metis_tac[IN_DISJOINT, IN_UNION, MEMBER_NOT_EMPTY] )
+  \\ impl_tac
+  >- ( fs[ALL_DISTINCT_SNOC, Abbr`v1`] \\ metis_tac[] )
+  \\ simp[MAP_SNOC, FOLDL_SNOC]
+  \\ strip_tac
+  \\ qmatch_goalsub_abbrev_tac`cr && _ && _`
+  \\ qmatch_goalsub_abbrev_tac`tensor (tensor tr p2) p1`
+  \\ qmatch_asmsub_abbrev_tac`tensor tr p12`
+  \\ cheat
+QED
 
 val _ = export_theory();

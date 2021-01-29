@@ -1593,37 +1593,6 @@ Proof
   \\ metis_tac[]
 QED
 
-Theorem cex:
-  c ∈ chu_objects w ∧ (1 < CARD c.agent) ⇒
-  ¬ (assume (s1 ∪ s2) c ≅ assume s1 c && assume s2 c -: chu w)
-Proof
-  rw[iso_objs_thm, chu_iso_bij]
-  \\ qmatch_goalsub_abbrev_tac`¬m ∨ _`
-  \\ Cases_on`m = F` \\ simp[]
-  \\ disj2_tac
-  \\ fs[Abbr`m`]
-  \\ disj1_tac
-  \\ fs[maps_to_in_chu]
-  \\ strip_tac
-  \\ qmatch_assum_abbrev_tac`BIJ _ a1 a2`
-  \\ `CARD a1 = CARD a2`
-  by (
-    irule FINITE_BIJ_CARD
-    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
-  \\ pop_assum mp_tac
-  \\ simp[Abbr`a1`, assume_def, cf_assume_def]
-  \\ simp[Abbr`a2`, prod_def]
-  \\ DEP_REWRITE_TAC[INJ_CARD_IMAGE_EQN]
-  \\ DEP_REWRITE_TAC[CARD_CROSS]
-  \\ conj_asm1_tac
-  >- metis_tac[assume_in_chu_objects,
-               in_chu_objects, wf_def, finite_cf_def]
-  \\ simp[INJ_DEF]
-  \\ simp[assume_def, cf_assume_def]
-  \\ `CARD c.agent < (CARD c.agent) ** 2` by simp[]
-  \\ simp[]
-QED
-
 Theorem obs_part_assuming_imp_mult_constructive:
   obs_part_assuming c ⊆ obs_part_mult_constructive c
 Proof
@@ -1728,6 +1697,77 @@ Proof
   \\ qmatch_goalsub_abbrev_tac`cr && _ && _`
   \\ qmatch_goalsub_abbrev_tac`tensor (tensor tr p2) p1`
   \\ qmatch_asmsub_abbrev_tac`tensor tr p12`
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ drule partitions_FINITE
+  \\ simp[] \\ strip_tac
+  \\ `v ∈ obs_part_assuming c ∧ v1 ∈ obs_part_assuming c`
+  by metis_tac[obs_part_assuming]
+  \\ fs[obs_part_assuming_def]
+  \\ qmatch_assum_abbrev_tac`c ≃ cr2 -: _`
+  \\ qpat_x_assum`c ≃ cr2 -: _`mp_tac
+  \\ qmatch_assum_abbrev_tac`c ≃ cr1 -: _`
+  \\ strip_tac
+  \\ `c.world = w` by metis_tac[in_chu_objects] \\ fs[]
+  \\ irule homotopy_equiv_trans
+  \\ qexists_tac`cr && assume (s1 ∪ s2) c`
+  \\ `cr1 ≃ cr2 -: w` by metis_tac[homotopy_equiv_trans, homotopy_equiv_sym]
+  \\ qmatch_asmsub_abbrev_tac`FOLDL prod ct (MAP f _)`
+  \\ `cr && assume s2 c && assume s1 c =
+      FOLDL prod ct (MAP f (SNOC s1 (SNOC s2 ls)))`
+  by ( simp[MAP_SNOC, FOLDL_SNOC, Abbr`f`] )
+  \\ `cr && assume (s1 ∪ s2) c =
+      FOLDL prod ct (MAP f (SNOC (s1 ∪ s2) ls))`
+  by ( simp_tac(srw_ss())[MAP_SNOC, FOLDL_SNOC, Abbr`f`] \\ simp[])
+  \\ `ct ∈ chu_objects w` by simp[Abbr`ct`]
+  \\ `tr ∈ chu_objects w`
+  by (
+    simp[Abbr`tr`]
+    \\ irule FOLDL_tensor_in_chu_objects
+    \\ rw[EVERY_MAP, EVERY_MEM]
+    \\ irule prod_in_chu_objects \\ simp[]
+    \\ irule cf1_in_chu_objects
+    \\ simp[SUBSET_DEF] )
+  \\ conj_tac
+  >- (
+    irule homotopy_equiv_trans
+    \\ qexists_tac`cr1`
+    \\ conj_tac
+    >- (
+      simp[Abbr`cr1`]
+      \\ irule FOLDL_PERM_equiv
+      \\ simp[Abbr`f`, EVERY_MAP]
+      \\ irule PERM_MAP
+      \\ irule PERM_ALL_DISTINCT
+      \\ simp[] )
+    \\ irule homotopy_equiv_trans
+    \\ qexists_tac`cr2`
+    \\ simp[Abbr`cr2`]
+    \\ irule FOLDL_PERM_equiv
+    \\ simp[Abbr`f`, EVERY_MAP]
+    \\ irule PERM_MAP
+    \\ irule PERM_ALL_DISTINCT
+    \\ `FINITE v1` by simp[Abbr`v1`]
+    \\ simp[]
+    \\ simp[Abbr`v1`]
+    \\ fs[ALL_DISTINCT_SNOC]
+    \\ metis_tac[])
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule homotopy_equiv_trans
+  \\ qexists_tac`tensor tr (tensor p2 p1)`
+  \\ reverse conj_tac
+  >- (
+    irule iso_homotopy_equiv
+    \\ irule tensor_assoc
+    \\ simp[Abbr`p1`,Abbr`p2`]
+    \\ conj_tac
+    \\ irule prod_in_chu_objects \\ simp[]
+    \\ irule cf1_in_chu_objects
+    \\ simp[SUBSET_DEF] )
+  \\ irule homotopy_equiv_tensor
+  \\ simp[Abbr`p12`,Abbr`p1`,Abbr`p2`]
+  \\ qmatch_goalsub_abbrev_tac`_ && c12`
+  \\ qmatch_goalsub_abbrev_tac`tensor (_ && c2) (_ && c1)`
   \\ cheat
 QED
 

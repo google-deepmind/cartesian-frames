@@ -2137,7 +2137,7 @@ Proof
   \\ qexists_tac`tensor p1 p2`
   \\ reverse conj_tac
   >- (
-    \\ irule iso_homotopy_equiv
+    irule iso_homotopy_equiv
     \\ irule tensor_comm
     \\ simp[Abbr`p1`, Abbr`p2`]
     \\ conj_tac \\ irule prod_in_chu_objects \\ simp[]
@@ -2145,6 +2145,95 @@ Proof
   \\ qmatch_asmsub_abbrev_tac`p1 = c1 && r1`
   \\ qmatch_asmsub_abbrev_tac`p2 = c2 && r2`
   \\ simp[Abbr`p1`, Abbr`p2`]
+  \\ `r1 ∈ chu_objects w ∧ r2 ∈ chu_objects w ∧ r3 ∈ chu_objects w`
+  by (
+    simp[Abbr`r1`,Abbr`r2`,Abbr`r3`]
+    \\ rpt conj_tac \\ irule cf1_in_chu_objects \\ simp[SUBSET_DEF])
+  \\ `c1 && r1 ∈ chu_objects w ∧ c2 && r2 ∈ chu_objects w`
+  by simp[Abbr`c1`, Abbr`c2`]
+  \\ `c1 && c2 ∈ chu_objects w` by simp[Abbr`c1`,Abbr`c2`]
+  \\ qabbrev_tac`me = λe.
+       mk_chu_morphism (c1 && r1) (swap (c2 && r2))
+         <| map_agent := λa. encode_sum (INR (c1.eval (FST (decode_pair a)) e));
+            map_env := K (encode_sum (INL e)) |>`
+  \\ `∀e. e ∈ c1.env ⇒
+          me e :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+  by (
+    rpt strip_tac
+    \\ simp[maps_to_in_chu]
+    \\ simp[Abbr`me`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ conj_asm1_tac
+    >- (
+      simp[Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`]
+      \\ pop_assum mp_tac
+      \\ simp[assume_def, cf_assume_def, mk_cf_def, image_def]
+      \\ metis_tac[ALL_DISTINCT_SNOC, MEM_SNOC, in_chu_objects,
+                   wf_def, partitions_DISJOINT, IN_DISJOINT])
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[prod_def, mk_cf_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ simp[sum_eval_def]
+    \\ ntac 2 (pop_assum mp_tac)
+    \\ simp[Abbr`r2`, cf1_def, mk_cf_def] )
+  \\ qabbrev_tac`mf = λe.
+       mk_chu_morphism (c1 && r1) (swap (c2 && r2))
+         <| map_agent := K (encode_sum (INL e));
+            map_env := λa. encode_sum (INR (c2.eval (FST (decode_pair a)) e)) |>`
+  \\ `∀e. e ∈ c2.env ⇒
+          mf e :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+  by (
+    rpt strip_tac
+    \\ simp[maps_to_in_chu]
+    \\ simp[Abbr`mf`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ conj_asm1_tac
+    >- (
+      simp[Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`]
+      \\ pop_assum mp_tac
+      \\ simp[assume_def, cf_assume_def, mk_cf_def, image_def]
+      \\ metis_tac[ALL_DISTINCT_SNOC, MEM_SNOC, in_chu_objects,
+                   wf_def, partitions_DISJOINT, IN_DISJOINT])
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[prod_def, mk_cf_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ simp[sum_eval_def]
+    \\ qpat_x_assum`_ ∈ r1.env`mp_tac
+    \\ qpat_x_assum`_ ∈ r1.agent`mp_tac
+    \\ simp[Abbr`r1`, cf1_def, mk_cf_def] )
+  \\ qabbrev_tac`mr = λr. mk_chu_morphism (c1 && r1) (swap (c2 && r2))
+       <| map_agent := K (encode_sum (INR r));
+          map_env := K (encode_sum (INR r)) |>`
+  \\ `∀r. r ∈ r3.env ⇒
+          mr r :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+  by (
+    simp[maps_to_in_chu]
+    \\ simp[Abbr`mr`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ simp[prod_def, mk_cf_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Abbr`r3`, image_def, PULL_EXISTS]
+    \\ rpt gen_tac \\ strip_tac
+    \\ simp[sum_eval_def]
+    \\ conj_asm1_tac
+    >- (simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS] \\ metis_tac[])
+    \\ conj_asm1_tac
+    >- (simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS] \\ metis_tac[])
+    \\ simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS, cf1_def, mk_cf_def])
   \\ cheat
 QED
 

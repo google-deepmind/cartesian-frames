@@ -598,6 +598,26 @@ QED
 Overload "⊗" = ``tensor``
 val _ = set_fixity "⊗" (Infix (LEFT, 500))
 
+Theorem tensor_eval:
+  (tensor x y).eval a e =
+    if a ∈ (tensor x y).agent ∧ e ∈ (tensor x y).env then
+      x.eval (FST (decode_pair a))
+        ((decode_morphism x (swap y) e).map.map_env
+         (SND (decode_pair a)))
+    else ARB
+Proof
+  rw[tensor_def, mk_cf_def]
+QED
+
+Theorem prod_eval:
+  (x && y).eval a e =
+  if a ∈ (x && y).agent ∧ e ∈ (x && y).env then
+    flip (sum_eval (flip x.eval) (flip y.eval)) a e
+  else ARB
+Proof
+  rw[prod_def, mk_cf_def]
+QED
+
 Theorem assume_empty_agent:
   c ∈ chu_objects w ∧ c.agent = ∅ ⇒ assume s c = c
 Proof
@@ -709,6 +729,36 @@ Theorem assume_empty_env:
 Proof
   rw[assume_def, cf_assume_def, mk_cf_def, cf_component_equality]
   \\ fs[in_chu_objects, wf_def]
+  \\ rw[FUN_EQ_THM]
+QED
+
+Theorem biextensional_null[simp]:
+  biextensional (null w)
+Proof
+  rw[biextensional_def]
+QED
+
+Theorem cf0_not_homotopy_equiv_null:
+  ¬(cf0 w ≃ null w -: w)
+Proof
+  strip_tac
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ `cf0 w ≅ null w -: chu w`
+  by (
+    DEP_REWRITE_TAC[GSYM biextensional_homotopy_equiv_iso]
+    \\ simp[] )
+  \\ fs[iso_objs_thm]
+  \\ fs[chu_iso_bij]
+  \\ rfs[maps_to_in_chu]
+  \\ fs[cf0_def]
+QED
+
+Theorem assume_null[simp]:
+  assume s (null w) = null w
+Proof
+  rw[cf_component_equality, assume_def, cf_assume_def]
+  \\ rw[mk_cf_def]
   \\ rw[FUN_EQ_THM]
 QED
 
@@ -1940,6 +1990,62 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem obs_part_assuming_null_not_mult_constructive:
+  FINITE w ∧ (1 < CARD w) ⇒
+  ¬(obs_part_assuming (null w) ⊆ obs_part_mult_constructive (null w))
+Proof
+  rw[SUBSET_DEF, obs_part_assuming_def, obs_part_mult_constructive_def]
+  \\ `∃w1 w2. w1 ∈ w ∧ w2 ∈ w ∧ w1 ≠ w2`
+  by (
+    Cases_on`w` \\ fs[]
+    \\ Cases_on`t` \\ fs[]
+    \\ metis_tac[] )
+  \\ qexists_tac`{{w1};w DELETE w1}`
+  \\ simp[GSYM CONJ_ASSOC]
+  \\ conj_asm1_tac
+  >- (
+    simp[partitions_thm]
+    \\ dsimp[EXISTS_UNIQUE_THM]
+    \\ simp[EXTENSION]
+    \\ metis_tac[] )
+  \\ qmatch_goalsub_abbrev_tac`MAP _ ls`
+  \\ `image (null w) = ∅` by simp[image_def]
+  \\ simp[cf1_empty]
+  \\ `LENGTH ls = 2`
+  by (
+    simp[Abbr`ls`, SET_TO_LIST_CARD]
+    \\ rw[EXTENSION]
+    \\ metis_tac[] )
+  \\ fs[LENGTH_EQ_NUM_compute]
+  \\ conj_tac
+  >- (
+    irule homotopy_equiv_trans
+    \\ qexists_tac`null w && null w`
+    \\ conj_tac >- metis_tac[null_prod_null, homotopy_equiv_refl, null_in_chu_objects]
+    \\ irule homotopy_equiv_prod \\ simp[]
+    \\ irule homotopy_equiv_trans
+    \\ qexists_tac`null w` \\ simp[]
+    \\ irule iso_homotopy_equiv
+    \\ metis_tac[prod_cfT, null_in_chu_objects, iso_objs_sym, is_category_chu])
+  \\ strip_tac
+  \\ `null w ≃ tensor (null w) (null w) -: w`
+  by (
+    irule homotopy_equiv_trans
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule homotopy_equiv_tensor
+    \\ reverse conj_asm2_tac
+    >- (
+      irule iso_homotopy_equiv
+      \\ metis_tac[prod_cfT, null_in_chu_objects] )
+    \\ irule homotopy_equiv_trans
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ irule iso_homotopy_equiv
+    \\ metis_tac[tensor_cf1, prod_in_chu_objects,
+                 null_in_chu_objects, cfT_in_chu_objects])
+  \\ imp_res_tac tensor_null_null
+  \\ metis_tac[cf0_not_homotopy_equiv_null, iso_homotopy_equiv, homotopy_equiv_trans, homotopy_equiv_sym]
+QED
+
 Theorem obs_part_assuming_imp_mult_constructive:
   obs_part_assuming c ⊆ obs_part_mult_constructive c
 Proof
@@ -2234,6 +2340,100 @@ Proof
     \\ conj_asm1_tac
     >- (simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS] \\ metis_tac[])
     \\ simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS, cf1_def, mk_cf_def])
+  \\ simp[Once homotopy_equiv_sym]
+  \\ simp[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism (tensor (c1 && r1) (c2 && r2))
+       (c1 && c2 && r3) <| map_agent :=
+         λa. encode_pair
+              (encode_pair
+                (FST(decode_pair(FST(decode_pair a))),
+                 FST(decode_pair(SND(decode_pair a))))
+              , ""); map_env :=
+         λe. sum_CASE (decode_sum e)
+               (λs. sum_CASE (decode_sum s)
+                       (encode_morphism o me)
+                       (encode_morphism o mf))
+               (encode_morphism o mr) |>`
+  \\ qmatch_goalsub_abbrev_tac`homotopic _ (_ o g -: _)`
+  \\ qexists_tac`mk_chu_morphism (c1 && c2 && r3) (tensor (c1 && r1) (c2 && r2))
+       <| map_agent := λa. encode_pair
+           (encode_pair (FST(decode_pair(FST(decode_pair a))), ""),
+            encode_pair (SND(decode_pair(FST(decode_pair a))), ""));
+          map_env := λe. @f. f ∈ (c1 && c2 && r3).env ∧ g.map.map_env f = e |>`
+  \\ qmatch_goalsub_abbrev_tac`homotopic _ (h o _ -: _)`
+  \\ imp_res_tac in_chu_objects
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, Abbr`g`]
+    \\ simp[mk_chu_morphism_def, is_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_tac
+    >- (
+      simp[Once prod_def, PULL_EXISTS]
+      \\ simp[Once prod_def, PULL_EXISTS]
+      \\ simp[Once tensor_def, PULL_EXISTS, hom_def]
+      \\ gen_tac \\ strip_tac \\ simp[]
+      \\ metis_tac[] )
+    \\ conj_tac
+    >- (
+      simp[tensor_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[prod_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Abbr`r3`] )
+    \\ rpt gen_tac
+    \\ simp[tensor_eval, prod_eval]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Once tensor_def, PULL_EXISTS, EXISTS_PROD, hom_def]
+    \\ rpt gen_tac
+    \\ strip_tac \\ simp[]
+    \\ (reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac)
+    \\ DEP_REWRITE_TAC[decode_encode_chu_morphism]
+    \\ (conj_asm1_tac >- metis_tac[])
+    \\ (reverse IF_CASES_TAC >- (
+      `F` suffices_by rw[]
+      \\ pop_assum mp_tac
+      \\ pop_assum mp_tac
+      \\ simp_tac std_ss [maps_to_in_chu]
+      \\ simp[is_chu_morphism_def] \\ strip_tac
+      \\ first_x_assum irule
+      \\ simp[prod_def] ))
+    \\ (reverse IF_CASES_TAC >- (
+      `F` suffices_by rw[]
+      \\ pop_assum mp_tac
+      \\ simp[prod_def]
+      \\ simp[Abbr`r3`]))
+    \\ simp[sum_eval_def]
+    \\ qpat_x_assum`_ ∈ _.env`mp_tac
+    \\ simp[Once prod_def, PULL_EXISTS]
+    \\ strip_tac \\ simp[]
+    \\ simp[prod_eval, sum_eval_def]
+    \\ simp[prod_def]
+    \\ qpat_x_assum`_.map.map_env _ = _`mp_tac
+    \\ simp[Abbr`me`, Abbr`mf`, Abbr`mr`,
+            mk_chu_morphism_def, restrict_def, prod_def]
+    \\ qpat_x_assum`_ ∈ _.env`mp_tac
+    \\ simp[Abbr`r1`, Abbr`r3`, cf1_def, mk_cf_def] \\ fs[]
+    \\ rpt strip_tac \\ fs[])
+  (*
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, Abbr`h`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ `∀e. e ∈ (tensor (c1 && r1) (c2 && r2)).env ⇒
+            ∃f. f ∈ (c1 && c2 && r3).env ∧ g.map.map_env f = e`
+    by (
+      simp[Abbr`g`, mk_chu_morphism_def, restrict_def]
+      \\ simp[tensor_def, PULL_EXISTS, hom_def]
+      \\ qx_gen_tac`m` \\ strip_tac
+      \\ `∃b1 b2. b1 ∈ c1.agent ∧ b2 ∈ c2.agent`
+      by (
+        simp[Abbr`c1`, Abbr`c2`]
+        \\ simp[assume_def, cf_assume_def]
+  *)
   \\ cheat
 QED
 

@@ -677,6 +677,16 @@ Proof
   rw[sum_def, mk_cf_def]
 QED
 
+Theorem internal_eval:
+  (internal v c).eval a e =
+  if a ∈ (internal v c).agent ∧ e ∈ (internal v c).env then
+    c.eval (SND (decode_pair a))
+      (decode_function e (FST (decode_pair a)))
+  else ARB
+Proof
+  rw[internal_def, cf_internal_def, mk_cf_def]
+QED
+
 Theorem assume_empty_agent:
   c ∈ chu_objects w ∧ c.agent = ∅ ⇒ assume s c = c
 Proof
@@ -861,6 +871,14 @@ Theorem FUNPOW_encode_sum_INL_inj[simp]:
 Proof
   reverse eq_tac >- rw[]
   \\ Induct_on`n` \\ rw[FUNPOW_SUC]
+QED
+
+Theorem FUNPOW_OUTL_decode_sum_encode_sum_INL[simp]:
+  FUNPOW (OUTL o decode_sum) n (FUNPOW (encode_sum o INL) n x) = x
+Proof
+  Induct_on`n`
+  \\ rw[Once FUNPOW]
+  \\ rw[Once FUNPOW_SUC]
 QED
 
 Theorem LENGTH_encode_sum:
@@ -3425,6 +3443,826 @@ Proof
   \\ simp[mk_chu_morphism_def]
 QED
 
+Theorem internal_FOLDL_prod_equiv_sum[local]:
+  partitions v w ∧ FINITE w ∧
+  EVERY (λs. s ∈ v ∧ (f s).env ≠ ∅) vs ∧
+  ALL_DISTINCT vs ∧
+  (FOLDL prod (cfT w) (MAP f vs)).agent ≠ ∅ ∧
+  EVERY (λc. c ∈ chu_objects w) (MAP f vs) ∧
+  LIST_REL (λc s. image c ⊆ s) (MAP f vs) vs
+  ⇒
+  internal v (FOLDL prod (cfT w) (MAP f vs))
+  ≃ FOLDL sum (cf0 w) (MAP f vs) -: w
+Proof
+  strip_tac
+  \\ qmatch_assum_abbrev_tac`c.agent ≠ _`
+  \\ qmatch_goalsub_abbrev_tac`_ ≃ d -: _`
+  \\ drule partitions_FINITE
+  \\ disch_then drule \\ strip_tac
+  \\ `∀x. MEM x vs ⇒ (f x).agent ≠ ∅`
+  by (
+    qpat_x_assum`c.agent ≠ ∅`mp_tac
+    \\ fs[EVERY_MEM]
+    \\ simp[Abbr`c`, FOLDL_prod_agent, GSYM MEMBER_NOT_EMPTY, PULL_EXISTS]
+    \\ simp[IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS, EVERY2_MAP]
+    \\ simp[LIST_REL_EL_EQN, MEM_EL, PULL_EXISTS]
+    \\ metis_tac[])
+  \\ `∀x e. MEM x vs ∧ e ∈ (f x).env ⇒
+        fn_part (f x).env (f x).agent (flip (f x).eval) v e =
+        (f x).env`
+  by (
+    simp[fn_part_def]
+    \\ rw[Once SET_EQ_SUBSET, SUBSET_DEF]
+    \\ fs[LIST_REL_same, EVERY_MEM, image_def, SUBSET_DEF,
+          PULL_EXISTS, EVERY2_MAP]
+    \\ metis_tac[partitions_DISJOINT, IN_DISJOINT])
+  \\ drule (GEN_ALL FOLDL_sum_image_subset_fn_part)
+  \\ disch_then(qspecl_then[`cf0 w`,`vs`]mp_tac) \\ simp[]
+  \\ disch_then(qspec_then`MAP (swap o f) vs`mp_tac o
+                CONV_RULE SWAP_FORALL_CONV)
+  \\ simp[FOLDL_sum_eq_swap]
+  \\ simp[Once cf0_def] \\ simp[Once cf0_def]
+  \\ simp[MAP_MAP_o]
+  \\ `(swap o swap) = I` by simp[FUN_EQ_THM]
+  \\ rewrite_tac[combinTheory.o_ASSOC]
+  \\ pop_assum SUBST_ALL_TAC
+  \\ simp[GSYM cfT_def]
+  \\ gs[EVERY2_MAP, EVERY_MAP]
+  \\ simp[swap_def, EL_MAP]
+  \\ simp[GSYM AND_IMP_INTRO, RIGHT_FORALL_IMP_THM]
+  \\ simp[AND_IMP_INTRO]
+  \\ impl_tac >- fs[EVERY_MEM]
+  \\ simp[EL_MAP]
+  \\ pop_assum mp_tac \\ simp[MEM_EL, PULL_EXISTS]
+  \\ ntac 2 strip_tac
+  \\ `∀p. p ∈ (internal v c).agent ⇒
+          ∃!n. (n < LENGTH vs) ∧
+               FST (decode_pair p) =
+               encode_set
+               (IMAGE (FUNPOW (encode_sum o INL)
+                              (LENGTH vs - (n + 1))
+                       o encode_sum o INR)
+                 ((f (EL n vs)).env))`
+  by (
+    simp[internal_def, cf_internal_def, PULL_EXISTS, EXISTS_PROD]
+    \\ qx_genl_tac[`a`,`fp`]
+    \\ simp[fn_partition_def, PULL_EXISTS]
+    \\ qx_gen_tac`e`
+    \\ strip_tac
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ qpat_x_assum`e ∈ _`mp_tac
+    \\ simp[Abbr`c`, IN_FOLDL_prod_env]
+    \\ simp[Once cfT_def, cf0_def]
+    \\ qmatch_goalsub_abbrev_tac`fn_part c.env`
+    \\ simp[PULL_EXISTS]
+    \\ rpt strip_tac
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ gs[EL_MAP]
+    \\ simp[EXISTS_UNIQUE_ALT]
+    \\ qexists_tac`n`
+    \\ qx_gen_tac`n1`
+    \\ reverse EQ_TAC \\ simp[]
+    \\ strip_tac
+    \\ `∀n. (n < LENGTH vs) ⇒ FINITE ((f (EL n vs)).env)`
+    by (
+      fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+      \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+    \\ qpat_x_assum`_ = encode_set _`(mp_tac o Q.AP_TERM`decode_set`)
+    \\ simp[]
+    \\ qmatch_goalsub_abbrev_tac`IMAGE f1 _ = IMAGE f2 _`
+    \\ strip_tac
+    \\ `f1 x ∈ IMAGE f1 (f (EL n vs)).env` by simp[]
+    \\ `f1 x ∈ IMAGE f2 (f (EL n1 vs)).env` by metis_tac[]
+    \\ pop_assum mp_tac
+    \\ simp_tac (srw_ss()) []
+    \\ simp[Abbr`f1`, Abbr`f2`])
+  \\ pop_assum mp_tac
+  \\ qho_match_abbrev_tac`(∀p. p ∈ _ ⇒ ∃!n. _ n ∧ _ p =
+        encode_set (IMAGE (es n) (_ n))) ⇒ _`
+  \\ strip_tac
+  \\ `∀p n. p ∈ (internal v c).agent ∧ (n < LENGTH vs) ⇒
+               SND (decode_pair (FUNPOW (FST o decode_pair)
+                                        (LENGTH vs - (n + 1))
+                                        (SND (decode_pair p))))
+                 ∈ (f (EL n vs)).agent`
+  by (
+    simp[internal_def, cf_internal_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[Abbr`c`, FOLDL_prod_agent, IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS]
+    \\ rpt strip_tac
+    \\ gs[EVERY2_MAP]
+    \\ `LENGTH vs = LENGTH zs` by metis_tac[LIST_REL_LENGTH]
+    \\ simp[]
+    \\ simp[Q.ISPEC`I:string->string`(Q.GEN`f`decode_pair_FOLDL_encode_pair)
+            |> SIMP_RULE (srw_ss())[]]
+    \\ fs[LIST_REL_EL_EQN])
+  \\ `∀p s. p ∈ d.env ∧
+            s ∈ fn_partition c.env c.agent (flip c.eval) v
+        ⇒ ∃!n. (n < LENGTH vs) ∧
+                  (es n (
+                    SND (decode_pair (FUNPOW (FST o decode_pair)
+                                            (LENGTH vs - (n + 1)) p))))
+                  ∈ s`
+  by (
+    simp[Abbr`d`, Abbr`es`]
+    \\ simp[FOLDL_sum_eq_swap]
+    \\ simp[FOLDL_prod_agent]
+    \\ simp[IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS]
+    \\ simp[EVERY2_MAP] \\ simp[cf0_def]
+    \\ simp[fn_partition_def, PULL_EXISTS]
+    \\ pop_assum kall_tac
+    \\ simp[Abbr`c`]
+    \\ simp[IN_FOLDL_prod_env, PULL_EXISTS]
+    \\ simp[Once cfT_def, cf0_def, PULL_EXISTS]
+    \\ qmatch_goalsub_abbrev_tac`fn_part c.env`
+    \\ qx_genl_tac[`es`,`n`,`a`] \\ strip_tac \\ rfs[EL_MAP]
+    \\ simp[EXISTS_UNIQUE_THM]
+    \\ qexists_tac`n` \\ simp[]
+    \\ `LENGTH vs = LENGTH es` by metis_tac[LIST_REL_LENGTH]
+    \\ simp[]
+    \\ simp[Q.ISPEC`I:string->string`(Q.GEN`f`decode_pair_FOLDL_encode_pair)
+            |> SIMP_RULE (srw_ss())[]]
+    \\ fs[LIST_REL_EL_EQN])
+  \\ pop_assum mp_tac
+  \\ qho_match_abbrev_tac`(∀p s. p ∈ _ ∧ s ∈ _ ⇒ ∃!n. (n < LENGTH vs) ∧
+       es n (dp n p) ∈ s) ⇒ _`
+  \\ strip_tac \\ fs[]
+  \\ `∀a. a ∈ d.agent ⇒
+        ∃!n. (n < LENGTH vs) ∧
+             a ∈ IMAGE (es n) (f (EL n vs)).agent`
+  by (
+    simp[Abbr`d`]
+    \\ simp[FOLDL_sum_eq_swap]
+    \\ simp[IN_FOLDL_prod_env]
+    \\ simp[cf0_def, PULL_EXISTS]
+    \\ rpt strip_tac \\ rfs[EL_MAP]
+    \\ simp[EXISTS_UNIQUE_ALT]
+    \\ qexists_tac`n`
+    \\ gen_tac \\ reverse EQ_TAC
+    >- (strip_tac \\ BasicProvers.VAR_EQ_TAC \\ simp[Abbr`es`])
+    \\ simp[Abbr`es`])
+  \\ `d ∈ chu_objects w`
+  by (
+    simp[Abbr`d`]
+    \\ simp[FOLDL_sum_eq_swap]
+    \\ irule FOLDL_prod_in_chu_objects
+    \\ simp[EVERY_MAP] )
+  \\ `c ∈ chu_objects w`
+  by (
+    simp[Abbr`c`]
+    \\ irule FOLDL_prod_in_chu_objects
+    \\ simp[EVERY_MAP] )
+  \\ `∀e n. e ∈ d.env ∧ (n < LENGTH vs)⇒ dp n e ∈ (f (EL n vs)).env`
+  by (
+    simp[Abbr`d`]
+    \\ simp[FOLDL_sum_eq_swap]
+    \\ simp[FOLDL_prod_agent]
+    \\ simp[IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS]
+    \\ simp[cf0_def, EVERY2_MAP]
+    \\ rpt strip_tac
+    \\ simp[Abbr`dp`]
+    \\ `LENGTH vs = LENGTH zs` by metis_tac[LIST_REL_LENGTH]
+    \\ simp[]
+    \\ simp[Q.ISPEC`I:string->string`(Q.GEN`f`decode_pair_FOLDL_encode_pair)
+            |> SIMP_RULE (srw_ss())[]]
+    \\ fs[LIST_REL_EL_EQN])
+  \\ `∀s n e.
+        s ∈ fn_partition c.env c.agent (flip c.eval) v ∧ e ∈ d.env ∧
+        (n < LENGTH vs) ∧
+        es n (dp n e) ∈ s
+        ⇒ s =  fn_part c.env c.agent (flip c.eval) v (es n (dp n e))`
+  by (
+    rpt gen_tac
+    \\ simp[fn_partition_def, PULL_EXISTS]
+    \\ rpt strip_tac
+    \\ `∃m j. (m < LENGTH vs) ∧ j ∈ (f (EL m vs)).env ∧ x = es m j`
+    by (
+      qpat_x_assum`x ∈ _`mp_tac
+      \\ simp[Abbr`c`, IN_FOLDL_prod_env, PULL_EXISTS, cfT_def, cf0_def]
+      \\ rpt gen_tac \\ strip_tac \\ rfs[EL_MAP]
+      \\ simp[Abbr`es`]
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ simp[])
+    \\ qpat_assum`∀n. (n < _) ⇒ ∀a. _`(qspec_then`n`mp_tac)
+    \\ impl_tac >- simp[]
+    \\ disch_then(qspec_then`dp n e`mp_tac)
+    \\ impl_tac >- metis_tac[] \\ strip_tac
+    \\ qpat_assum`∀n. (n < _) ⇒ ∀a. _`(qspec_then`m`mp_tac)
+    \\ impl_tac >- simp[]
+    \\ disch_then drule \\ strip_tac
+    \\ simp[Abbr`es`]
+    \\ `MEM (EL n vs) vs ∧ MEM (EL m vs) vs` by metis_tac[MEM_EL]
+    \\ `(f (EL m vs)).env ≠ ∅ ∧ (f (EL n vs)).env ≠ ∅` by (
+      rfs[EVERY_MEM])
+    \\ fs[GSYM MEMBER_NOT_EMPTY]
+    \\ rfs[]
+    \\ `m = n` by fs[]
+    \\ pop_assum SUBST_ALL_TAC
+    \\ simp[])
+  \\ `FINITE (fn_partition c.env c.agent (flip c.eval) v) ∧
+      EVERY_FINITE (fn_partition c.env c.agent (flip c.eval) v)`
+  by (
+    irule FINITE_fn_partition
+    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+  \\ simp[homotopy_equiv_def]
+  \\ qexists_tac`mk_chu_morphism (internal v c) d <|
+       map_agent := λp.
+         let n =
+           @n. (n < LENGTH vs) ∧
+               FST (decode_pair p) =
+               encode_set (IMAGE (es n) (f (EL n vs)).env) in
+         es n (dp n (SND (decode_pair p))) ;
+       map_env := λp.
+         let fp = fn_partition c.env c.agent (flip c.eval) v in
+         encode_function (IMAGE encode_set fp) (restrict
+             (restrict (λs.
+               let n = @n. (n < LENGTH vs) ∧ es n (dp n p) ∈ s in
+               es n (dp n p)) fp o decode_set)
+           (IMAGE encode_set fp))|>`
+  \\ qmatch_goalsub_abbrev_tac`homotopic _ (_ o g -: _)`
+  \\ qexists_tac`mk_chu_morphism d (internal v c) <|
+       map_agent := λa. let n = @n. (n < LENGTH vs) ∧
+                                    a ∈ IMAGE (es n) (f (EL n vs)).agent in
+                        let ax = λi. if i = n then a else
+                          @a. a ∈ IMAGE (es i) (f (EL i vs)).agent in
+                        let ds = λi. OUTR o decode_sum o
+                                     FUNPOW (OUTL o decode_sum)
+                                     (LENGTH vs - (i + 1)) in
+                        encode_pair (
+                          encode_set (IMAGE (es n) (f (EL n vs)).env),
+                          FOLDL (λp i. encode_pair (p, ds i (ax i))) ""
+                            (COUNT_LIST (LENGTH vs))) ;
+       map_env := λq.
+         let ds = λi. OUTR o decode_sum o
+                      FUNPOW (OUTL o decode_sum) (LENGTH vs - (i + 1)) in
+         let app = λi. ds i (decode_function q
+           (encode_set (IMAGE (es i) (f (EL i vs)).env))) in
+         FOLDL (λp i. encode_pair (p, app i)) ""
+           (COUNT_LIST (LENGTH vs)) |>`
+  \\ qmatch_goalsub_abbrev_tac`homotopic _ (h o _ -: _)`
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, Abbr`g`, Abbr`h`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[Once restrict_def]
+    \\ conj_asm1_tac
+    >- (
+      rpt strip_tac
+      \\ qmatch_goalsub_abbrev_tac`restrict (q o decode_set)`
+      \\ simp[internal_def, cf_internal_def]
+      \\ simp[repfns_def]
+      \\ qexists_tac`q` \\ simp[]
+      \\ simp[is_repfn_fn_partition]
+      \\ qmatch_goalsub_abbrev_tac`extensional q fp`
+      \\ simp[Abbr`q`]
+      \\ conj_tac
+      >- (
+        simp[SUBSET_DEF, PULL_EXISTS, restrict_def]
+        \\ qx_gen_tac`s` \\ strip_tac
+        \\ first_x_assum (fn th => drule th \\ disch_then drule)
+        \\ simp[EXISTS_UNIQUE_ALT]
+        \\ strip_tac
+        \\ SELECT_ELIM_TAC
+        \\ conj_tac >- metis_tac[]
+        \\ `s ⊆ c.env` suffices_by metis_tac[SUBSET_DEF]
+        \\ qpat_x_assum`s ∈ _`mp_tac
+        \\ simp[Abbr`fp`, fn_partition_def, PULL_EXISTS]
+        \\ rpt strip_tac
+        \\ simp[fn_part_def, SUBSET_DEF])
+      \\ simp[restrict_def]
+      \\ metis_tac[])
+    \\ simp[Once restrict_def]
+    \\ conj_asm1_tac
+    >- (
+      rpt strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac >- metis_tac[EXISTS_UNIQUE_ALT]
+      \\ qx_gen_tac`n` \\ strip_tac
+      \\ simp[Abbr`d`, FOLDL_sum_eq_swap]
+      \\ simp[IN_FOLDL_prod_env]
+      \\ simp[cf0_def]
+      \\ qexists_tac`n` \\ simp[]
+      \\ qexists_tac`dp n (SND (decode_pair a))`
+      \\ simp[EL_MAP]
+      \\ simp[Abbr`es`])
+    \\ simp[Once restrict_def]
+    \\ qx_genl_tac[`p`,`e`] \\ strip_tac
+    \\ qmatch_goalsub_abbrev_tac`q o decode_set`
+    \\ simp[Once restrict_def, SimpRHS]
+    \\ simp[internal_eval]
+    \\ reverse IF_CASES_TAC
+    >- (
+      first_x_assum drule
+      \\ first_x_assum drule
+      \\ pop_assum mp_tac
+      \\ simp[restrict_def] )
+    \\ pop_assum kall_tac
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- metis_tac[]
+    \\ qx_gen_tac`n` \\ strip_tac
+    \\ simp[]
+    \\ simp[restrict_def]
+    \\ simp[fn_partition_def, PULL_EXISTS]
+    \\ `fn_part c.env c.agent (flip c.eval) v (es n (dp n e)) =
+        IMAGE (es n) (f (EL n vs)).env`
+    by (
+      first_x_assum (fn th => qspec_then`n`mp_tac th \\
+        impl_tac >- simp[]
+        \\ disch_then(qspec_then`dp n e`mp_tac))
+      \\ impl_tac >- metis_tac[]
+      \\ simp[Abbr`es`] )
+    \\ `es n (dp n e) ∈ c.env`
+    by (
+      simp[Abbr`c`, IN_FOLDL_prod_env, cfT_def, cf0_def]
+      \\ qexists_tac`n` \\ simp[]
+      \\ qexists_tac`dp n e`
+      \\ simp[EL_MAP, Abbr`es`] )
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ pop_assum kall_tac
+    \\ `f (EL n vs) ∈ chu_objects w`
+    by fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+    \\ `FINITE (f (EL n vs)).env`
+    by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+    \\ simp[]
+    \\ `dp n e ∈ (f (EL n vs)).env` by metis_tac[]
+    \\ qpat_x_assum`_ ∈ d.env`mp_tac
+    \\ `es n (dp n (SND (decode_pair p))) ∈ d.agent` by metis_tac[]
+    \\ pop_assum mp_tac
+    \\ simp[Abbr`d`, FOLDL_sum_eq_swap]
+    \\ simp[Abbr`es`]
+    \\ simp[IN_FOLDL_prod_env]
+    \\ simp[Once cf0_def]
+    \\ strip_tac \\ rfs[]
+    \\ `n' = n` by simp[] \\ pop_assum SUBST_ALL_TAC
+    \\ strip_tac
+    \\ simp[Abbr`q`]
+    \\ simp[restrict_def]
+    \\ simp[fn_partition_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- metis_tac[]
+    \\ rpt strip_tac
+    \\ `x = n` by simp[] \\ pop_assum SUBST_ALL_TAC
+    \\ `LENGTH vs = LENGTH (MAP swap (MAP f vs))` by simp[]
+    \\ pop_assum SUBST1_TAC
+    \\ rewrite_tac[GSYM SUB_RIGHT_SUB]
+    \\ simp[FOLDL_prod_eval]
+    \\ simp[EL_MAP]
+    \\ simp[Abbr`c`]
+    \\ `LENGTH (MAP f vs) = LENGTH vs` by simp[]
+    \\ pop_assum (SUBST1_TAC o SYM)
+    \\ rewrite_tac[GSYM SUB_RIGHT_SUB]
+    \\ DEP_REWRITE_TAC[FOLDL_prod_eval]
+    \\ simp[EL_MAP]
+    \\ qpat_x_assum`p ∈ _`mp_tac
+    \\ simp[internal_def, cf_internal_def, PULL_EXISTS, EXISTS_PROD])
+  \\ conj_asm1_tac
+  >- (
+    pop_assum kall_tac
+    \\ simp[maps_to_in_chu, Abbr`h`, Abbr`g`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_asm1_tac
+    >- (
+      simp[Abbr`d`, FOLDL_sum_eq_swap]
+      \\ simp[FOLDL_prod_agent]
+      \\ simp[IN_FOLDL_IMAGE_encode_pair]
+      \\ simp[cf0_def, EVERY2_MAP]
+      \\ rpt strip_tac
+      \\ qho_match_abbrev_tac`∃zs.
+           FOLDL (λp i. encode_pair (p, zz i)) _ _ = _ zs ∧ _ zs`
+      \\ qexists_tac`MAP zz (COUNT_LIST (LENGTH vs))`
+      \\ simp[FOLDL_MAP, EVERY2_MAP]
+      \\ simp[LIST_REL_EL_EQN, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+      \\ simp[Abbr`zz`]
+      \\ pop_assum mp_tac
+      \\ simp[internal_def, cf_internal_def]
+      \\ simp[repfns_def, PULL_EXISTS]
+      \\ gen_tac \\ strip_tac
+      \\ BasicProvers.VAR_EQ_TAC
+      \\ rpt strip_tac
+      \\ simp[restrict_def]
+      \\ simp[fn_partition_def, PULL_EXISTS]
+      \\ `∃e. e ∈ (FOLDL sum (cf0 w) (MAP f vs)).env`
+      by (
+        simp[FOLDL_sum_eq_swap, FOLDL_prod_agent, IN_FOLDL_IMAGE_encode_pair]
+        \\ simp[cf0_def] \\ simp[EVERY2_MAP]
+        \\ qexists_tac`MAP (λs. @z. z ∈ (f s).env) vs`
+        \\ simp[EVERY2_MAP]
+        \\ irule EVERY2_refl
+        \\ fs[EVERY_MEM]
+        \\ metis_tac[MEMBER_NOT_EMPTY] )
+      \\ `fn_part c.env c.agent (flip c.eval) v (es n (dp n e)) =
+          IMAGE (es n) (f (EL n vs)).env`
+      by (
+        first_x_assum (fn th => qspec_then`n`mp_tac th \\
+          impl_tac >- simp[]
+          \\ disch_then(qspec_then`dp n e`mp_tac))
+        \\ impl_tac >- metis_tac[]
+        \\ simp[Abbr`es`] )
+      \\ `es n (dp n e) ∈ c.env`
+      by (
+        simp[Abbr`c`, IN_FOLDL_prod_env, cfT_def, cf0_def]
+        \\ qexists_tac`n` \\ simp[]
+        \\ qexists_tac`dp n e`
+        \\ simp[EL_MAP, Abbr`es`] )
+      \\ reverse IF_CASES_TAC >- metis_tac[]
+      \\ pop_assum kall_tac
+      \\ `f (EL n vs) ∈ chu_objects w`
+      by fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+      \\ `FINITE (f (EL n vs)).env`
+      by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+      \\ simp[]
+      \\ qmatch_goalsub_abbrev_tac`q x`
+      \\ qmatch_assum_abbrev_tac`is_repfn X q`
+      \\ `x ∈ X`
+      by ( simp[Abbr`X`, fn_partition_def] \\ metis_tac[] )
+      \\ `q x ∈ x` by metis_tac[is_repfn_def]
+      \\ pop_assum mp_tac
+      \\ qmatch_goalsub_abbrev_tac`qx ∈ x`
+      \\ simp[Abbr`x`] \\ strip_tac
+      \\ simp[Abbr`es`])
+    \\ conj_asm1_tac
+    >- (
+      simp[internal_def, cf_internal_def, PULL_EXISTS]
+      \\ qx_gen_tac`p`
+      \\ strip_tac
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac
+      >- (
+        first_x_assum drule
+        \\ simp[EXISTS_UNIQUE_ALT]
+        \\ metis_tac[] )
+      \\ simp[PULL_EXISTS]
+      \\ qx_genl_tac[`n`,`a`]
+      \\ strip_tac
+      \\ qmatch_goalsub_abbrev_tac`encode_set s`
+      \\ qexists_tac`s`
+      \\ simp[fn_partition_def]
+      \\ conj_tac
+      >- (
+        last_assum(qspec_then`n`mp_tac)
+        \\ impl_tac >- simp[]
+        \\ `∃e. e ∈ (f (EL n vs)).env`
+        by (
+          `MEM (EL n vs) vs` by metis_tac[MEM_EL]
+          \\ pop_assum mp_tac
+          \\ fs[EVERY_MEM]
+          \\ metis_tac[MEMBER_NOT_EMPTY] )
+        \\ disch_then drule
+        \\ qmatch_goalsub_abbrev_tac`fn_part _ _ _ _ x`
+        \\ strip_tac
+        \\ qexists_tac`x` \\ simp[]
+        \\ simp[Abbr`x`, Abbr`c`, IN_FOLDL_prod_env]
+        \\ disj2_tac
+        \\ qexists_tac`n`
+        \\ simp[EL_MAP] )
+      \\ simp[Abbr`c`, FOLDL_prod_agent, IN_FOLDL_IMAGE_encode_pair]
+      \\ simp[cfT_def, cf0_def]
+      \\ qho_match_abbrev_tac`∃zs.
+         FOLDL (λp i. encode_pair (p, zf i)) _ _ = _ zs ∧ _ zs`
+      \\ qexists_tac`MAP zf (COUNT_LIST (LENGTH vs))`
+      \\ simp[FOLDL_MAP]
+      \\ simp[EVERY2_MAP]
+      \\ simp[LIST_REL_EL_EQN, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+      \\ simp[Abbr`zf`]
+      \\ rw[]
+      >- simp[Abbr`es`]
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac
+      >- metis_tac[MEM_EL, MEMBER_NOT_EMPTY]
+      \\ simp[PULL_EXISTS, Abbr`es`])
+    \\ qx_genl_tac[`p`,`e`]
+    \\ simp[internal_eval]
+    \\ simp[internal_def, cf_internal_def]
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ qx_gen_tac`q` \\ strip_tac
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ qmatch_goalsub_abbrev_tac`FUNPOW _ _ (rq _)`
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac
+    >- (
+      last_x_assum drule
+      \\ simp[EXISTS_UNIQUE_ALT]
+      \\ metis_tac[] )
+    \\ simp[PULL_EXISTS]
+    \\ qx_genl_tac[`n`,`a`] \\ strip_tac
+    \\ simp[Abbr`d`, FOLDL_sum_eq_swap]
+    \\ simp[Abbr`es`]
+    \\ `LENGTH vs = LENGTH (MAP swap (MAP f vs))` by simp[]
+    \\ pop_assum SUBST1_TAC
+    \\ rewrite_tac[GSYM SUB_RIGHT_SUB]
+    \\ DEP_REWRITE_TAC[FOLDL_prod_eval]
+    \\ conj_tac
+    >- (
+      simp[EL_MAP, FOLDL_prod_agent, IN_FOLDL_IMAGE_encode_pair]
+      \\ simp[cf0_def]
+      \\ qho_match_abbrev_tac`∃zs.
+         FOLDL (λp i. encode_pair (p, zf i)) _ _ = _ zs ∧ _ zs`
+      \\ qexists_tac`MAP zf (COUNT_LIST (LENGTH vs))`
+      \\ simp[FOLDL_MAP]
+      \\ simp[EVERY2_MAP]
+      \\ simp[LIST_REL_EL_EQN, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+      \\ simp[Abbr`zf`]
+      \\ simp[Abbr`rq`]
+      \\ simp[restrict_def]
+      \\ qx_gen_tac`m` \\ strip_tac
+      \\ qmatch_goalsub_abbrev_tac`IMAGE es`
+      \\ `FINITE (f (EL m vs)).env`
+      by (
+        fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+        \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+      \\ simp[]
+      \\ reverse IF_CASES_TAC
+      >- (
+        `F` suffices_by rw[]
+        \\ pop_assum mp_tac
+        \\ simp[fn_partition_def, PULL_EXISTS]
+        \\ `∃e. e ∈ (f (EL m vs)).env`
+        by (
+          `MEM (EL m vs) vs` by metis_tac[MEM_EL]
+          \\ rfs[EVERY_MEM]
+          \\ metis_tac[MEMBER_NOT_EMPTY] )
+        \\ qexists_tac`es e`
+        \\ fs[Abbr`es`]
+        \\ simp[Abbr`c`, IN_FOLDL_prod_env]
+        \\ simp[cfT_def, cf0_def]
+        \\ qexists_tac`m`
+        \\ simp[EL_MAP] )
+      \\ qmatch_goalsub_abbrev_tac`q x`
+      \\ qmatch_assum_abbrev_tac`is_repfn X q`
+      \\ `FINITE x` by simp[Abbr`x`]
+      \\ `x ∈ X` by metis_tac[decode_encode_set]
+      \\ `q x ∈ x` by metis_tac[is_repfn_def]
+      \\ pop_assum mp_tac
+      \\ qmatch_goalsub_abbrev_tac`qx ∈ x`
+      \\ simp[Abbr`x`] \\ strip_tac
+      \\ simp[Abbr`es`])
+    \\ simp[EL_MAP]
+    \\ simp[Abbr`rq`]
+    \\ qmatch_goalsub_abbrev_tac`IMAGE es (f _).env`
+    \\ qmatch_goalsub_abbrev_tac`dp n e`
+    \\ qmatch_goalsub_abbrev_tac`c.eval b`
+    \\ simp[restrict_def]
+    \\ `FINITE (f (EL n vs)).env`
+    by (
+      fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+      \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+    \\ simp[]
+    \\ reverse IF_CASES_TAC
+    >- (
+      `F` suffices_by rw[]
+      \\ pop_assum mp_tac
+      \\ simp[fn_partition_def, PULL_EXISTS]
+      \\ `∃e1. e1 ∈ (f (EL n vs)).env`
+      by (
+        `MEM (EL n vs) vs` by metis_tac[MEM_EL]
+        \\ rfs[EVERY_MEM]
+        \\ metis_tac[MEMBER_NOT_EMPTY] )
+      \\ qexists_tac`es e1`
+      \\ fs[Abbr`es`]
+      \\ simp[Abbr`c`, IN_FOLDL_prod_env]
+      \\ simp[cfT_def, cf0_def]
+      \\ qexists_tac`n`
+      \\ simp[EL_MAP] )
+    \\ qmatch_goalsub_abbrev_tac`q x`
+    \\ qmatch_assum_abbrev_tac`is_repfn X q`
+    \\ `FINITE x` by simp[Abbr`x`]
+    \\ `x ∈ X` by metis_tac[decode_encode_set]
+    \\ `q x ∈ x` by metis_tac[is_repfn_def]
+    \\ pop_assum mp_tac
+    \\ qmatch_goalsub_abbrev_tac`qx ∈ x`
+    \\ simp[Abbr`x`] \\ strip_tac
+    \\ simp[Abbr`es`]
+    \\ simp[Abbr`c`]
+    \\ `LENGTH vs = LENGTH (MAP f vs)` by simp[]
+    \\ pop_assum SUBST1_TAC
+    \\ rewrite_tac[GSYM SUB_RIGHT_SUB]
+    \\ DEP_REWRITE_TAC[FOLDL_prod_eval]
+    \\ simp[EL_MAP]
+    \\ conj_tac
+    >- (
+      simp[Abbr`b`, FOLDL_prod_agent, IN_FOLDL_IMAGE_encode_pair]
+      \\ simp[cfT_def, cf0_def]
+      \\ qho_match_abbrev_tac`∃zs.
+         FOLDL (λp i. encode_pair (p, zf i)) _ _ = _ zs ∧ _ zs`
+      \\ qexists_tac`MAP zf (COUNT_LIST (LENGTH vs))`
+      \\ simp[FOLDL_MAP]
+      \\ simp[EVERY2_MAP]
+      \\ simp[LIST_REL_EL_EQN, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+      \\ simp[Abbr`zf`]
+      \\ qx_gen_tac`m` \\ strip_tac
+      \\ rw[]
+      \\ SELECT_ELIM_TAC
+      \\ conj_tac
+      >- metis_tac[MEM_EL, MEMBER_NOT_EMPTY]
+      \\ simp[PULL_EXISTS])
+    \\ simp[Abbr`dp`]
+    \\ simp[Abbr`b`]
+    \\ `LENGTH vs = LENGTH (COUNT_LIST (LENGTH vs))`
+    by simp[LENGTH_COUNT_LIST]
+    \\ qmatch_assum_abbrev_tac`LENGTH _ = LENGTH cls`
+    \\ first_x_assum SUBST1_TAC
+    \\ DEP_REWRITE_TAC[decode_pair_FOLDL_encode_pair]
+    \\ simp[Abbr`cls`, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+    \\ simp[Abbr`e`]
+    \\ `LENGTH vs = LENGTH (COUNT_LIST (LENGTH vs))`
+    by simp[LENGTH_COUNT_LIST]
+    \\ qmatch_assum_abbrev_tac`LENGTH _ = LENGTH cls`
+    \\ first_x_assum SUBST1_TAC
+    \\ DEP_REWRITE_TAC[decode_pair_FOLDL_encode_pair]
+    \\ simp[Abbr`cls`, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+    \\ simp[restrict_def] )
+  \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`h :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ qpat_assum`h :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`g :- _ → _ -: _` o mp_then Any strip_assume_tac)
+  \\ simp[homotopic_id_map_env_id]
+  \\ simp[restrict_def]
+  \\ ntac 4 (pop_assum kall_tac)
+  \\ simp[internal_eval]
+  \\ conj_tac
+  >- (
+    rpt gen_tac
+    \\ strip_tac
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ pop_assum strip_assume_tac \\ simp[]
+    \\ simp[Abbr`h`, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ pop_assum kall_tac
+    \\ qmatch_assum_abbrev_tac`h :- d → _ -: _`
+    \\ qho_match_abbrev_tac`c.eval _ (_ (g.map.map_env (he e)) _) = _`
+    \\ `he e = h.map.map_env e`
+    by simp[Abbr`he`, Abbr`h`, mk_chu_morphism_def, restrict_def]
+    \\ simp[Abbr`g`, mk_chu_morphism_def]
+    \\ simp[Once restrict_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
+    \\ qpat_x_assum`he e = _`(assume_tac o SYM)
+    \\ simp[]
+    \\ qpat_x_assum`a ∈ _`mp_tac
+    \\ simp[internal_def, cf_internal_def, PULL_EXISTS, EXISTS_PROD]
+    \\ rpt strip_tac
+    \\ simp[Once restrict_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[]
+    \\ pop_assum kall_tac
+    \\ simp[restrict_def]
+    \\ qpat_x_assum`x ∈ _`mp_tac
+    \\ simp[fn_partition_def, PULL_EXISTS]
+    \\ qx_gen_tac`ee` \\ strip_tac
+    \\ `∃n. (n < LENGTH vs) ∧ ee ∈ IMAGE (es n) (f (EL n vs)).env`
+    by (
+      pop_assum mp_tac
+      \\ simp[Abbr`c`, IN_FOLDL_prod_env]
+      \\ simp[cfT_def, cf0_def, PULL_EXISTS]
+      \\ simp[Abbr`es`]
+      \\ rpt strip_tac
+      \\ rfs[EL_MAP]
+      \\ metis_tac[] )
+    \\ qmatch_goalsub_abbrev_tac`es m`
+    \\ qmatch_asmsub_abbrev_tac`x = fp`
+    \\ qpat_x_assum`ee ∈ _`mp_tac
+    \\ simp[]
+    \\ disch_then(qx_choose_then`en`strip_assume_tac)
+    \\ `fp = IMAGE (es n) (f (EL n vs)).env`
+    by (
+      first_x_assum(fn th => qspec_then`n`mp_tac th \\ impl_tac >- simp[]
+        \\ disch_then drule)
+      \\ simp[Abbr`es`, Abbr`fp`] )
+    \\ qunabbrev_tac`fp`
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ `m = n`
+    by (
+      simp[Abbr`m`]
+      \\ SELECT_ELIM_TAC
+      \\ simp[PULL_EXISTS]
+      \\ qexists_tac`n`
+      \\ qexists_tac`dp n (he e)`
+      \\ simp[]
+      \\ reverse conj_tac
+      >- simp[Abbr`es`]
+      \\ simp[Abbr`he`, Abbr`dp`]
+      \\ `LENGTH vs = LENGTH (COUNT_LIST (LENGTH vs))`
+      by simp[LENGTH_COUNT_LIST]
+      \\ qmatch_assum_abbrev_tac`LENGTH _ = LENGTH cls`
+      \\ first_x_assum SUBST1_TAC
+      \\ DEP_REWRITE_TAC[decode_pair_FOLDL_encode_pair]
+      \\ simp[Abbr`cls`, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+      \\ qpat_x_assum`e ∈ _`mp_tac
+      \\ simp[internal_def, cf_internal_def, repfns_def]
+      \\ strip_tac \\ simp[]
+      \\ simp[restrict_def] \\ fs[]
+      \\ reverse IF_CASES_TAC >- (
+        fs[fn_partition_def] \\ metis_tac[] )
+      \\ `FINITE (f (EL n vs)).env`
+      by (
+        fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+        \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+      \\ simp[]
+      \\ qmatch_goalsub_abbrev_tac`q xx`
+      \\ qmatch_assum_abbrev_tac`is_repfn X q`
+      \\ `xx ∈ X` by metis_tac[decode_encode_set, IMAGE_FINITE]
+      \\ `q xx ∈ xx` by metis_tac[is_repfn_def]
+      \\ pop_assum mp_tac
+      \\ qmatch_goalsub_abbrev_tac`qx ∈ xx`
+      \\ simp[Abbr`xx`]
+      \\ strip_tac \\ simp[Abbr`es`])
+    \\ pop_assum SUBST_ALL_TAC
+    \\ qpat_x_assum`Abbrev(n = _)`kall_tac
+    \\ `FINITE (f (EL n vs)).env`
+    by (
+      fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+      \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+    \\ simp[]
+    \\ simp[Abbr`he`, Abbr`dp`]
+    \\ `LENGTH vs = LENGTH (COUNT_LIST (LENGTH vs))`
+    by simp[LENGTH_COUNT_LIST]
+    \\ qmatch_assum_abbrev_tac`LENGTH _ = LENGTH cls`
+    \\ first_x_assum SUBST1_TAC
+    \\ DEP_REWRITE_TAC[decode_pair_FOLDL_encode_pair]
+    \\ simp[Abbr`cls`, LENGTH_COUNT_LIST, EL_COUNT_LIST]
+    \\ simp[Abbr`es`]
+    \\ qpat_x_assum`e ∈ _`mp_tac
+    \\ simp[internal_def, cf_internal_def, repfns_def]
+    \\ strip_tac \\ simp[]
+    \\ simp[restrict_def] \\ fs[]
+    \\ reverse IF_CASES_TAC >- (
+      fs[fn_partition_def] \\ metis_tac[] )
+    \\ qmatch_goalsub_abbrev_tac`q xx`
+    \\ qmatch_assum_abbrev_tac`is_repfn X q`
+    \\ `xx ∈ X` by metis_tac[decode_encode_set, IMAGE_FINITE]
+    \\ `q xx ∈ xx` by metis_tac[is_repfn_def]
+    \\ pop_assum mp_tac
+    \\ qmatch_goalsub_abbrev_tac`qx ∈ xx`
+    \\ simp[Abbr`xx`]
+    \\ strip_tac \\ simp[])
+  \\ rpt gen_tac
+  \\ simp[Abbr`g`, mk_chu_morphism_def, Once restrict_def]
+  \\ simp[Once restrict_def]
+  \\ qmatch_goalsub_abbrev_tac`h.map.map_env ge`
+  \\ qmatch_assum_abbrev_tac`g :- _ → d -: _`
+  \\ strip_tac
+  \\ `g.map.map_env e = ge`
+  by ( simp[Abbr`ge`, Abbr`g`, mk_chu_morphism_def, restrict_def])
+  \\ `ge ∈ (internal v c).env` by metis_tac[maps_to_in_chu, is_chu_morphism_def]
+  \\ simp[Abbr`h`, mk_chu_morphism_def]
+  \\ simp[restrict_def]
+  \\ qpat_x_assum`_ = ge`kall_tac
+  \\ qunabbrev_tac`g`
+  \\ qpat_x_assum`_ :- _ → d -: _`kall_tac
+  \\ qpat_x_assum`_ :- d → _ -: _`kall_tac
+  \\ AP_TERM_TAC
+  \\ `e ∈ (FOLDL sum (cf0 w) (MAP f vs)).env` by fs[Abbr`d`]
+  \\ pop_assum mp_tac
+  \\ simp_tac(srw_ss())[FOLDL_sum_eq_swap, FOLDL_prod_agent]
+  \\ simp[IN_FOLDL_IMAGE_encode_pair, cf0_def]
+  \\ strip_tac \\ simp[]
+  \\ qho_match_abbrev_tac`FOLDL (λp i. encode_pair (p, (zf i))) _ cl = _`
+  \\ irule EQ_TRANS
+  \\ qexists_tac`FOLDL (λp i. encode_pair (p, i)) "" (MAP zf cl)`
+  \\ conj_tac >- simp[FOLDL_MAP]
+  \\ AP_TERM_TAC
+  \\ simp[Abbr`cl`, MAP_COUNT_LIST]
+  \\ simp[Once LIST_EQ_REWRITE]
+  \\ imp_res_tac LIST_REL_LENGTH \\ fs[]
+  \\ qx_gen_tac`n` \\ strip_tac
+  \\ simp[Abbr`zf`]
+  \\ qhdtm_x_assum`LIST_REL`mp_tac
+  \\ simp[LIST_REL_EL_EQN, EL_MAP]
+  \\ strip_tac
+  \\ `FINITE (f (EL n vs)).env`
+  by (
+    fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
+    \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
+  \\ `EL n zs ∈ (f (EL n vs)).env` by metis_tac[]
+  \\ first_x_assum(fn th => qspec_then`n`mp_tac th \\ impl_tac >- simp[] \\
+       disch_then drule)
+  \\ strip_tac
+  \\ `es n (EL n zs) ∈ c.env`
+  by (
+    simp[Abbr`c`, IN_FOLDL_prod_env]
+    \\ simp[Abbr`es`]
+    \\ metis_tac[EL_MAP] )
+  \\ simp[Abbr`ge`]
+  \\ simp[restrict_def]
+  \\ simp[fn_partition_def]
+  \\ qmatch_asmsub_abbrev_tac`fn_part _ _ _ _ esnzs`
+  \\ `esnzs = es n (EL n zs)` by simp[Abbr`es`]
+  \\ reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac
+  \\ reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac
+  \\ qmatch_goalsub_abbrev_tac`es nn`
+  \\ `nn = n` suffices_by (
+    rw[Abbr`dp`]
+    \\ `LENGTH vs = LENGTH zs` by simp[]
+    \\ first_x_assum SUBST1_TAC
+    \\ DEP_REWRITE_TAC[decode_pair_FOLDL_encode_pair]
+    \\ simp[]
+    \\ qunabbrev_tac`es`
+    \\ simp_tac(srw_ss())[] )
+  \\ simp[Abbr`nn`]
+  \\ simp[Abbr`es`]
+  \\ SELECT_ELIM_TAC \\ rw[]
+  \\ qexists_tac`n` \\ simp[]
+QED
+
 Theorem obs_part_additive_imp_intext_constructive:
   obs_part_additive c ⊆ obs_part_intext_constructive c
 Proof
@@ -3527,222 +4365,49 @@ Proof
     simp[Abbr`cs`, Abbr`vs`, FILTER_MAP]
     \\ simp[combinTheory.o_DEF] )
   \\ fs[Abbr`cs`] \\ pop_assum kall_tac
-  \\ `∀x. MEM x vs ⇒ (f x).agent ≠ ∅`
-  by (
-    qpat_x_assum`c.agent ≠ ∅`mp_tac
-    \\ fs[EVERY_MEM]
-    \\ simp[Abbr`c`, FOLDL_prod_agent, GSYM MEMBER_NOT_EMPTY, PULL_EXISTS]
-    \\ simp[IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS, EVERY2_MAP]
-    \\ simp[LIST_REL_EL_EQN, MEM_EL, PULL_EXISTS]
-    \\ metis_tac[])
-  \\ `∀x e. MEM x vs ∧ e ∈ (f x).env ⇒
-        fn_part (f x).env (f x).agent (flip (f x).eval) v e =
-        (f x).env`
-  by (
-    simp[fn_part_def]
-    \\ rw[Once SET_EQ_SUBSET, SUBSET_DEF]
-    \\ fs[LIST_REL_same, EVERY_MEM, image_def, SUBSET_DEF,
-          PULL_EXISTS, EVERY2_MAP]
-    \\ `∀x. MEM x vs ⇒ x ∈ v` by simp[Abbr`vs`, MEM_FILTER]
-    \\ metis_tac[partitions_DISJOINT, IN_DISJOINT])
-  \\ drule (GEN_ALL FOLDL_sum_image_subset_fn_part)
-  \\ disch_then(qspecl_then[`cf0 w`,`vs`]mp_tac) \\ simp[]
-  \\ disch_then(qspec_then`MAP (swap o f) vs`mp_tac o
-                CONV_RULE SWAP_FORALL_CONV)
-  \\ simp[FOLDL_sum_eq_swap]
-  \\ simp[Once cf0_def] \\ simp[Once cf0_def]
+  \\ drule internal_FOLDL_prod_equiv_sum
+  \\ disch_then(qspecl_then[`vs`,`f`]mp_tac)
+  \\ impl_tac >- (
+    simp[]
+    \\ simp[Abbr`vs`, FILTER_ALL_DISTINCT]
+    \\ simp[EVERY_MEM, MEM_FILTER] )
+  \\ strip_tac
+  \\ drule internal_FOLDL_prod_equiv_sum
+  \\ disch_then(qspecl_then[`vs`,`swap o f`]mp_tac)
+  \\ impl_tac >- (
+    fs[EVERY_MAP, EVERY2_MAP]
+    \\ reverse conj_tac
+    >- (
+      conj_tac >- simp[Abbr`vs`, FILTER_ALL_DISTINCT]
+      \\ simp[FOLDL_prod_agent, GSYM MEMBER_NOT_EMPTY]
+      \\ simp[IN_FOLDL_IMAGE_encode_pair, EVERY2_MAP]
+      \\ simp[cfT_def, cf0_def]
+      \\ qexists_tac`MAP (λs. @e. e ∈ (f s).env) vs`
+      \\ simp[EVERY2_MAP, LIST_REL_same, EVERY_MEM]
+      \\ simp[Abbr`vs`, MEM_FILTER, GSYM MEMBER_NOT_EMPTY]
+      \\ metis_tac[] )
+    \\ qpat_x_assum`c.agent ≠ _`mp_tac
+    \\ simp[Abbr`c`, FOLDL_prod_agent]
+    \\ simp[GSYM MEMBER_NOT_EMPTY, IN_FOLDL_IMAGE_encode_pair, cfT_def, cf0_def]
+    \\ simp[EVERY2_MAP]
+    \\ simp[EVERY_MEM, LIST_REL_EL_EQN, MEM_EL, PULL_EXISTS]
+    \\ metis_tac[MEM_EL, MEM_FILTER, MEM_SET_TO_LIST])
+  \\ simp[FOLDL_sum_eq_swap, GSYM cfT_def]
   \\ simp[MAP_MAP_o]
   \\ `(swap o swap) = I` by simp[FUN_EQ_THM]
   \\ rewrite_tac[combinTheory.o_ASSOC]
   \\ pop_assum SUBST_ALL_TAC
-  \\ simp[GSYM cfT_def]
-  \\ gs[EVERY2_MAP, EVERY_MAP]
-  \\ simp[swap_def, EL_MAP]
-  \\ simp[GSYM AND_IMP_INTRO, RIGHT_FORALL_IMP_THM]
-  \\ simp[AND_IMP_INTRO]
-  \\ impl_tac
-  >- fs[EVERY_MEM, Abbr`vs`, MEM_FILTER, FILTER_ALL_DISTINCT]
-  \\ simp[EL_MAP]
-  \\ pop_assum mp_tac \\ simp[MEM_EL, PULL_EXISTS]
-  \\ ntac 2 strip_tac
-  \\ `∀p. p ∈ (internal v c).agent ⇒
-          ∃!n. (n < LENGTH vs) ∧
-               FST (decode_pair p) =
-               encode_set
-               (IMAGE (FUNPOW (encode_sum o INL)
-                              (LENGTH vs - (n + 1))
-                       o encode_sum o INR)
-                 ((f (EL n vs)).env))`
-  by (
-    simp[internal_def, cf_internal_def, PULL_EXISTS, EXISTS_PROD]
-    \\ qx_genl_tac[`a`,`fp`]
-    \\ simp[fn_partition_def, PULL_EXISTS]
-    \\ qx_gen_tac`e`
-    \\ strip_tac
-    \\ BasicProvers.VAR_EQ_TAC
-    \\ qpat_x_assum`e ∈ _`mp_tac
-    \\ simp[Abbr`c`, IN_FOLDL_prod_env]
-    \\ simp[Once cfT_def, cf0_def]
-    \\ qmatch_goalsub_abbrev_tac`fn_part c.env`
-    \\ simp[PULL_EXISTS]
-    \\ rpt strip_tac
-    \\ BasicProvers.VAR_EQ_TAC
-    \\ gs[EL_MAP]
-    \\ simp[EXISTS_UNIQUE_ALT]
-    \\ qexists_tac`n`
-    \\ qx_gen_tac`n1`
-    \\ reverse EQ_TAC \\ simp[]
-    \\ strip_tac
-    \\ `∀n. (n < LENGTH vs) ⇒ FINITE ((f (EL n vs)).env)`
-    by (
-      fs[EVERY_MEM, MEM_EL, PULL_EXISTS]
-      \\ metis_tac[in_chu_objects, wf_def, finite_cf_def] )
-    \\ qpat_x_assum`_ = encode_set _`(mp_tac o Q.AP_TERM`decode_set`)
-    \\ simp[]
-    \\ qmatch_goalsub_abbrev_tac`IMAGE f1 _ = IMAGE f2 _`
-    \\ strip_tac
-    \\ `f1 x ∈ IMAGE f1 (f (EL n vs)).env` by simp[]
-    \\ `f1 x ∈ IMAGE f2 (f (EL n1 vs)).env` by metis_tac[]
-    \\ pop_assum mp_tac
-    \\ simp_tac (srw_ss()) []
-    \\ simp[Abbr`f1`, Abbr`f2`])
-  \\ qabbrev_tac`d = FOLDL sum (cf0 w) (MAP f vs)`
-  \\ cheat
-
-  (*
-  \\ `∀p s. p ∈ d.env ∧
-            s ∈ fn_partition c.env c.agent (flip c.eval) v
-        ⇒ ∃!n. (n < LENGTH vs) ∧
-                FUNPOW (encode_sum o INL) (LENGTH vs - (n + 1))
-                  (encode_sum (INR (
-                    SND (decode_pair (FUNPOW (FST o decode_pair)
-                                            (LENGTH vs - (n + 1)) p)))))
-                  ∈ s`
-  by (
-    simp[Abbr`d`]
-    \\ simp[FOLDL_sum_eq_swap]
-    \\ simp[FOLDL_prod_agent]
-    \\ simp[IN_FOLDL_IMAGE_encode_pair, PULL_EXISTS]
-    \\ simp[EVERY2_MAP] \\ simp[cf0_def]
-    \\ simp[fn_partition_def, PULL_EXISTS]
-    \\ pop_assum kall_tac
-    \\ simp[Abbr`c`]
-    \\ simp[IN_FOLDL_prod_env, PULL_EXISTS]
-    \\ simp[Once cfT_def, cf0_def, PULL_EXISTS]
-    \\ qmatch_goalsub_abbrev_tac`fn_part c.env`
-    \\ qx_genl_tac[`es`,`n`,`a`] \\ strip_tac \\ rfs[EL_MAP]
-    \\ drule (GEN_ALL FOLDL_sum_image_subset_fn_part)
-    \\ disch_then(qspecl_then[`cf0 w`,`vs`,`n`]mp_tac) \\ simp[]
-    \\ disch_then(qspecl_then[`MAP (swap o f) vs`,`a`]mp_tac)
-    \\ simp[FOLDL_sum_eq_swap]
-    \\ simp[Once cf0_def] \\ simp[Once cf0_def] \\ simp[EL_MAP]
-    \\ simp[MAP_MAP_o]
-    \\ `(swap o swap) = I` by simp[FUN_EQ_THM]
-    \\ rewrite_tac[combinTheory.o_ASSOC]
-    \\ pop_assum SUBST_ALL_TAC
-    \\ simp[GSYM cfT_def]
-    \\ gs[EVERY2_MAP, EVERY_MAP]
-    \\ simp[swap_def]
-    \\ impl_tac
-    >- fs[EVERY_MEM, Abbr`vs`, MEM_FILTER, FILTER_ALL_DISTINCT]
-    \\ simp[]
-    \\ disch_then kall_tac
-    \\ qho_match_abbrev_tac`$?! P`
-    \\ `P n`
-    by (
-      simp[Abbr`P`]
-      \\ `LENGTH vs = LENGTH es` by metis_tac[LIST_REL_LENGTH]
-      \\ simp[]
-      \\ simp[Q.ISPEC`I:string->string`(Q.GEN`f`decode_pair_FOLDL_encode_pair)
-              |> SIMP_RULE (srw_ss())[]]
-      \\ qexists_tac`EL n es` \\ simp[]
-      \\ simp[fn_part_def]
-      \\ fs[LIST_REL_EL_EQN, image_def, PULL_EXISTS, SUBSET_DEF]
-      \\ rpt strip_tac
-      \\ `∀s. MEM s vs ⇒ s ∈ v` by simp[Abbr`vs`, MEM_FILTER]
-      \\ fs[MEM_EL, PULL_EXISTS]
-      \\ metis_tac[partitions_DISJOINT, IN_DISJOINT] )
-    \\ simp[EXISTS_UNIQUE_ALT, Abbr`P`]
-    \\ qexists_tac`n`
-    \\ qx_gen_tac`n1`
-    \\ reverse EQ_TAC >- (fs[] \\ metis_tac[])
-    \\ `LENGTH vs = LENGTH es` by metis_tac[LIST_REL_LENGTH]
-    \\ simp[]
-    \\ strip_tac
-    \\ qpat_x_assum`_ = FUNPOW _ _ _`mp_tac
-    \\ simp[Q.ISPEC`I:string->string`(Q.GEN`f`decode_pair_FOLDL_encode_pair)
-            |> SIMP_RULE (srw_ss())[]]
-    \\ simp[FUNPOW_encode_sum_inj_n]
-
-    \\ qexists_tac`n`
-    \\ qmatch_goalsub_abbrev_tac`
-  \\ `internal v c ≃ d -: w`
-  by (
-    simp[homotopy_equiv_def]
-    \\ qexists_tac`mk_chu_morphism (internal v c) d <|
-         map_agent := λp.
-           let n =
-             @n. n < LENGTH vs ∧
-                 FST (decode_pair p) =
-                 encode_set (
-                   IMAGE (FUNPOW (encode_sum o INL) (LENGTH vs - (n + 1)) o
-                          encode_sum o INR) (f (EL n vs)).env) in
-           let i = LENGTH vs - (n + 1) in
-           let ai =
-             SND (decode_pair
-               (FUNPOW (FST o decode_pair) i
-                       (SND (decode_pair p)))) in
-           FUNPOW (encode_sum o INL) i (encode_sum (INR ai)) ;
-         map_env := λp.
-           encode_function (restrict
-               ((λs. the element of p that belongs to s) o decode_set)
-             (IMAGE encode_set (fn_partition c.env c.agent (flip c.eval) v)))|>`
-  *)
-
-  (*
-  \\ Cases_on`x.agent = ∅`
-  >- (
-    fs[internal_def]
-    \\ fs[fn_partition_def]
-    \\ fs[fn_part_def]
-    \\ qmatch_asmsub_abbrev_tac`cf_internal xe`
-    \\ fs[external_def]
-    \\ `(cf_internal xe x).agent = ∅` by fs[cf_internal_def]
-    \\ fs[fn_partition_def]
-    \\ simp[obs_part_additive_def]
-    \\ simp[Once cf_external_def]
-    \\ simp[Once cf_internal_def]
-    \\ imp_res_tac in_chu_objects \\ fs[]
-    \\ simp[Once cf_external_def]
-    \\ simp[Once cf_internal_def]
-    \\ simp[Once cf_external_def]
-    \\ simp[Once cf_internal_def]
-    \\ qexists_tac`K (cfT w)`
-    \\ imp_res_tac in_chu_objects_finite_world
-    \\ drule partitions_FINITE
-    \\ simp[] \\ strip_tac
-    \\ simp[EVERY_MEM]
-    \\ conj_tac >- metis_tac[cfT_subagent, cfbot_in_chu_objects, partitions_thm]
-    \\ irule homotopy_equiv_trans
-    \\ qexists_tac`cfT w`
-    \\ `(cf_external ∅ (cf_internal xe x)).world = w`
-    by simp[cf_external_def, cf_internal_def]
-    \\ simp[]
-    \\ conj_tac
-    >- (
-      irule  empty_env_nonempty_agent
-      \\ conj_tac >- simp[cf_external_def, cf_internal_def]
-      \\ conj_tac >- simp[cf_external_def, cf_internal_def]
-      \\ metis_tac[homotopy_equiv_in_chu_objects] )
-    \\ qspec_tac(`SET_TO_LIST v`,`ls`)
-    \\ ho_match_mp_tac SNOC_INDUCT
-    \\ simp[FOLDL_SNOC, MAP_SNOC]
-    \\ rpt strip_tac
-    \\ irule homotopy_equiv_trans
-    \\ goal_assum(first_assum o mp_then Any mp_tac)
-    \\ simp[Once homotopy_equiv_sym]
-    \\ irule iso_homotopy_equiv
-    \\ metis_tac[prod_cfT, homotopy_equiv_in_chu_objects])
-  *)
+  \\ simp[]
+  \\ fs[FOLDL_sum_eq_swap]
+  \\ strip_tac \\ rfs[]
+  \\ qmatch_asmsub_abbrev_tac`internal v d`
+  \\ fs[GSYM cfT_def, MAP_MAP_o]
+  \\ irule homotopy_equiv_trans
+  \\ qexists_tac`external v (swap d)`
+  \\ reverse conj_tac >- metis_tac[homotopy_equiv_external, homotopy_equiv_sym]
+  \\ simp[GSYM swap_internal]
+  \\ metis_tac[homotopy_equiv_swap, homotopy_equiv_sym,
+               homotopy_equiv_in_chu_objects, swap_swap]
+QED
 
 val _ = export_theory();

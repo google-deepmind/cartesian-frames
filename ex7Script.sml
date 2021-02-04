@@ -171,6 +171,7 @@ Proof
   \\ `∀x y. x ∈ uc.env ∧ y ∈ uc.env ⇒
             (uc.eval x y = if x = "s" ∧ y = "s" then "1" else "0")`
      by ( simp[] \\ EVAL_TAC \\ rw[] )
+  \\ Cases_on`x.map.map_agent a = "p"` \\ simp[]
   \\ metis_tac[EVAL``"s"="p"``, EVAL``"1"="0"``]
 QED
 
@@ -198,7 +199,7 @@ Proof
     \\ pop_assum mp_tac
     \\ simp[morphism_component_equality, chu_morphism_map_component_equality, pp_def, uc_in_chu_objects]
     \\ simp[mk_chu_morphism_def, FUN_EQ_THM, restrict_def, chu_id_morphism_map_def]
-    \\ disj1_tac
+    \\ strip_tac
     \\ qexists_tac`"s"`
     \\ EVAL_TAC )
   \\ CONV_TAC(PATH_CONV"brrr"EVAL)

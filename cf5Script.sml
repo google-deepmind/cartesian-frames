@@ -575,6 +575,7 @@ Proof
     \\ CCONTR_TAC \\ fs[]
     \\ fs[maps_to_in_chu]
     \\ fs[is_chu_morphism_def]
+    \\ qmatch_asmsub_abbrev_tac`c.eval a e`
     \\ `c.eval a e = (cfbot w s).eval (m.map.map_agent a) f` by metis_tac[]
     \\ pop_assum mp_tac
     \\ simp_tac(srw_ss())[cfbot_def, cf1_def, mk_cf_def]

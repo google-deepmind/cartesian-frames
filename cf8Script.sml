@@ -758,7 +758,7 @@ Proof
     \\ simp[FUN_EQ_THM]
     \\ rw[]
     \\ qpat_x_assum`_ = F`mp_tac
-    \\ simp[GSYM MEMBER_NOT_EMPTY]
+    \\ simp[GSYM MEMBER_NOT_EMPTY, Excl"lift_disj_eq"]
     \\ strip_tac
     \\ qmatch_assum_rename_tac`j ∈ _`
     \\ ntac 2 (first_x_assum(qspec_then`j`mp_tac))

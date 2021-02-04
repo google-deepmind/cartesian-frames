@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pairTheory optionTheory pred_setTheory categoryTheory
-  cf0Theory cf1Theory cf2Theory cf4Theory cf8Theory cf9Theory cfaTheory
+  cf0Theory cf1Theory cf2Theory cf3Theory cf4Theory cf8Theory cf9Theory cfaTheory
 
 val _ = new_theory"cfb";
 
@@ -30,6 +30,28 @@ Theorem external_eval:
   else ARB
 Proof
   rw[external_def, cf_external_def, mk_cf_def]
+QED
+
+Theorem external_nonempty_agent:
+  partitions v w ∧
+  c ∈ chu_objects w ⇒
+  (external v c).agent ≠ ∅
+Proof
+  strip_tac
+  \\ `partitions (fn_partition c.agent c.env c.eval v) c.agent`
+  by (
+    irule partitions_fn_partition
+    \\ metis_tac[in_chu_objects, wf_def] )
+  \\ rw[external_def, cf_external_def]
+  \\ fs[partitions_thm]
+  \\ rw[repfns_def, GSYM MEMBER_NOT_EMPTY]
+  \\ rw[is_repfn_def]
+  \\ qmatch_goalsub_abbrev_tac`extensional _ fp`
+  \\ qexists_tac`restrict CHOICE fp`
+  \\ rw[]
+  \\ rw[restrict_def]
+  \\ irule CHOICE_DEF
+  \\ metis_tac[]
 QED
 
 (* -- *)
@@ -619,6 +641,55 @@ Proof
   \\ simp[Abbr`g`, Abbr`h`, mk_chu_morphism_def]
   \\ simp[restrict_def]
   \\ simp[Abbr`d2`]
+QED
+
+Theorem multiplicative_subagent_ensure_subset:
+  c ∈ chu_objects w ∧ d ∈ chu_objects w ∧
+  multiplicative_subagent c d ∧
+  c.agent ≠ ∅ ∧
+  d.agent ≠ ∅
+  ⇒
+  ensure c ⊆ ensure d
+Proof
+  rw[multiplicative_subagent_externalising]
+  \\ qmatch_assum_abbrev_tac`c ≃ c1 -: _`
+  \\ qmatch_assum_abbrev_tac`d ≃ d1 -: _`
+  \\ `ensure c1 ⊆ ensure d1` suffices_by metis_tac[homotopy_equiv_ensure]
+  \\ `c1.agent ≠ ∅ ∧ d1.agent ≠ ∅`
+  by (
+    qpat_x_assum`_ ≃ _ -: _`mp_tac
+    \\ qpat_x_assum`_ ≃ _ -: _`mp_tac
+    \\ simp[homotopy_equiv_def]
+    \\ ntac 2 strip_tac
+    \\ qpat_x_assum`_ :- c → _ -: _`mp_tac
+    \\ qpat_x_assum`_ :- d → _ -: _`mp_tac
+    \\ simp[maps_to_in_chu, is_chu_morphism_def]
+    \\ metis_tac[MEMBER_NOT_EMPTY] )
+  \\ simp[ensure_def, Abbr`c1`, Abbr`d1`, PULL_EXISTS, EXISTS_PROD]
+  \\ simp[mk_cf_def]
+  \\ simp[SUBSET_DEF, PULL_EXISTS]
+  \\ rw[]
+  \\ fs[]
+  \\ fs[CROSS_EMPTY_EQN]
+  \\ metis_tac[MEMBER_NOT_EMPTY]
+QED
+
+Theorem refines_ctrl_external_SUBSET:
+  c ∈ chu_objects w ∧
+  partitions u w ∧ partitions v w ∧ refines u v
+  ⇒
+  ctrl (external u c) ⊆ ctrl (external v c)
+Proof
+  simp[SUBSET_DEF]
+  \\ strip_tac
+  \\ gen_tac
+  \\ DEP_REWRITE_TAC[ctrl_ensure_compl]
+  \\ simp[]
+  \\ `ensure (external u c) ⊆ ensure (external v c)`
+  suffices_by metis_tac[SUBSET_DEF]
+  \\ irule multiplicative_subagent_ensure_subset
+  \\ metis_tac[external_in_chu_objects, external_nonempty_agent,
+               refines_multiplicative_subagent]
 QED
 
 val _ = export_theory();

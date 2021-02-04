@@ -692,4 +692,236 @@ Proof
                refines_multiplicative_subagent]
 QED
 
+Theorem refines_obs_external_SUBSET:
+  c ∈ chu_objects w ∧
+  partitions u w ∧ partitions v w ∧ refines u v
+  ⇒
+  obs (external v c) ⊆ obs (external u c)
+Proof
+  rw[]
+  \\ qabbrev_tac`b = fn_partition c.agent c.env c.eval`
+  \\ `∃b'. (∀fp. fp ∈ b u ⇒ b' fp ∈ b v) ∧
+           (∀a. a ∈ c.agent ⇒
+                b' (fn_part c.agent c.env c.eval u a) =
+                fn_part c.agent c.env c.eval v a)`
+  by (
+    qexists_tac`λfp. fn_part c.agent c.env c.eval v
+      (@a. a ∈ c.agent ∧ fp = fn_part c.agent c.env c.eval u a)`
+    \\ simp[]
+    \\ conj_tac
+    >- (
+      simp[Abbr`b`, fn_partition_def, PULL_EXISTS]
+      \\ metis_tac[] )
+    \\ rw[]
+    \\ SELECT_ELIM_TAC
+    \\ conj_tac >- metis_tac[]
+    \\ rw[]
+    \\ irule refines_fn_part_eq
+    \\ metis_tac[in_chu_objects, wf_def] )
+  \\ simp[SUBSET_DEF]
+  \\ qx_gen_tac`s`
+  \\ simp[obs_def]
+  \\ `(external v c).world = w ∧ (external u c).world = w ∧ c.world = w`
+  by (
+    imp_res_tac in_chu_objects
+    \\ simp[external_def, cf_external_def] )
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ imp_res_tac partitions_FINITE
+  \\ `FINITE c.agent` by metis_tac[in_chu_objects, wf_def, finite_cf_def]
+  \\ `FINITE (b u) ∧ FINITE (b v) ∧ EVERY_FINITE (b u) ∧ EVERY_FINITE (b v)`
+  by ( simp[Abbr`b`] \\ metis_tac[FINITE_fn_partition] )
+  \\ simp[]
+  \\ simp[Ntimes external_def 2, cf_external_def, PULL_EXISTS]
+  \\ strip_tac
+  \\ simp[Ntimes external_def 2, cf_external_def, PULL_EXISTS]
+  \\ rpt strip_tac
+  \\ fs[GSYM RIGHT_EXISTS_IMP_THM]
+  \\ fs[SKOLEM_THM]
+  \\ `∀x. ∃qb0. x ∈ b u ⇒ qb0 ∈ repfns (b v) ∧
+        decode_function qb0 (encode_set (b' x)) =
+        decode_function a0 (encode_set x)`
+  by (
+    simp[RIGHT_EXISTS_IMP_THM]
+    \\ rpt strip_tac
+    \\ qpat_x_assum`a0 ∈ _`mp_tac
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ rw[]
+    \\ pop_assum mp_tac
+    \\ simp[is_repfn_def]
+    \\ strip_tac
+    \\ qmatch_asmsub_abbrev_tac`b' (fp u _)`
+    \\ qexists_tac`restrict (λs. if s = b' x then q x else CHOICE s) (b v)`
+    \\ simp[]
+    \\ simp[restrict_def]
+    \\ reverse conj_tac >- metis_tac[]
+    \\ `∃a. a ∈ c.agent ∧ x = fp u a`
+    by (
+      qpat_x_assum`x ∈ _`mp_tac
+      \\ simp_tac(srw_ss())[Abbr`b`, fn_partition_def]
+      \\ metis_tac[] )
+    \\ `b' x = fp v a` by metis_tac[]
+    \\ `fp u a ⊆ fp v a`
+    by (
+      qunabbrev_tac`fp`
+      \\ irule refines_fn_part_SUBSET
+      \\ metis_tac[in_chu_objects, wf_def] )
+    \\ `q x ∈ b' x` by metis_tac[SUBSET_DEF]
+    \\ rpt strip_tac
+    \\ IF_CASES_TAC >- gs[]
+    \\ irule CHOICE_DEF
+    \\ qpat_x_assum`_ ∈ b v`mp_tac
+    \\ simp_tac(srw_ss())[Abbr`b`, fn_partition_def]
+    \\ strip_tac
+    \\ simp[fn_part_def, GSYM MEMBER_NOT_EMPTY]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ simp[])
+  \\ `∀x. ∃qb1. x ∈ b u ⇒ qb1 ∈ repfns (b v) ∧
+        decode_function qb1 (encode_set (b' x)) =
+        decode_function a1 (encode_set x)`
+  by (
+    simp[RIGHT_EXISTS_IMP_THM]
+    \\ rpt strip_tac
+    \\ qpat_x_assum`a1 ∈ _`mp_tac
+    \\ simp[repfns_def, PULL_EXISTS]
+    \\ rw[]
+    \\ pop_assum mp_tac
+    \\ simp[is_repfn_def]
+    \\ strip_tac
+    \\ qmatch_asmsub_abbrev_tac`b' (fp u _)`
+    \\ qexists_tac`restrict (λs. if s = b' x then q x else CHOICE s) (b v)`
+    \\ simp[]
+    \\ simp[restrict_def]
+    \\ reverse conj_tac >- metis_tac[]
+    \\ `∃a. a ∈ c.agent ∧ x = fp u a`
+    by (
+      qpat_x_assum`x ∈ _`mp_tac
+      \\ simp_tac(srw_ss())[Abbr`b`, fn_partition_def]
+      \\ metis_tac[] )
+    \\ `b' x = fp v a` by metis_tac[]
+    \\ `fp u a ⊆ fp v a`
+    by (
+      qunabbrev_tac`fp`
+      \\ irule refines_fn_part_SUBSET
+      \\ metis_tac[in_chu_objects, wf_def] )
+    \\ `q x ∈ b' x` by metis_tac[SUBSET_DEF]
+    \\ rpt strip_tac
+    \\ IF_CASES_TAC >- gs[]
+    \\ irule CHOICE_DEF
+    \\ qpat_x_assum`_ ∈ b v`mp_tac
+    \\ simp_tac(srw_ss())[Abbr`b`, fn_partition_def]
+    \\ strip_tac
+    \\ simp[fn_part_def, GSYM MEMBER_NOT_EMPTY]
+    \\ goal_assum(first_assum o mp_then Any mp_tac)
+    \\ simp[])
+  \\ fs[SKOLEM_THM]
+  \\ qmatch_asmsub_rename_tac`decode_function (f0 _) _ = decode_function a0 _`
+  \\ qmatch_asmsub_rename_tac`decode_function (f1 _) _ = decode_function a1 _`
+  \\ qexists_tac`encode_function (IMAGE encode_set (b u))
+       (restrict (restrict (λx. decode_function (f (f0 x) (f1 x))
+                     (encode_set (b' x))) (b u) o decode_set)
+                 (IMAGE encode_set (b u)))`
+  \\ qmatch_goalsub_abbrev_tac`q2 ∈ _`
+  \\ `q2 ∈ repfns (b u)`
+  by (
+    simp[repfns_def, Abbr`q2`]
+    \\ qmatch_goalsub_abbrev_tac`encode_function _ (restrict (q o _) _)`
+    \\ qexists_tac`q`
+    \\ simp[]
+    \\ simp[is_repfn_def, Abbr`q`]
+    \\ simp[restrict_def]
+    \\ rpt strip_tac
+    \\ qmatch_asmsub_abbrev_tac`b' (fp u _)`
+    \\ `∃a. a ∈ c.agent ∧ x = fp u a`
+    by (
+      qpat_x_assum`x ∈ _`mp_tac
+      \\ simp_tac(srw_ss())[Abbr`b`, fn_partition_def]
+      \\ metis_tac[] )
+    \\ `decode_function a0 (encode_set x) ∈ x`
+    by (
+      qpat_x_assum`a0 ∈ _`mp_tac
+      \\ simp[repfns_def]
+      \\ strip_tac \\ simp[]
+      \\ simp[restrict_def]
+      \\ metis_tac[decode_encode_set, is_repfn_def] )
+    \\ `decode_function a1 (encode_set x) ∈ x`
+    by (
+      qpat_x_assum`a1 ∈ _`mp_tac
+      \\ simp[repfns_def]
+      \\ strip_tac \\ simp[]
+      \\ simp[restrict_def]
+      \\ metis_tac[decode_encode_set, is_repfn_def] )
+    \\ `x ⊆ c.agent`
+    by ( simp[Abbr`fp`] \\ simp[SUBSET_DEF, fn_part_def] )
+    \\ qmatch_assum_abbrev_tac`q1b ∈ x`
+    \\ qpat_x_assum`q1b ∈ _`mp_tac
+    \\ qmatch_assum_abbrev_tac`q0b ∈ x`
+    \\ strip_tac
+    \\ `∀e. e ∈ c.env ⇒
+          (@w. w ∈ u ∧ c.eval q0b e ∈ w) = (@w. w ∈ u ∧ c.eval q1b e ∈ w)`
+    by (
+      rpt (qpat_x_assum`_ ∈ x`mp_tac)
+      \\ simp[Abbr`fp`]
+      \\ simp[fn_part_def] )
+    \\ qmatch_goalsub_abbrev_tac`q2b ∈ _`
+    \\ first_x_assum (qspecl_then[`f0 x`,`f1 x`]mp_tac)
+    \\ impl_tac >- simp[]
+    \\ simp_tac(srw_ss())[ifs_def]
+    \\ strip_tac
+    \\ `fp v a ∈ b v` by (simp[Abbr`b`, fn_partition_def] \\ metis_tac[])
+    \\ `q2b ∈ fp v a`
+    by (
+      qpat_x_assum`_ ∈ _.agent`mp_tac
+      \\ simp_tac(srw_ss())[external_def, cf_external_def]
+      \\ simp_tac(srw_ss())[repfns_def, PULL_EXISTS]
+      \\ rpt strip_tac
+      \\ qunabbrev_tac`q2b`
+      \\ first_x_assum SUBST1_TAC
+      \\ simp[]
+      \\ simp[restrict_def]
+      \\ metis_tac[is_repfn_def] )
+    \\ `fp v a ⊆ c.agent`
+    by simp[Abbr`fp`, SUBSET_DEF, fn_part_def]
+    \\ `q2b ∈ c.agent` by metis_tac[SUBSET_DEF]
+    \\ `∀e. e ∈ c.env ⇒
+          (@w. w ∈ u ∧ c.eval q2b e ∈ w) = (@w. w ∈ u ∧ c.eval q0b e ∈ w)`
+    suffices_by (
+      qpat_x_assum`q0b ∈ x`mp_tac
+      \\ simp[Abbr`fp`, fn_part_def])
+    \\ rpt strip_tac
+    \\ `c.eval q2b e = c.eval q0b e ∨ c.eval q2b e = c.eval q1b e`
+    suffices_by ( rw[] \\ rw[] )
+    \\ first_x_assum(qspec_then`encode_pair (encode_set (fp v a), e)`mp_tac)
+    \\ impl_keep_tac
+    >- (
+      simp[external_def, cf_external_def]
+      \\ metis_tac[] )
+    \\ `b' x = fp v a` by metis_tac[]
+    \\ pop_assum SUBST_ALL_TAC
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ simp[external_eval]
+    \\ simp[external_def, cf_external_def]
+    \\ metis_tac[])
+  \\ simp[ifs_def]
+  \\ conj_asm1_tac >- simp[external_def, cf_external_def]
+  \\ simp[external_eval]
+  \\ simp[external_def, cf_external_def, PULL_EXISTS, EXISTS_PROD]
+  \\ qx_genl_tac[`e`,`x`] \\ strip_tac
+  \\ simp[Abbr`q2`]
+  \\ simp[restrict_def]
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ pop_assum kall_tac
+  \\ first_x_assum (qspecl_then[`f0 x`,`f1 x`]mp_tac)
+  \\ impl_tac >- simp[]
+  \\ simp[ifs_def]
+  \\ strip_tac
+  \\ first_x_assum(qspec_then`encode_pair (encode_set (b' x), e)`mp_tac)
+  \\ impl_keep_tac
+  >- (
+    simp[external_def, cf_external_def, PULL_EXISTS, EXISTS_PROD]
+    \\ metis_tac[] )
+  \\ simp[external_eval]
+  \\ strip_tac
+  \\ simp[external_def, cf_external_def]
+QED
+
 val _ = export_theory();

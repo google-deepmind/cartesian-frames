@@ -1076,6 +1076,57 @@ Proof
             swap_in_chu_objects, commit_diff_in_chu_objects]
 QED
 
+Theorem assume_null[simp]:
+  assume s (null w) = null w
+Proof
+  rw[cf_component_equality, assume_def, cf_assume_def]
+  \\ rw[mk_cf_def]
+  \\ rw[FUN_EQ_THM]
+QED
+
+Theorem assume_empty_env:
+  c ∈ chu_objects w ∧ c.env = ∅ ⇒
+  assume s c = c
+Proof
+  rw[assume_def, cf_assume_def, mk_cf_def, cf_component_equality]
+  \\ fs[in_chu_objects, wf_def]
+  \\ rw[FUN_EQ_THM]
+QED
+
+Theorem assume_empty_agent:
+  c ∈ chu_objects w ∧ c.agent = ∅ ⇒
+  assume s c = c
+Proof
+  simp[assume_def, cf_assume_def]
+  \\ rw[cf_component_equality]
+  \\ simp[mk_cf_def, FUN_EQ_THM]
+  \\ fs[in_chu_objects, wf_def]
+QED
+
+Theorem assume_empty:
+  c ∈ chu_objects w ∧ c.agent ≠ ∅ ⇒
+  assume ∅ c ≃ cfT w -: w
+Proof
+  rw[]
+  \\ `assume ∅ c ∈ chu_objects w` by simp[]
+  \\ fs[assume_def]
+  \\ qmatch_goalsub_abbrev_tac`cf_assume b`
+  \\ `b = ∅` by (
+    simp[EXTENSION,Abbr`b`]
+    \\ metis_tac[MEMBER_NOT_EMPTY] )
+  \\ irule empty_env_nonempty_agent
+  \\ simp[]
+  \\ simp[cf_assume_def]
+QED
+
+Theorem image_assume_SUBSET:
+  image (assume s c) ⊆ image c INTER s
+Proof
+  rw[image_def, assume_def, cf_assume_def, mk_cf_def, SUBSET_DEF]
+  \\ rw[]
+  \\ metis_tac[]
+QED
+
 Definition fn_part_def:
   fn_part s t f v x =
     { x' | x' ∈ s ∧
@@ -1271,6 +1322,48 @@ Proof
   \\ rw[swap_internal_mod]
   \\ irule external_mod_multiplicative_subagent
   \\ simp[] \\ metis_tac[]
+QED
+
+Theorem external_eval:
+  (external v c).eval a e =
+  if a ∈ (external v c).agent ∧ e ∈ (external v c).env then
+    c.eval (decode_function a (FST (decode_pair e)))
+      (SND (decode_pair e))
+  else ARB
+Proof
+  rw[external_def, cf_external_def, mk_cf_def]
+QED
+
+Theorem internal_eval:
+  (internal v c).eval a e =
+  if a ∈ (internal v c).agent ∧ e ∈ (internal v c).env then
+    c.eval (SND (decode_pair a))
+      (decode_function e (FST (decode_pair a)))
+  else ARB
+Proof
+  rw[internal_def, cf_internal_def, mk_cf_def]
+QED
+
+Theorem external_nonempty_agent:
+  partitions v w ∧
+  c ∈ chu_objects w ⇒
+  (external v c).agent ≠ ∅
+Proof
+  strip_tac
+  \\ `partitions (fn_partition c.agent c.env c.eval v) c.agent`
+  by (
+    irule partitions_fn_partition
+    \\ metis_tac[in_chu_objects, wf_def] )
+  \\ rw[external_def, cf_external_def]
+  \\ fs[partitions_thm]
+  \\ rw[repfns_def, GSYM MEMBER_NOT_EMPTY]
+  \\ rw[is_repfn_def]
+  \\ qmatch_goalsub_abbrev_tac`extensional _ fp`
+  \\ qexists_tac`restrict CHOICE fp`
+  \\ rw[]
+  \\ rw[restrict_def]
+  \\ irule CHOICE_DEF
+  \\ metis_tac[]
 QED
 
 Theorem homotopy_equiv_commit:

@@ -1020,6 +1020,12 @@ Proof
   \\ rw[EQ_IMP_THM]
 QED
 
+Theorem biextensional_null[simp]:
+  biextensional (null w)
+Proof
+  rw[biextensional_def]
+QED
+
 Theorem biextensional_collapse_idem[simp]:
   wf c ∧ biextensional c ⇒ biextensional_collapse c = c
 Proof
@@ -1127,6 +1133,22 @@ Proof
   \\ metis_tac[biextensional_homotopy_equiv_iso,
                biextensional_cfT, biextensional_cf0,
                empty_agent_nonempty_env, empty_env_nonempty_agent]
+QED
+
+Theorem cf0_not_homotopy_equiv_null:
+  ¬(cf0 w ≃ null w -: w)
+Proof
+  strip_tac
+  \\ imp_res_tac homotopy_equiv_in_chu_objects
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ `cf0 w ≅ null w -: chu w`
+  by (
+    DEP_REWRITE_TAC[GSYM biextensional_homotopy_equiv_iso]
+    \\ simp[] )
+  \\ fs[iso_objs_thm]
+  \\ fs[chu_iso_bij]
+  \\ rfs[maps_to_in_chu]
+  \\ fs[cf0_def]
 QED
 
 Definition cf1_def:

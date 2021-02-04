@@ -389,26 +389,6 @@ Proof
                homotopy_equiv_refl, homotopy_equiv_trans, homotopy_equiv_sym]
 QED
 
-Theorem image_sum:
-  image (sum c1 c2) =
-  if (c1.env = ∅ ∨ c2.env = ∅) then ∅ else
-  image c1 ∪ image c2
-Proof
-  rw[image_def, sum_def, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
-  \\ rw[EXTENSION, EQ_IMP_THM, sum_eval_def] \\ rw[]
-  \\ dsimp[]
-  \\ metis_tac[MEMBER_NOT_EMPTY]
-QED
-
-Theorem image_prod:
-  image (prod c1 c2) =
-  if (c1.agent = ∅ ∨ c2.agent = ∅) then ∅ else
-  image c1 ∪ image c2
-Proof
-  simp[GSYM swap_sum_prod]
-  \\ simp[image_sum]
-QED
-
 Theorem FOLDL_prod_agent:
   (FOLDL prod e ls).agent =
   FOLDL (λa1 a2. IMAGE encode_pair (a1 × a2)) e.agent (MAP (λc. c.agent) ls)
@@ -622,20 +602,6 @@ Proof
   \\ simp[FUNPOW]
 QED
 
-Theorem image_cfT[simp]:
-  image (cfT w) = ∅
-Proof
-  rw[image_def, cfT_def, cf0_def]
-QED
-
-Theorem image_assume_SUBSET:
-  image (assume s c) ⊆ image c INTER s
-Proof
-  rw[image_def, assume_def, cf_assume_def, mk_cf_def, SUBSET_DEF]
-  \\ rw[]
-  \\ metis_tac[]
-QED
-
 Theorem partitions_DISJOINT:
   partitions v w ∧ s1 ∈ v ∧ s2 ∈ v ∧ s1 ≠ s2 ⇒
   DISJOINT s1 s2
@@ -643,73 +609,6 @@ Proof
   rw[partitions_thm, IN_DISJOINT]
   \\ fs[EXISTS_UNIQUE_ALT, SUBSET_DEF]
   \\ metis_tac[]
-QED
-
-Overload "⊗" = ``tensor``
-val _ = set_fixity "⊗" (Infix (LEFT, 500))
-
-Theorem tensor_eval:
-  (tensor x y).eval a e =
-    if a ∈ (tensor x y).agent ∧ e ∈ (tensor x y).env then
-      x.eval (FST (decode_pair a))
-        ((decode_morphism x (swap y) e).map.map_env
-         (SND (decode_pair a)))
-    else ARB
-Proof
-  rw[tensor_def, mk_cf_def]
-QED
-
-Theorem prod_eval:
-  (x && y).eval a e =
-  if a ∈ (x && y).agent ∧ e ∈ (x && y).env then
-    flip (sum_eval (flip x.eval) (flip y.eval)) a e
-  else ARB
-Proof
-  rw[prod_def, mk_cf_def]
-QED
-
-Theorem sum_eval:
-  (sum x y).eval a e =
-  if a ∈ (sum x y).agent ∧ e ∈ (sum x y).env then
-    sum_eval x.eval y.eval a e
-  else ARB
-Proof
-  rw[sum_def, mk_cf_def]
-QED
-
-Theorem internal_eval:
-  (internal v c).eval a e =
-  if a ∈ (internal v c).agent ∧ e ∈ (internal v c).env then
-    c.eval (SND (decode_pair a))
-      (decode_function e (FST (decode_pair a)))
-  else ARB
-Proof
-  rw[internal_def, cf_internal_def, mk_cf_def]
-QED
-
-Theorem assume_empty_agent:
-  c ∈ chu_objects w ∧ c.agent = ∅ ⇒ assume s c = c
-Proof
-  simp[assume_def, cf_assume_def]
-  \\ rw[cf_component_equality]
-  \\ simp[mk_cf_def, FUN_EQ_THM]
-  \\ fs[in_chu_objects, wf_def]
-QED
-
-Theorem assume_empty:
-  c ∈ chu_objects w ∧ c.agent ≠ ∅ ⇒
-  assume ∅ c ≃ cfT w -: w
-Proof
-  rw[]
-  \\ `assume ∅ c ∈ chu_objects w` by simp[]
-  \\ fs[assume_def]
-  \\ qmatch_goalsub_abbrev_tac`cf_assume b`
-  \\ `b = ∅` by (
-    simp[EXTENSION,Abbr`b`]
-    \\ metis_tac[MEMBER_NOT_EMPTY] )
-  \\ irule empty_env_nonempty_agent
-  \\ simp[]
-  \\ simp[cf_assume_def]
 QED
 
 Theorem assume_reduce_world:
@@ -792,45 +691,6 @@ Proof
   rw[assume_def, cf_assume_def, cf_component_equality, mk_cf_def]
 QED
 
-Theorem assume_empty_env:
-  c ∈ chu_objects w ∧ c.env = ∅ ⇒
-  assume s c = c
-Proof
-  rw[assume_def, cf_assume_def, mk_cf_def, cf_component_equality]
-  \\ fs[in_chu_objects, wf_def]
-  \\ rw[FUN_EQ_THM]
-QED
-
-Theorem biextensional_null[simp]:
-  biextensional (null w)
-Proof
-  rw[biextensional_def]
-QED
-
-Theorem cf0_not_homotopy_equiv_null:
-  ¬(cf0 w ≃ null w -: w)
-Proof
-  strip_tac
-  \\ imp_res_tac homotopy_equiv_in_chu_objects
-  \\ imp_res_tac in_chu_objects_finite_world
-  \\ `cf0 w ≅ null w -: chu w`
-  by (
-    DEP_REWRITE_TAC[GSYM biextensional_homotopy_equiv_iso]
-    \\ simp[] )
-  \\ fs[iso_objs_thm]
-  \\ fs[chu_iso_bij]
-  \\ rfs[maps_to_in_chu]
-  \\ fs[cf0_def]
-QED
-
-Theorem assume_null[simp]:
-  assume s (null w) = null w
-Proof
-  rw[cf_component_equality, assume_def, cf_assume_def]
-  \\ rw[mk_cf_def]
-  \\ rw[FUN_EQ_THM]
-QED
-
 Theorem FOLDL_encode_pair_inj:
   LENGTH l1 = LENGTH l2 ⇒
   (FOLDL (λp s. encode_pair (p, f1 s)) e1 l1 =
@@ -879,13 +739,6 @@ Proof
   Induct_on`n`
   \\ rw[Once FUNPOW]
   \\ rw[Once FUNPOW_SUC]
-QED
-
-Theorem LENGTH_encode_sum:
-  LENGTH (encode_sum (INL x)) = SUC (LENGTH x) ∧
-  LENGTH (encode_sum (INR x)) = SUC (LENGTH x)
-Proof
-  simp[encode_sum_def]
 QED
 
 Theorem LENGTH_FUNPOW_encode_sum:

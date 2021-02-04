@@ -629,6 +629,13 @@ Proof
   metis_tac[decode_encode_sum]
 QED
 
+Theorem LENGTH_encode_sum:
+  LENGTH (encode_sum (INL x)) = SUC (LENGTH x) ∧
+  LENGTH (encode_sum (INR x)) = SUC (LENGTH x)
+Proof
+  simp[encode_sum_def]
+QED
+
 Definition sum_eval_def:
   sum_eval f1 f2 a e =
     sum_CASE (decode_sum a)
@@ -665,6 +672,15 @@ Theorem sum_in_chu_objects[simp]:
   c1 ∈ chu_objects w ∧ c2 ∈ chu_objects w ⇒ sum c1 c2 ∈ chu_objects w
 Proof
   rw[chu_objects_def] \\ rw[sum_def]
+QED
+
+Theorem sum_eval:
+  (sum x y).eval a e =
+  if a ∈ (sum x y).agent ∧ e ∈ (sum x y).env then
+    sum_eval x.eval y.eval a e
+  else ARB
+Proof
+  rw[sum_def, mk_cf_def]
 QED
 
 Definition comm_sum_def:
@@ -1085,6 +1101,12 @@ Proof
   \\ simp[op_swap_functor_def]
 QED
 
+Theorem image_cfT[simp]:
+  image (cfT w) = ∅
+Proof
+  rw[image_def, cfT_def, cf0_def]
+QED
+
 Definition prod_def:
   prod c1 c2 = mk_cf
     <| world := c1.world ∪ c2.world;
@@ -1101,6 +1123,15 @@ QED
 
 Overload "&&" = ``prod``
 val _ = set_fixity "&&" (Infix (LEFT, 500))
+
+Theorem prod_eval:
+  (x && y).eval a e =
+  if a ∈ (x && y).agent ∧ e ∈ (x && y).env then
+    flip (sum_eval (flip x.eval) (flip y.eval)) a e
+  else ARB
+Proof
+  rw[prod_def, mk_cf_def]
+QED
 
 Theorem swap_sum_prod:
   swap (sum (swap c) (swap d)) = prod c d
@@ -1251,6 +1282,26 @@ Proof
   rw[GSYM swap_sum_prod]
   \\ irule sum_assoc
   \\ simp[]
+QED
+
+Theorem image_sum:
+  image (sum c1 c2) =
+  if (c1.env = ∅ ∨ c2.env = ∅) then ∅ else
+  image c1 ∪ image c2
+Proof
+  rw[image_def, sum_def, PULL_EXISTS, EXISTS_PROD, mk_cf_def]
+  \\ rw[EXTENSION, EQ_IMP_THM, sum_eval_def] \\ rw[]
+  \\ dsimp[]
+  \\ metis_tac[MEMBER_NOT_EMPTY]
+QED
+
+Theorem image_prod:
+  image (prod c1 c2) =
+  if (c1.agent = ∅ ∨ c2.agent = ∅) then ∅ else
+  image c1 ∪ image c2
+Proof
+  simp[GSYM swap_sum_prod]
+  \\ simp[image_sum]
 QED
 
 (* Scott proves this in the next post (i.e. our cf2Theory).

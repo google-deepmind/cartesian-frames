@@ -20,42 +20,6 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 
 val _ = new_theory"cfb";
 
-(* TODO: move *)
-
-Theorem external_eval:
-  (external v c).eval a e =
-  if a ∈ (external v c).agent ∧ e ∈ (external v c).env then
-    c.eval (decode_function a (FST (decode_pair e)))
-      (SND (decode_pair e))
-  else ARB
-Proof
-  rw[external_def, cf_external_def, mk_cf_def]
-QED
-
-Theorem external_nonempty_agent:
-  partitions v w ∧
-  c ∈ chu_objects w ⇒
-  (external v c).agent ≠ ∅
-Proof
-  strip_tac
-  \\ `partitions (fn_partition c.agent c.env c.eval v) c.agent`
-  by (
-    irule partitions_fn_partition
-    \\ metis_tac[in_chu_objects, wf_def] )
-  \\ rw[external_def, cf_external_def]
-  \\ fs[partitions_thm]
-  \\ rw[repfns_def, GSYM MEMBER_NOT_EMPTY]
-  \\ rw[is_repfn_def]
-  \\ qmatch_goalsub_abbrev_tac`extensional _ fp`
-  \\ qexists_tac`restrict CHOICE fp`
-  \\ rw[]
-  \\ rw[restrict_def]
-  \\ irule CHOICE_DEF
-  \\ metis_tac[]
-QED
-
-(* -- *)
-
 (* TODO:  three-digit number example *)
 
 Definition obs_part_after_def:

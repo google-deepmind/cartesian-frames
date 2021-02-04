@@ -29,6 +29,10 @@ Definition tensor_def:
                     ((decode_morphism c (swap d) e).map.map_env (SND(decode_pair a))) |>
 End
 
+Overload "⊗" = ``tensor``
+
+val _ = set_fixity "⊗" (Infix (LEFT, 500))
+
 Theorem finite_tensor[simp]:
   finite_cf c ∧ finite_cf d ⇒ finite_cf (tensor c d)
 Proof
@@ -54,6 +58,17 @@ Theorem tensor_in_chu_objects[simp]:
 Proof
   rw[chu_objects_def]
   \\ rw[tensor_def]
+QED
+
+Theorem tensor_eval:
+  (tensor x y).eval a e =
+    if a ∈ (tensor x y).agent ∧ e ∈ (tensor x y).env then
+      x.eval (FST (decode_pair a))
+        ((decode_morphism x (swap y) e).map.map_env
+         (SND (decode_pair a)))
+    else ARB
+Proof
+  rw[tensor_def, mk_cf_def]
 QED
 
 (* TODO: tensor example with J, K, L *)

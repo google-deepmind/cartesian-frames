@@ -195,7 +195,13 @@ Proof
   \\ metis_tac[CHOICE_DEF]
 QED
 
-(* TODO: prove counterxample ensure_sum if c or d is null? *)
+Theorem ensure_sum_null:
+  c.world = w ∧ c.agent ≠ ∅ ⇒
+  ensure (sum (null w) c) = POW w
+Proof
+  rw[GSYM MEMBER_NOT_EMPTY, ensure_def, sum_def]
+  \\ rw[EXTENSION, IN_POW]
+QED
 
 Theorem homotopy_equiv_ensure:
   c ≃ d -: w  ⇒ ensure c = ensure d

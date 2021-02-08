@@ -1026,6 +1026,12 @@ Proof
   rw[biextensional_def]
 QED
 
+Theorem ensure_null[simp]:
+  ensure (null w) = {}
+Proof
+  rw[ensure_def]
+QED
+
 Theorem biextensional_collapse_idem[simp]:
   wf c ∧ biextensional c ⇒ biextensional_collapse c = c
 Proof

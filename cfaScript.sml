@@ -602,15 +602,6 @@ Proof
   \\ simp[FUNPOW]
 QED
 
-Theorem partitions_DISJOINT:
-  partitions v w ∧ s1 ∈ v ∧ s2 ∈ v ∧ s1 ≠ s2 ⇒
-  DISJOINT s1 s2
-Proof
-  rw[partitions_thm, IN_DISJOINT]
-  \\ fs[EXISTS_UNIQUE_ALT, SUBSET_DEF]
-  \\ metis_tac[]
-QED
-
 Theorem assume_reduce_world:
   c ∈ chu_objects w ∧ s ⊆ w ⇒
   assume s c with world := s ∈ chu_objects s
@@ -775,19 +766,6 @@ Proof
   \\ qid_spec_tac`n2`
   \\ Induct_on`n1`
   \\ Cases \\ simp[FUNPOW_SUC]
-QED
-
-Theorem fn_part_image_subset_eq_agent:
-  partitions v w ∧
-  image c ⊆ s ∧ s ∈ v ∧ a ∈ c.agent
-  ⇒
-  fn_part c.agent c.env c.eval v a = c.agent
-Proof
-  rw[fn_part_def, Once SET_EQ_SUBSET, SUBSET_DEF]
-  \\ fs[image_def, PULL_EXISTS]
-  \\ fs[partitions_thm, EXISTS_UNIQUE_ALT]
-  \\ fs[SUBSET_DEF]
-  \\ metis_tac[]
 QED
 
 Theorem sum_image_subset_fn_part_INL:

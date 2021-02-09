@@ -171,6 +171,8 @@ Proof
   metis_tac[multiplicative_subagent_def, is_sister_def, homotopy_equiv_sym]
 QED
 
+(* TODO: use compose_in_chu to improve below here *)
+
 Theorem additive_subagent_committing:
   additive_subagent c d ⇔
   ∃x y z f.

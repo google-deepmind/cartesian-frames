@@ -528,8 +528,6 @@ Proof
   \\ fs[null_def, cfT_def, cf0_def]
 QED
 
-(* TODO: example of non-vacuous mutual subagents? *)
-
 Theorem cfT_subagent[simp]:
   c ∈ chu_objects w ⇒ cfT w ◁ c -: w
 Proof

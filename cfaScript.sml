@@ -949,6 +949,30 @@ Proof
   \\ metis_tac[partitions_DISJOINT, IN_DISJOINT]
 QED
 
+Theorem biextensional_collapse_eval:
+  (biextensional_collapse c).eval a e =
+  if a ∈ (biextensional_collapse c).agent ∧
+     e ∈ (biextensional_collapse c).env then
+     c.eval a e
+     else ARB
+Proof
+  rw[biextensional_collapse_def, mk_cf_def]
+QED
+
+Theorem biextensional_collapse_agent_SUBSET:
+  (biextensional_collapse c).agent ⊆ c.agent
+Proof
+  rw[SUBSET_DEF, biextensional_collapse_def]
+  \\ metis_tac[rep_in_equiv_class, agent_equiv_on]
+QED
+
+Theorem biextensional_collapse_env_SUBSET:
+  (biextensional_collapse c).env ⊆ c.env
+Proof
+  rw[SUBSET_DEF, biextensional_collapse_def]
+  \\ metis_tac[rep_in_equiv_class, env_equiv_on]
+QED
+
 (* -- *)
 
 Definition obs_part_def:
@@ -2363,15 +2387,55 @@ Proof
   by (
     simp[Abbr`r1`,Abbr`r2`,Abbr`r3`]
     \\ rpt conj_tac \\ irule cf1_in_chu_objects \\ simp[SUBSET_DEF])
-  \\ `c1 && r1 ∈ chu_objects w ∧ c2 && r2 ∈ chu_objects w`
-  by simp[Abbr`c1`, Abbr`c2`]
-  \\ `c1 && c2 ∈ chu_objects w` by simp[Abbr`c1`,Abbr`c2`]
+  \\ qabbrev_tac`d1 = biextensional_collapse c1`
+  \\ qabbrev_tac`d2 = biextensional_collapse c2`
+  \\ `d1 && d2 && r3 ≃ tensor (d1 && r1) (d2 && r2) -: w`
+  suffices_by
+    let
+      val mt =
+        metis_tac[homotopy_equiv_trans,
+                  homotopy_equiv_prod,
+                  homotopy_equiv_in_chu_objects,
+                  homotopy_equiv_tensor,
+                  homotopy_equiv_refl,
+                  homotopy_equiv_sym,
+                  homotopy_equiv_collapse,
+                  assume_in_chu_objects,
+                  prod_in_chu_objects,
+                  biextensional_collapse_in_chu_objects]
+    in
+      ntac 5 (pop_assum mp_tac)
+      \\ qpat_x_assum`Abbrev(c1 = _)`mp_tac
+      \\ qpat_x_assum`Abbrev(c2 = _)`mp_tac
+      \\ qpat_x_assum`c ∈ _`mp_tac
+      \\ rpt (pop_assum kall_tac)
+      \\ rpt strip_tac
+      \\ irule homotopy_equiv_trans
+      \\ qexists_tac`d1 && c2 && r3`
+      \\ conj_tac >- (
+        irule homotopy_equiv_prod
+        \\ rpt conj_tac \\ TRY (irule homotopy_equiv_prod) \\ mt)
+      \\ irule homotopy_equiv_trans
+      \\ qexists_tac`d1 && d2 && r3`
+      \\ conj_tac >- (
+        irule homotopy_equiv_prod
+        \\ rpt conj_tac \\ TRY (irule homotopy_equiv_prod) \\ mt)
+      \\ irule homotopy_equiv_trans
+      \\ goal_assum(first_assum o mp_then Any mp_tac)
+      \\ irule homotopy_equiv_tensor
+      \\ conj_tac
+      \\ irule homotopy_equiv_prod
+      \\ rpt conj_tac \\ mt
+    end
+  \\ `d1 && r1 ∈ chu_objects w ∧ d2 && r2 ∈ chu_objects w`
+  by simp[Abbr`c1`, Abbr`c2`, Abbr`d1`, Abbr`d2`]
+  \\ `d1 && d2 ∈ chu_objects w` by simp[Abbr`c1`,Abbr`c2`,Abbr`d1`,Abbr`d2`]
   \\ qabbrev_tac`me = λe.
-       mk_chu_morphism (c1 && r1) (swap (c2 && r2))
-         <| map_agent := λa. encode_sum (INR (c1.eval (FST (decode_pair a)) e));
+       mk_chu_morphism (d1 && r1) (swap (d2 && r2))
+         <| map_agent := λa. encode_sum (INR (d1.eval (FST (decode_pair a)) e));
             map_env := K (encode_sum (INL e)) |>`
-  \\ `∀e. e ∈ c1.env ⇒
-          me e :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+  \\ `∀e. e ∈ d1.env ⇒
+          me e :- (d1 && r1) → (swap (d2 && r2)) -: chu w`
   by (
     rpt strip_tac
     \\ simp[maps_to_in_chu]
@@ -2386,8 +2450,13 @@ Proof
     \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
     \\ conj_asm1_tac
     >- (
-      simp[Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`]
-      \\ pop_assum mp_tac
+      simp[Abbr`d1`, Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`]
+      \\ simp[biextensional_collapse_eval]
+      \\ qx_gen_tac`a` \\ strip_tac
+      \\ `a ∈ (assume s1 c).agent ∧ e ∈ (assume s1 c).env`
+      by metis_tac[biextensional_collapse_agent_SUBSET,
+                   biextensional_collapse_env_SUBSET, SUBSET_DEF]
+      \\ ntac 2 (pop_assum mp_tac)
       \\ simp[assume_def, cf_assume_def, mk_cf_def, image_def]
       \\ metis_tac[ALL_DISTINCT_SNOC, MEM_SNOC, in_chu_objects,
                    wf_def, partitions_DISJOINT, IN_DISJOINT])
@@ -2398,11 +2467,11 @@ Proof
     \\ ntac 2 (pop_assum mp_tac)
     \\ simp[Abbr`r2`, cf1_def, mk_cf_def] )
   \\ qabbrev_tac`mf = λe.
-       mk_chu_morphism (c1 && r1) (swap (c2 && r2))
+       mk_chu_morphism (d1 && r1) (swap (d2 && r2))
          <| map_agent := K (encode_sum (INL e));
-            map_env := λa. encode_sum (INR (c2.eval (FST (decode_pair a)) e)) |>`
-  \\ `∀e. e ∈ c2.env ⇒
-          mf e :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+            map_env := λa. encode_sum (INR (d2.eval (FST (decode_pair a)) e)) |>`
+  \\ `∀e. e ∈ d2.env ⇒
+          mf e :- (d1 && r1) → (swap (d2 && r2)) -: chu w`
   by (
     rpt strip_tac
     \\ simp[maps_to_in_chu]
@@ -2417,8 +2486,13 @@ Proof
     \\ simp[Once prod_def, PULL_EXISTS, EXISTS_PROD]
     \\ conj_asm1_tac
     >- (
-      simp[Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`]
-      \\ pop_assum mp_tac
+      simp[Abbr`c1`, Abbr`c2`, Abbr`r1`, Abbr`r2`, Abbr`d2`]
+      \\ simp[biextensional_collapse_eval]
+      \\ qx_gen_tac`a` \\ strip_tac
+      \\ `a ∈ (assume s2 c).agent ∧ e ∈ (assume s2 c).env`
+      by metis_tac[biextensional_collapse_agent_SUBSET,
+                   biextensional_collapse_env_SUBSET, SUBSET_DEF]
+      \\ ntac 2 (pop_assum mp_tac)
       \\ simp[assume_def, cf_assume_def, mk_cf_def, image_def]
       \\ metis_tac[ALL_DISTINCT_SNOC, MEM_SNOC, in_chu_objects,
                    wf_def, partitions_DISJOINT, IN_DISJOINT])
@@ -2429,11 +2503,11 @@ Proof
     \\ qpat_x_assum`_ ∈ r1.env`mp_tac
     \\ qpat_x_assum`_ ∈ r1.agent`mp_tac
     \\ simp[Abbr`r1`, cf1_def, mk_cf_def] )
-  \\ qabbrev_tac`mr = λr. mk_chu_morphism (c1 && r1) (swap (c2 && r2))
+  \\ qabbrev_tac`mr = λr. mk_chu_morphism (d1 && r1) (swap (d2 && r2))
        <| map_agent := K (encode_sum (INR r));
           map_env := K (encode_sum (INR r)) |>`
   \\ `∀r. r ∈ r3.env ⇒
-          mr r :- (c1 && r1) → (swap (c2 && r2)) -: chu w`
+          mr r :- (d1 && r1) → (swap (d2 && r2)) -: chu w`
   by (
     simp[maps_to_in_chu]
     \\ simp[Abbr`mr`]
@@ -2450,8 +2524,8 @@ Proof
     \\ simp[Abbr`r1`, Abbr`r2`, image_def, PULL_EXISTS, cf1_def, mk_cf_def])
   \\ simp[Once homotopy_equiv_sym]
   \\ simp[homotopy_equiv_def]
-  \\ qexists_tac`mk_chu_morphism (tensor (c1 && r1) (c2 && r2))
-       (c1 && c2 && r3) <| map_agent :=
+  \\ qexists_tac`mk_chu_morphism (tensor (d1 && r1) (d2 && r2))
+       (d1 && d2 && r3) <| map_agent :=
          λa. encode_pair
               (encode_pair
                 (FST(decode_pair(FST(decode_pair a))),
@@ -2463,11 +2537,11 @@ Proof
                        (encode_morphism o mf))
                (encode_morphism o mr) |>`
   \\ qmatch_goalsub_abbrev_tac`homotopic _ (_ o g -: _)`
-  \\ qexists_tac`mk_chu_morphism (c1 && c2 && r3) (tensor (c1 && r1) (c2 && r2))
+  \\ qexists_tac`mk_chu_morphism (d1 && d2 && r3) (tensor (d1 && r1) (d2 && r2))
        <| map_agent := λa. encode_pair
            (encode_pair (FST(decode_pair(FST(decode_pair a))), ""),
             encode_pair (SND(decode_pair(FST(decode_pair a))), ""));
-          map_env := λe. @f. f ∈ (c1 && c2 && r3).env ∧ g.map.map_env f = e |>`
+          map_env := λe. @f. f ∈ (d1 && d2 && r3).env ∧ g.map.map_env f = e |>`
   \\ qmatch_goalsub_abbrev_tac`homotopic _ (h o _ -: _)`
   \\ imp_res_tac in_chu_objects
   \\ conj_asm1_tac
@@ -2552,494 +2626,320 @@ Proof
   \\ simp[maps_to_in_chu, Abbr`h`]
   \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
   \\ simp[restrict_def]
-  \\ `∀e. e ∈ (tensor (c1 && r1) (c2 && r2)).env ⇒
-          ∃f. f ∈ (c1 && c2 && r3).env ∧ g.map.map_env f = e`
+  \\ `∀e. e ∈ (tensor (d1 && r1) (d2 && r2)).env ⇒
+          ∃f. f ∈ (d1 && d2 && r3).env ∧ g.map.map_env f = e`
   by (
-  (*
     simp[Abbr`g`, mk_chu_morphism_def, restrict_def]
     \\ simp[tensor_def, PULL_EXISTS, hom_def]
     \\ qx_gen_tac`m` \\ strip_tac
-    \\ `∃b. b ∈ c1.agent ∧ b ∈ c2.agent`
+    \\ `∃b1 b2. b1 ∈ d1.agent ∧ b2 ∈ d2.agent`
     by (
-      simp[Abbr`c1`, Abbr`c2`]
+      simp[Abbr`c1`, Abbr`c2`, Abbr`d1`, Abbr`d2`]
+      \\ simp[biextensional_collapse_def, PULL_EXISTS]
       \\ simp[assume_def, cf_assume_def]
       \\ metis_tac[MEMBER_NOT_EMPTY] )
-    \\ qabbrev_tac`r = (c1 && r1).eval (encode_pair (b, ""))
-                          (m.map.map_env (encode_pair (b, "")))`
-    \\ Cases_on`r ∈ r3.env`
-    >- (
-      `r ∉ s1 ∧ r ∉ s2 ∧ r ∈ image c`
-      by ( pop_assum mp_tac \\ simp[Abbr`r3`] )
-      \\ `encode_pair (b, "") ∈ (c1 && r1).agent`
-      by ( simp[prod_def] \\ simp[Abbr`r1`] )
-      \\ `encode_pair (b, "") ∈ (c2 && r2).agent`
-      by ( simp[prod_def] \\ simp[Abbr`r2`] )
-      \\ qexists_tac`encode_sum (INR r)`
-      \\ conj_asm1_tac >- simp[prod_def]
-      \\ simp[]
-      \\ AP_TERM_TAC
-      \\ `mr r :- c1 && r1 → (swap (c2 && r2)) -: chu w` by metis_tac[]
-      \\ pop_assum mp_tac
-      \\ qpat_x_assum`m :- _ → _ -: _`mp_tac
-      \\ simp_tac(srw_ss())[maps_to_in_chu]
-      \\ strip_tac \\ strip_tac
-      \\ simp[morphism_component_equality]
-      \\ simp[chu_morphism_map_component_equality]
-      \\ fs[is_chu_morphism_def]
-      \\ qmatch_assum_abbrev_tac`bb ∈ (c1 && r1).agent`
-      \\ `m.map.map_agent bb ∈ (c2 && r2).env` by metis_tac[]
-      \\ pop_assum mp_tac
-      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
-      \\ strip_tac
-      >- (
-        `r ∈ s2` suffices_by simp[]
-        \\ simp_tac(srw_ss())[Abbr`r`, prod_eval]
-        \\ reverse IF_CASES_TAC >- metis_tac[]
-        \\ qpat_assum`m.map.map_agent _ = _`SUBST1_TAC
-        \\ simp_tac(srw_ss())[sum_eval_def]
-        \\ qpat_x_assum`_ ∈ c2.env`mp_tac
-        \\ qpat_x_assum`bb ∈ _.agent`mp_tac
-        \\ simp_tac(srw_ss())[Abbr`c2`, assume_def, cf_assume_def,
-                              Abbr`bb`, mk_cf_def, prod_def])
-      \\ qmatch_assum_rename_tac`e ∈ r2.env`
-      \\ `r = e`
-      by (
-        simp[Abbr`r`, prod_eval, sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r2`, cf1_def, mk_cf_def]
-        \\ simp[Abbr`bb`] )
-      \\ `r = (c1 && r1).eval bb (m.map.map_env bb)` by metis_tac[]
-      \\ `m.map.map_env bb = encode_sum (INR e)`
-      by (
-        pop_assum mp_tac
-        \\ pop_assum SUBST_ALL_TAC
-        \\ `m.map.map_env bb ∈ (c1 && r1).env` by metis_tac[]
-        \\ pop_assum mp_tac
-        \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
-        \\ strip_tac
-        >- (
-          first_x_assum SUBST_ALL_TAC
-          \\ simp_tac(srw_ss())[prod_eval, sum_eval_def]
-          \\ simp[]
-          \\ simp[prod_def]
-          \\ pop_assum mp_tac
-          \\ simp[Abbr`c1`, assume_def, cf_assume_def]
-          \\ simp[mk_cf_def]
-          \\ simp[Abbr`bb`]
-          \\ qpat_x_assum`b ∈ (assume _ _).agent`mp_tac
-          \\ simp[assume_def, cf_assume_def]
-          \\ metis_tac[])
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[]
-        \\ simp[sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r1`, cf1_def, mk_cf_def]
-        \\ simp[Abbr`bb`])
-      \\ simp_tac(srw_ss())[FUN_EQ_THM]
-      \\ conj_tac
-      >- (
-        qx_gen_tac`a`
-        \\ reverse(Cases_on`a ∈ (c1 && r1).agent`)
-        >- metis_tac[extensional_def]
-        \\ last_x_assum(qspecl_then[`a`,`bb`]mp_tac)
-        \\ impl_tac >- simp[]
-        \\ qpat_assum`m.map.map_env _ = _`SUBST1_TAC
-        \\ simp_tac(srw_ss())[Once prod_eval]
-        \\ reverse IF_CASES_TAC >- metis_tac[]
-        \\ simp_tac(srw_ss())[sum_eval_def]
-        \\ `r ∈ w` by metis_tac[in_chu_objects, wf_def]
-        \\ `r1.eval (SND (decode_pair a)) e = e`
-        by (
-          qpat_x_assum`a ∈ _`mp_tac
-          \\ simp_tac(srw_ss())[prod_def, Abbr`r1`]
-          \\ simp[cf1_def, mk_cf_def, PULL_EXISTS]
-          \\ metis_tac[] )
-        \\ first_assum SUBST1_TAC
-        \\ `(mr r).map.map_agent a = encode_sum (INR r)`
-        by simp[Abbr`mr`, mk_chu_morphism_def, restrict_def]
-        \\ `m.map.map_agent a ∈ (c2 && r2).env` by metis_tac[]
-        \\ pop_assum mp_tac
-        \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
-        \\ strip_tac
-        >- (
-          first_x_assum SUBST_ALL_TAC
-          \\ simp_tac(srw_ss())[prod_eval, sum_eval_def]
-          \\ simp[]
-          \\ simp[prod_def]
-          \\ pop_assum mp_tac
-          \\ simp[Abbr`c2`, assume_def, cf_assume_def]
-          \\ simp[mk_cf_def]
-          \\ simp[Abbr`bb`]
-          \\ qpat_x_assum`b ∈ (assume _ _).agent`mp_tac
-          \\ simp[assume_def, cf_assume_def]
-          \\ metis_tac[])
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[]
-        \\ simp[sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r2`, cf1_def, mk_cf_def]
-        \\ simp[Abbr`bb`]
-        \\ simp[prod_eval]
-        \\ simp[prod_def, sum_eval_def]
-        \\ simp[Abbr`r1`, cf1_def, mk_cf_def]
-        \\ metis_tac[])
-      \\ qx_gen_tac`a`
-      \\ reverse(Cases_on`a ∈ (c2 && r2).agent`)
-      >- metis_tac[extensional_def]
-      \\ last_x_assum(qspecl_then[`bb`,`a`]mp_tac)
-      \\ impl_tac >- simp[]
-      \\ qpat_assum`m.map.map_agent _ = _`SUBST1_TAC
-      \\ disch_then (mp_tac o SYM)
-      \\ simp_tac(srw_ss())[Once prod_eval]
-      \\ reverse IF_CASES_TAC >- metis_tac[]
-      \\ simp_tac(srw_ss())[sum_eval_def]
-      \\ `r ∈ w` by metis_tac[in_chu_objects, wf_def]
-      \\ `r2.eval (SND (decode_pair a)) e = e`
-      by (
-        qpat_x_assum`a ∈ _`mp_tac
-        \\ simp_tac(srw_ss())[prod_def, Abbr`r2`]
-        \\ simp[cf1_def, mk_cf_def, PULL_EXISTS]
-        \\ metis_tac[] )
-      \\ first_assum SUBST1_TAC
-      \\ `(mr r).map.map_env a = encode_sum (INR r)`
-      by simp[Abbr`mr`, mk_chu_morphism_def, restrict_def]
-      \\ `m.map.map_env a ∈ (c1 && r1).env` by metis_tac[]
-      \\ pop_assum mp_tac
-      \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
-      \\ strip_tac
-      >- (
-        first_x_assum SUBST_ALL_TAC
-        \\ simp_tac(srw_ss())[prod_eval, sum_eval_def]
-        \\ simp[]
-        \\ simp[prod_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`c1`, assume_def, cf_assume_def]
-        \\ simp[mk_cf_def]
-        \\ simp[Abbr`bb`]
-        \\ qpat_x_assum`b ∈ (assume _ _).agent`mp_tac
-        \\ simp[assume_def, cf_assume_def]
-        \\ metis_tac[])
-      \\ simp_tac(srw_ss())[prod_eval]
-      \\ simp[]
-      \\ simp[sum_eval_def]
-      \\ pop_assum mp_tac
-      \\ simp[Abbr`r1`, cf1_def, mk_cf_def]
-      \\ simp[Abbr`bb`]
-      \\ simp[prod_eval]
-      \\ simp[prod_def, sum_eval_def])
-    \\ `encode_pair (b, "") ∈ (c1 && r1).agent`
+    \\ qabbrev_tac`r = (d1 && r1).eval (encode_pair (b1, ""))
+                          (m.map.map_env (encode_pair (b2, "")))`
+    \\ `encode_pair (b1, "") ∈ (d1 && r1).agent`
     by ( simp[prod_def] \\ simp[Abbr`r1`] )
-    \\ `encode_pair (b, "") ∈ (c2 && r2).agent`
+    \\ `encode_pair (b2, "") ∈ (d2 && r2).agent`
     by ( simp[prod_def] \\ simp[Abbr`r2`] )
-    \\ qmatch_assum_abbrev_tac`bb ∈ _.agent`
-    \\ `b ∈ c.agent` by (
-      qpat_x_assum`b ∈ _`mp_tac
-      \\ simp[Abbr`c2`, assume_def, cf_assume_def] )
-    \\ `m.map.map_env bb ∈ (c1 && r1).env`
+    \\ `b1 ∈ c.agent ∧ b2 ∈ c.agent` by (
+      `b1 ∈ c1.agent ∧ b2 ∈ c2.agent`
+      suffices_by simp[Abbr`c1`, Abbr`c2`, assume_def, cf_assume_def]
+      \\ qpat_x_assum`b1 ∈ _`mp_tac
+      \\ qpat_x_assum`b2 ∈ _`mp_tac
+      \\ simp[Abbr`d1`, Abbr`d2`]
+      \\ metis_tac[biextensional_collapse_agent_SUBSET, SUBSET_DEF])
+    \\ `m.map.map_env (encode_pair(b2,"")) ∈ (d1 && r1).env`
     by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
-    \\ `m.map.map_agent bb ∈ (c2 && r2).env`
+    \\ `m.map.map_agent (encode_pair(b1,"")) ∈ (d2 && r2).env`
     by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
-    \\ `∀b e. b ∈ c1.agent ∧ e ∈ r1.env ⇒
-          (c1 && r1).eval (encode_pair (b,"")) (encode_sum (INR e)) = e`
+    \\ `∀b e. b ∈ d1.agent ∧ e ∈ r1.env ⇒
+          (d1 && r1).eval (encode_pair (b,"")) (encode_sum (INR e)) = e`
     by (
       simp[prod_eval]
       \\ simp[prod_def]
       \\ simp[Abbr`r1`, cf1_def, mk_cf_def, sum_eval_def] )
-    \\ Cases_on`r ∈ r2.env`
+    \\ `∀b e. b ∈ d2.agent ∧ e ∈ r2.env ⇒
+          (d2 && r2).eval (encode_pair (b,"")) (encode_sum (INR e)) = e`
+    by (
+      simp[prod_eval]
+      \\ simp[prod_def]
+      \\ simp[Abbr`r2`, cf1_def, mk_cf_def, sum_eval_def] )
+    \\ `∀b e. b ∈ d1.agent ∧ e ∈ d1.env ⇒
+          (d1 && r1).eval (encode_pair (b,"")) (encode_sum (INL e)) =
+          d1.eval b e`
+    by (
+      simp[prod_eval]
+      \\ simp[prod_def]
+      \\ simp[Abbr`r1`, cf1_def, mk_cf_def, sum_eval_def] )
+    \\ `∀b e. b ∈ d2.agent ∧ e ∈ d2.env ⇒
+          (d2 && r2).eval (encode_pair (b,"")) (encode_sum (INL e)) =
+          d2.eval b e`
+    by (
+      simp[prod_eval]
+      \\ simp[prod_def]
+      \\ simp[Abbr`r2`, cf1_def, mk_cf_def, sum_eval_def] )
+    \\ `∀a e. a ∈ d1.agent ∧ e ∈ d1.env ⇒ d1.eval a e = c1.eval a e`
+    by metis_tac[biextensional_collapse_eval]
+    \\ `∀a e. a ∈ d2.agent ∧ e ∈ d2.env ⇒ d2.eval a e = c2.eval a e`
+    by metis_tac[biextensional_collapse_eval]
+    \\ `∀a. (a ∈ d1.agent ⇒ a ∈ c1.agent) ∧ (a ∈ d2.agent ⇒ a ∈ c2.agent)`
+    by metis_tac[biextensional_collapse_agent_SUBSET, SUBSET_DEF]
+    \\ `∀a. (a ∈ d1.env ⇒ a ∈ c1.env) ∧ (a ∈ d2.env ⇒ a ∈ c2.env)`
+    by metis_tac[biextensional_collapse_env_SUBSET, SUBSET_DEF]
+    \\ `∀b e. b ∈ d1.agent ∧ e ∈ d1.env ⇒ d1.eval b e ∈ s1`
+    by ( simp[Abbr`c1`]
+         \\ ntac 2 (pop_assum mp_tac)
+         \\ simp[assume_def, cf_assume_def, mk_cf_def])
+    \\ `∀b e. b ∈ d2.agent ∧ e ∈ d2.env ⇒ d2.eval b e ∈ s2`
+    by ( simp[Abbr`c2`]
+         \\ ntac 3 (pop_assum mp_tac)
+         \\ simp[assume_def, cf_assume_def, mk_cf_def])
+    \\ `s1 ≠ s2` by fs[ALL_DISTINCT_SNOC]
+    \\ `r ∈ image c`
+    by (
+      qunabbrev_tac`r`
+      \\ qpat_x_assum`_.map_env _ ∈ _.env`mp_tac
+      \\ simp[prod_eval]
+      \\ simp[prod_def, PULL_EXISTS]
+      \\ strip_tac \\ simp[sum_eval_def] \\ simp[]
+      \\ TRY (qmatch_assum_rename_tac`e ∈ d1.env` \\ `e ∈ c1.env` by metis_tac[])
+      \\ pop_assum mp_tac
+      \\ simp_tac(srw_ss())[Abbr`c1`, assume_def, cf_assume_def, mk_cf_def]
+      \\ simp[Abbr`r1`, image_def, cf1_def, mk_cf_def]
+      \\ metis_tac[])
+    \\ `∀x. x ∈ image c ⇒ x ∈ w`
+    by (simp[image_def] \\ metis_tac[in_chu_objects, wf_def])
+    \\ `∀b e. b ∈ (d1 && r1).agent ∧ e ∈ (d2 && r2).agent ⇒
+          (d1 && r1).eval b (m.map.map_env e) =
+          (d2 && r2).eval e (m.map.map_agent b)`
+    by ( metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components] )
+    \\ `r1.agent = {""} ∧ r2.agent = {""} ∧ r3.agent = {""}`
+    by simp[Abbr`r1`,Abbr`r2`,Abbr`r3`]
+    \\ Cases_on`r ∈ r3.env`
     >- (
-      qpat_x_assum`_.map_env bb ∈ _` mp_tac
-      \\ simp[Once prod_def, PULL_EXISTS]
+      `r ∉ s1 ∧ r ∉ s2`
+      by ( pop_assum mp_tac \\ simp[Abbr`r3`] )
+      \\ qexists_tac`encode_sum (INR r)`
+      \\ conj_asm1_tac >- simp[prod_def]
+      \\ simp[]
+      \\ AP_TERM_TAC
+      \\ simp[morphism_component_equality]
+      \\ conj_tac >- metis_tac[maps_to_in_chu]
+      \\ conj_tac >- metis_tac[maps_to_in_chu]
+      \\ simp[chu_morphism_map_component_equality]
+      \\ qpat_assum`m.map.map_agent bb ∈ (d2 && r2).env` mp_tac
+      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
+      \\ strip_tac >- metis_tac[]
+      \\ qmatch_assum_rename_tac`e ∈ r2.env`
+      \\ `r = e` by metis_tac[]
+      \\ pop_assum(SUBST_ALL_TAC o SYM)
+      \\ `m.map.map_env (encode_pair(b2,"")) = encode_sum (INR r)`
+      by (
+        qpat_assum `m.map.map_env bb ∈ (d1 && r1).env` mp_tac
+        \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+        \\ strip_tac >- metis_tac[]
+        \\ metis_tac[])
+      \\ `r ∈ r1.env` by simp[Abbr`r1`]
+      \\ simp_tac(srw_ss())[FUN_EQ_THM]
+      \\ conj_tac
+      >- (
+        qx_gen_tac`a`
+        \\ reverse(Cases_on`a ∈ (d1 && r1).agent`)
+        >- metis_tac[maps_to_in_chu, is_chu_morphism_def, extensional_def]
+        \\ `(mr r).map.map_agent a = encode_sum (INR r)`
+        by simp[Abbr`mr`, mk_chu_morphism_def, restrict_def]
+        \\ `m.map.map_agent a ∈ (d2 && r2).env`
+        by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
+        \\ pop_assum mp_tac
+        \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+        \\ qpat_assum`a ∈ _`mp_tac
+        \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS, EXISTS_PROD]
+        \\ simp[] \\ rpt gen_tac \\ strip_tac
+        \\ strip_tac >- metis_tac[]
+        \\ metis_tac[])
+      \\ qx_gen_tac`a`
+      \\ reverse(Cases_on`a ∈ (d2 && r2).agent`)
+      >- metis_tac[maps_to_in_chu, is_chu_morphism_def,
+                   extensional_def, swap_components]
+      \\ first_assum mp_tac
+      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[] \\ rpt gen_tac \\ strip_tac
+      \\ `(mr r).map.map_env a = encode_sum (INR r)`
+      by (simp[Abbr`mr`, mk_chu_morphism_def, restrict_def] \\ fs[])
+      \\ `m.map.map_env a ∈ (d1 && r1).env`
+      by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
+      \\ pop_assum mp_tac
+      \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+      \\ strip_tac >- metis_tac[]
+      \\ metis_tac[])
+    \\ `r ∉ s1 ⇔ r ∈ s2`
+    by (
+      qpat_x_assum`r ∉ _`mp_tac
+      \\ simp[Abbr`r3`]
+      \\ metis_tac[partitions_DISJOINT, IN_DISJOINT])
+    \\ Cases_on`r ∈ s1`
+    >- (
+      qpat_assum`_.map_env _ ∈ _` mp_tac
+      \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
       \\ reverse strip_tac
       >- (
         qmatch_assum_rename_tac`e ∈ r1.env`
         \\ `r = e` by metis_tac[]
-        \\ pop_assum SUBST_ALL_TAC
-        \\ rpt (qpat_x_assum`e ∈ _.env`mp_tac)
-        \\ qpat_x_assum`e ∉ _.env`mp_tac
-        \\ simp[Abbr`r1`, Abbr`r2`, Abbr`r3`, cf1_def]
+        \\ pop_assum (SUBST_ALL_TAC o SYM)
+        \\ qpat_x_assum`r ∈ _`mp_tac
+        \\ simp[Abbr`r1`, cf1_def]
         \\ metis_tac[])
-      \\ qmatch_assum_rename_tac`e ∈ c1.env`
+      \\ qmatch_assum_rename_tac`e ∈ d1.env`
+      \\ qpat_assum`_.map_agent _ ∈ _` mp_tac
+      \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+      \\ strip_tac >- metis_tac[]
+      \\ qmatch_assum_rename_tac`e2 ∈ r2.env`
       \\ qexists_tac`encode_sum (INL (encode_sum (INL e)))`
       \\ conj_asm1_tac >- simp[prod_def]
       \\ simp[]
-      \\ `r = (c2 && r2).eval bb (m.map.map_agent bb)`
-      by ( metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components] )
-      \\ qpat_assum`m.map.map_agent bb ∈ _`mp_tac
-      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
-      \\ strip_tac
-      >- (
-        qmatch_assum_rename_tac`e2 ∈ c2.env`
-        \\ `r = c2.eval b e2`
-        by (
-          qpat_x_assum`r = _`SUBST1_TAC
-          \\ simp_tac(srw_ss())[prod_eval]
-          \\ simp[sum_eval_def,Abbr`bb`] )
-        \\ `r ∈ s2`
-        by (
-          pop_assum SUBST1_TAC
-          \\ pop_assum mp_tac
-          \\ simp_tac(srw_ss())[Abbr`c2`,assume_def,cf_assume_def,mk_cf_def]
-          \\ metis_tac[])
-        \\ qpat_x_assum`r ∈ r2.env`mp_tac
-        \\ simp[Abbr`r2`,cf1_def]
-        \\ metis_tac[])
-      \\ qmatch_assum_rename_tac`e2 ∈ r2.env`
-      \\ `r = e2`
-      by (
-        qpat_x_assum`r = _`SUBST1_TAC
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r2`, cf1_def, mk_cf_def, Abbr`bb`] )
-      \\ pop_assum(SUBST_ALL_TAC o SYM)
       \\ AP_TERM_TAC
-      \\ `me e :- c1 && r1 → (swap (c2 && r2)) -: chu w` by metis_tac[]
-      \\ pop_assum mp_tac
-      \\ qpat_x_assum`m :- _ → _ -: _`mp_tac
-      \\ simp_tac(srw_ss())[maps_to_in_chu, is_chu_morphism_def]
-      \\ ntac 2 strip_tac
       \\ simp[morphism_component_equality]
+      \\ conj_tac >- metis_tac[maps_to_in_chu]
+      \\ conj_tac >- metis_tac[maps_to_in_chu]
       \\ simp[chu_morphism_map_component_equality]
       \\ simp[FUN_EQ_THM]
-      \\ conj_tac
+      \\ conj_asm1_tac
       >- (
         qx_gen_tac`a`
-        \\ reverse (Cases_on`a ∈ (c1 && r1).agent`)
-        >- metis_tac[extensional_def]
-        \\ `(me e).map.map_agent a =
-            encode_sum (INR (c1.eval (FST (decode_pair a)) e))`
-        by (
-          simp[Abbr`me`, mk_chu_morphism_def]
-          \\ simp[restrict_def] )
-        \\ `m.map.map_agent a ∈ (c2 && r2).env` by metis_tac[]
+        \\ reverse(Cases_on`a ∈ (d1 && r1).agent`)
+        >- metis_tac[maps_to_in_chu, is_chu_morphism_def, extensional_def]
+        \\ `m.map.map_agent a ∈ (d2 && r2).env`
+        by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
         \\ pop_assum mp_tac
-        \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
+        \\ simp[prod_def, PULL_EXISTS]
+        \\ qpat_assum`a ∈ _.agent`mp_tac
+        \\ simp_tac(srw_ss())[prod_def, EXISTS_PROD, PULL_EXISTS]
+        \\ simp[] \\ rpt gen_tac \\ strip_tac
         \\ strip_tac
-        >- (
-          simp[]
-          \\ `(c1 && r1).eval a (m.map.map_env bb) =
-              (c2 && r2).eval bb (m.map.map_agent a)` by metis_tac[]
-          \\ `(c1 && r1).eval a (m.map.map_env bb) =
-              c1.eval (FST (decode_pair a)) e`
-          by (
-            simp_tac(srw_ss())[prod_eval]
-            \\ simp[sum_eval_def] )
-          \\ qmatch_assum_rename_tac`e2 ∈ c2.env`
-          \\ `(c2 && r2).eval bb (m.map.map_agent a) =
-              c2.eval b e2`
-          by (
-            simp_tac(srw_ss())[prod_eval]
-            \\ simp[sum_eval_def, Abbr`bb`] )
-          \\ `c1.eval (FST (decode_pair a)) e = c2.eval b e2` by metis_tac[]
-          \\ pop_assum mp_tac
-          \\ simp_tac(srw_ss())[Abbr`c1`,Abbr`c2`]
-          \\ qpat_x_assum`e2 ∈ _`mp_tac
-          \\ qpat_x_assum`a ∈ _`mp_tac
-          \\ qpat_x_assum`e ∈ _`mp_tac
-          \\ simp_tac(srw_ss())[assume_def, cf_assume_def, mk_cf_def, prod_def, PULL_EXISTS, EXISTS_PROD]
-          \\ simp[]
-          \\ fs[ALL_DISTINCT_SNOC]
-          \\ metis_tac[partitions_DISJOINT, IN_DISJOINT])
-        \\ simp[]
-        \\ `(c1 && r1).eval a (m.map.map_env bb) =
-            (c2 && r2).eval bb (m.map.map_agent a)` by metis_tac[]
-        \\ pop_assum mp_tac
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r2`, Abbr`bb`, cf1_def, mk_cf_def])
+        >- metis_tac[partitions_DISJOINT, IN_DISJOINT]
+        \\ simp[Abbr`me`, mk_chu_morphism_def, restrict_def]
+        \\ simp[prod_def]
+        \\ metis_tac[])
       \\ qx_gen_tac`a`
-      \\ reverse(Cases_on`a ∈ (c2 && r2).agent`)
-      >- metis_tac[extensional_def]
-      \\ `(c1 && r1).eval bb (m.map.map_env a) =
-          (c2 && r2).eval a (m.map.map_agent bb)` by metis_tac[]
-      \\ `(c2 && r2).eval a (m.map.map_agent bb) = r`
-      by (
-        simp_tac(srw_ss())[prod_eval]
-        \\ qpat_assum`a ∈ _`(SUBST1_TAC o EQT_INTRO)
-        \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
-        \\ reverse IF_CASES_TAC >- metis_tac[]
-        \\ pop_assum kall_tac
-        \\ qpat_x_assum`m.map.map_agent bb = _`SUBST1_TAC
-        \\ simp_tac (srw_ss()) [sum_eval_def]
-        \\ qpat_x_assum`r ∈ r2.env`mp_tac
-        \\ qpat_x_assum`a ∈ _`mp_tac
-        \\ simp_tac(srw_ss())[prod_def, Abbr`r2`, cf1_def, mk_cf_def, PULL_EXISTS])
+      \\ reverse(Cases_on`a ∈ (d2 && r2).agent`)
+      >- metis_tac[maps_to_in_chu, is_chu_morphism_def,
+                   extensional_def, swap_components]
+      \\ `∀b f. b ∈ (d1 && r1).agent ∧ f ∈ (d2 && r2).agent ⇒
+            (d1 && r1).eval b ((me e).map.map_env f) =
+            (d2 && r2).eval f (m.map.map_agent b)`
+      by ( PROVE_TAC[maps_to_in_chu, is_chu_morphism_def, swap_components] )
+      \\ qpat_assum`a ∈ _.agent`mp_tac
+      \\ simp_tac(srw_ss())[prod_def, EXISTS_PROD, PULL_EXISTS]
+      \\ simp[] \\ rpt strip_tac
+      \\ qpat_x_assum`a = _`(assume_tac o SYM) \\ simp[]
+      \\ qmatch_assum_rename_tac`encode_pair (aa,"") = _`
       \\ `(me e).map.map_env a = encode_sum (INL e)`
-      by (
-        simp[Abbr`me`, mk_chu_morphism_def]
-        \\ simp[restrict_def] )
-      \\ `m.map.map_env a ∈ (c1 && r1).env` by metis_tac[]
-      \\ pop_assum mp_tac
-      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
-      \\ reverse strip_tac
-      >- (
-        qmatch_assum_rename_tac`e1 ∈ r1.env`
-        \\ `(c1 && r1).eval bb (m.map.map_env a) = e1`
-        by (
-          simp_tac(srw_ss())[prod_eval]
-          \\ simp[sum_eval_def]
-          \\ qpat_x_assum`e1 ∈ _`mp_tac
-          \\ simp[Abbr`r1`, cf1_def, mk_cf_def, Abbr`bb`])
-        \\ `r = e1` by metis_tac[]
-        \\ qpat_x_assum`r ∉ _.env`mp_tac
-        \\ pop_assum (SUBST_ALL_TAC o SYM)
-        \\ rpt(qpat_x_assum`r ∈ _.env`mp_tac)
-        \\ simp_tac(srw_ss())[Abbr`r1`, Abbr`r2`, Abbr`r3`, cf1_def])
-      \\ qmatch_assum_rename_tac`e1 ∈ c1.env`
-      \\ `r = (c1 && r1).eval a (m.map.map_env bb)`
-            = c1.eval fa e
-          r = (c1 && r1).eval bb (m.map.map_env a)
-            = c1.eval b e1
-          r = (c1 && r1).eval bb (m.map.map_env bb)
-            = c1.eval b e
-            assume_def
-
-      \\ qpat_x_assum`m.map.map_agent bb ∈ _`mp_tac
-      \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS]
-      \\ strip_tac
-      >- (
-        qmatch_assum_rename_tac`e2 ∈ c2.env`
-        \\ `r = c2.eval b e2`
-        by (
-          qpat_x_assum`r = _`mp_tac
-          \\ simp[prod_eval]
-          \\ simp[sum_eval_def, Abbr`bb`] )
-        \\ `r ∈ s2`
-        by (
-          pop_assum SUBST1_TAC
-          \\ pop_assum mp_tac
-          \\ simp[Abbr`c2`, assume_def, cf_assume_def, mk_cf_def])
-        \\ qpat_x_assum`r ∈ r2.env`mp_tac
-        \\ simp[Abbr`r2`, cf1_def]
-        \\ metis_tac[])
-      \\ simp[]
-      \\ qmatch_goalsub_rename_tac`e = x2`
-      \\ `(c1 && r1).eval bb (m.map.map_env a) = c1.eval b x2`
-      by ( simp_tac(srw_ss())[prod_eval] \\ simp[sum_eval_def, Abbr`bb`] )
-      \\ qmatch_assum_rename_tac`x1 ∈ r2.env`
-      \\ `(c2 && r2).eval a (m.map.map_agent bb) = x1`
-      by (
-        simp_tac(srw_ss())[prod_eval]
-        \\ simp[sum_eval_def]
-        \\ qpat_x_assum`x1 ∈ _`mp_tac
-        \\ qpat_x_assum`a ∈ _`mp_tac
-        \\ simp[prod_def, Abbr`r2`, cf1_def, mk_cf_def, PULL_EXISTS] )
-      \\ `c1.eval b x2 = x1` by metis_tac[]
-      \\ `r = x1`
-      by (
-        qpat_x_assum`r = _`SUBST1_TAC
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[sum_eval_def]
-        \\ qpat_x_assum`x1 ∈ _`mp_tac
-        \\ simp[prod_def, Abbr`bb`, Abbr`r2`, cf1_def, mk_cf_def, PULL_EXISTS] )
-      \\ `r = c1.eval b e`
-      by (
-        qunabbrev_tac`r`
-        \\ simp_tac(srw_ss())[prod_eval]
-        \\ simp[sum_eval_def]
-        \\ simp[Abbr`bb`] )
-      \\ qpat_x_assum`r = x1`(SUBST_ALL_TAC o SYM)
-      \\ `(me e).map.map_agent bb = encode_sum (INR (c1.eval b e))`
-      by (
-        simp_tac(srw_ss())[Abbr`me`, mk_chu_morphism_def, restrict_def]
-        \\ simp[] \\ simp[Abbr`bb`] )
-      \\ `(c1 && r1).eval bb (encode_sum (INL e)) =
-          (c2 && r2).eval a (encode_sum (INR r))
-
-
-    \\ Cases_on`r ∈ r1.env`
-    >- (
-      qpat_x_assum`_.map_env bb ∈ _` mp_tac
-      \\ simp[Once prod_def, PULL_EXISTS]
-      \\ strip_tac
-      >- (
-        qmatch_assum_rename_tac`e ∈ c1.env`
-        \\ `r = c1.eval b e`
-        by (
-          qunabbrev_tac`r`
-          \\ simp[prod_eval]
-          \\ simp[prod_def]
-          \\ simp[sum_eval_def, Abbr`bb`] )
-        \\ `r ∈ s1` suffices_by fs[Abbr`r1`, cf1_def]
-        \\ pop_assum SUBST1_TAC
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`c1`, assume_def, cf_assume_def, mk_cf_def])
-      \\ qmatch_assum_rename_tac`e ∈ r1.env`
-      \\ `r = e`
-      by (
-        qunabbrev_tac`r`
-        \\ simp[prod_eval]
-        \\ simp[prod_def]
-        \\ pop_assum mp_tac
-        \\ simp[sum_eval_def, Abbr`bb`, Abbr`r1`, cf1_def, mk_cf_def] )
-      \\ qpat_x_assum`_.map_agent bb ∈ _` mp_tac
-      \\ simp[Once prod_def, PULL_EXISTS]
-      \\ `r = (c2 && r2).eval bb (m.map.map_agent bb)`
+      by simp[Abbr`me`, mk_chu_morphism_def, restrict_def]
+      \\ `e2 = c1.eval b1 e` by metis_tac[]
+      \\ BasicProvers.VAR_EQ_TAC
+      \\ first_assum SUBST1_TAC
+      \\ `m.map.map_env a ∈ (d1 && r1).env`
       by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
-      \\ `r ∉ s1 ∧ r ∈ w ∧ r ∈ image c`
-      by (
-        qpat_x_assum`r ∈ r1.env`mp_tac
-        \\ simp_tac(srw_ss())[Abbr`r1`, cf1_def] )
-      \\ `r ∈ s2`
-      by (
-        qpat_x_assum`r ∉ _.env`mp_tac
-        \\ simp_tac(srw_ss())[Abbr`r3`, cf1_def]
-        \\ simp[])
+      \\ pop_assum mp_tac
+      \\ simp[prod_def, PULL_EXISTS]
       \\ reverse strip_tac
       >- (
-        `r ∉ s2` suffices_by simp[]
-        \\ qpat_x_assum`r = _.eval _ _`SUBST1_TAC
-        \\ simp[prod_eval]
-        \\ simp[prod_def]
-        \\ simp[sum_eval_def]
-        \\ pop_assum mp_tac
-        \\ simp[Abbr`r2`, cf1_def, mk_cf_def, Abbr`bb`] )
-      \\ qpat_x_assum`_ = e`(SUBST_ALL_TAC o SYM)
-      \\ qmatch_assum_rename_tac`e ∈ c2.env`
-      \\ qexists_tac`encode_sum (INL (encode_sum (INR e)))`
-      \\ conj_asm1_tac >- simp[prod_def]
-      \\ simp[]
-      \\ AP_TERM_TAC
-      \\ `mf e :- c1 && r1 → (swap (c2 && r2)) -: chu w` by metis_tac[]
+        qmatch_assum_rename_tac`ea ∈ r1.env`
+        \\ `ea = d1.eval b1 e` by metis_tac[]
+        \\ qpat_x_assum`ea ∈ r1.env`mp_tac
+        \\ simp[Abbr`r1`]
+        \\ qpat_x_assum`_ ∈ r2.env`mp_tac
+        \\ simp[Abbr`r2`]
+        \\ metis_tac[])
+      \\ qmatch_assum_rename_tac`ea ∈ d1.env`
+      \\ `∀a. a ∈ (d1 && r1).agent ⇔
+             ∃aa. a = encode_pair(aa,"") ∧ aa ∈ d1.agent`
+      by simp[prod_def, EXISTS_PROD]
+      \\ `∀b. b ∈ d1.agent ⇒ d1.eval b e = d1.eval b ea` by metis_tac[]
+      \\ `biextensional d1` by metis_tac[biextensional_collapse_biextensional]
+      \\ metis_tac[biextensional_def, env_equiv_def])
+    \\ qpat_assum`_.map_env _ ∈ _` mp_tac
+    \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+    \\ strip_tac >- metis_tac[]
+    \\ qmatch_assum_rename_tac`e1 ∈ r1.env`
+    \\ qpat_assum`_.map_agent _ ∈ _` mp_tac
+    \\ simp_tac(srw_ss())[Once prod_def, PULL_EXISTS]
+    \\ reverse strip_tac
+    >- (
+      qmatch_assum_rename_tac`e ∈ r2.env`
+      \\ `r = e` by metis_tac[]
+      \\ pop_assum (SUBST_ALL_TAC o SYM)
+      \\ qpat_x_assum`r ∈ _`mp_tac
+      \\ simp[Abbr`r2`, cf1_def]
+      \\ metis_tac[])
+    \\ qmatch_assum_rename_tac`e ∈ d2.env`
+    \\ qexists_tac`encode_sum (INL (encode_sum (INR e)))`
+    \\ conj_asm1_tac >- simp[prod_def]
+    \\ simp[]
+    \\ AP_TERM_TAC
+    \\ simp[morphism_component_equality]
+    \\ conj_tac >- metis_tac[maps_to_in_chu]
+    \\ conj_tac >- metis_tac[maps_to_in_chu]
+    \\ simp[chu_morphism_map_component_equality]
+    \\ simp[FUN_EQ_THM]
+    \\ reverse conj_asm2_tac
+    >- (
+      qx_gen_tac`a`
+      \\ reverse(Cases_on`a ∈ (d2 && r2).agent`)
+      >- metis_tac[maps_to_in_chu, is_chu_morphism_def,
+                   extensional_def, swap_components]
+      \\ `m.map.map_env a ∈ (d1 && r1).env`
+      by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
       \\ pop_assum mp_tac
-      \\ qpat_x_assum`m :- _ → _ -: _`mp_tac
-      \\ simp_tac(srw_ss())[maps_to_in_chu, is_chu_morphism_def]
-      \\ ntac 2 strip_tac
-      \\ simp[morphism_component_equality]
-      \\ simp[chu_morphism_map_component_equality]
-      \\ simp[FUN_EQ_THM]
-      \\ conj_tac
-      >- (
-        qx_gen_tac`a`
-        \\ reverse(Cases_on`a ∈ (c1 && r1).agent`)
-        >- metis_tac[extensional_def]
-        \\ `r = (c1 && r1).eval a (m.map.map_env bb)`
-        by (
-          qpat_assum`m.map.map_env bb = _`SUBST1_TAC
-          \\ simp_tac(srw_ss())[prod_eval]
-          \\ pop_assum mp_tac
-          \\ simp_tac(srw_ss())[sum_eval_def]
-          \\ strip_tac
-          \\ simp_tac(srw_ss())[prod_def]
-          \\ reverse IF_CASES_TAC >- metis_tac[]
-          \\ qpat_assum`a ∈ _`mp_tac
-          \\ simp_tac(srw_ss())[prod_def, PULL_EXISTS, EXISTS_PROD]
-          \\ pop_assum mp_tac
-          \\ simp_tac(srw_ss())[Abbr`r1`, cf1_def, mk_cf_def] )
-        \\ `(mf e).map.map_agent a = m.map.map_agent bb`
-        by ( simp[Abbr`mf`, mk_chu_morphism_def, restrict_def] )
-        \\ `r = (c2 && r2).eval bb (m.map.map_agent a)`
-        by metis_tac[]
-        \\ qpat_x_assum`(mf e).map.map_agent a = _`SUBST_ALL_TAC
-        \\ qpat_assum`e ∈ _`mp_tac
-        \\ simp_tac(srw_ss())[Abbr`c2`, assume_def, cf_assume_def]
-        \\ strip_tac
-        \\ qmatch_asmsub_abbrev_tac`r = (c2 && r2).eval _ _`
-        \\ `r = c.eval b e`
-  *)
-    \\ cheat
-  )
+      \\ simp[prod_def, PULL_EXISTS]
+      \\ qpat_assum`a ∈ _.agent`mp_tac
+      \\ simp_tac(srw_ss())[prod_def, EXISTS_PROD, PULL_EXISTS]
+      \\ simp[] \\ rpt gen_tac \\ strip_tac
+      \\ strip_tac
+      >- metis_tac[partitions_DISJOINT, IN_DISJOINT]
+      \\ simp[Abbr`mf`, mk_chu_morphism_def, restrict_def]
+      \\ simp[prod_def]
+      \\ metis_tac[])
+    \\ qx_gen_tac`a`
+    \\ reverse(Cases_on`a ∈ (d1 && r1).agent`)
+    >- metis_tac[maps_to_in_chu, is_chu_morphism_def,
+                 extensional_def]
+    \\ `∀b f. b ∈ (d1 && r1).agent ∧ f ∈ (d2 && r2).agent ⇒
+          (d1 && r1).eval b (m.map.map_env f) =
+          (d2 && r2).eval f ((mf e).map.map_agent b)`
+    by ( PROVE_TAC[maps_to_in_chu, is_chu_morphism_def, swap_components] )
+    \\ qpat_assum`a ∈ _.agent`mp_tac
+    \\ simp_tac(srw_ss())[prod_def, EXISTS_PROD, PULL_EXISTS]
+    \\ simp[] \\ rpt strip_tac
+    \\ qpat_x_assum`a = _`(assume_tac o SYM) \\ simp[]
+    \\ `(mf e).map.map_agent a = encode_sum (INL e)`
+    by simp[Abbr`mf`, mk_chu_morphism_def, restrict_def]
+    \\ `e1 = c2.eval b2 e` by metis_tac[]
+    \\ BasicProvers.VAR_EQ_TAC
+    \\ first_assum SUBST1_TAC
+    \\ `m.map.map_agent a ∈ (d2 && r2).env`
+    by metis_tac[maps_to_in_chu, is_chu_morphism_def, swap_components]
+    \\ pop_assum mp_tac
+    \\ simp[prod_def, PULL_EXISTS]
+    \\ reverse strip_tac
+    >- (
+      qmatch_assum_rename_tac`ea ∈ r2.env`
+      \\ `ea = d2.eval b2 e` by metis_tac[]
+      \\ qpat_x_assum`ea ∈ r2.env`mp_tac
+      \\ simp[Abbr`r2`]
+      \\ qpat_x_assum`_ ∈ r1.env`mp_tac
+      \\ simp[Abbr`r1`]
+      \\ metis_tac[])
+    \\ qmatch_assum_rename_tac`ea ∈ d2.env`
+    \\ `∀a. a ∈ (d2 && r2).agent ⇔
+           ∃aa. a = encode_pair(aa,"") ∧ aa ∈ d2.agent`
+    by simp[prod_def, EXISTS_PROD]
+    \\ `∀b. b ∈ d2.agent ⇒ d2.eval b e = d2.eval b ea` by metis_tac[]
+    \\ `biextensional d2` by metis_tac[biextensional_collapse_biextensional]
+    \\ metis_tac[biextensional_def, env_equiv_def])
   \\ conj_tac
   >- metis_tac[maps_to_in_chu, is_chu_morphism_def]
   \\ conj_tac

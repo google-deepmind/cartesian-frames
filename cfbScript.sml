@@ -20,8 +20,6 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 
 val _ = new_theory"cfb";
 
-(* TODO:  three-digit number example *)
-
 Definition obs_part_after_def:
   obs_part_after c t v ⇔ v ∈ obs_part (external t c)
 End

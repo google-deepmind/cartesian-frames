@@ -835,4 +835,53 @@ Proof
   \\ strip_tac \\ fs[]
 QED
 
+Theorem obs_part_after_three_b3_part_0_b3_part_1:
+  obs_part_after three (b3_part 0) (b3_part 1)
+Proof
+  rw[obs_part_after_def]
+  \\ mp_then Any mp_tac homotopy_equiv_obs_part homotopy_equiv_ext0_three
+  \\ impl_tac >- simp[b3_eq]
+  \\ disch_then SUBST1_TAC
+  \\ DEP_REWRITE_TAC[Q.SPEC`b3`(Q.GEN`w`obs_part_conditional_policies)]
+  \\ simp[b3_part_partitions]
+  \\ conj_tac >- simp[b3_eq]
+  \\ rpt strip_tac
+  \\ qexists_tac`MAPi
+       (λi x. EL i (f (b3_where 1 (EL 1 x))))
+       ["00";"01";"10";"11"]`
+  \\ simp[]
+  \\ `f (b3_where 1 #"0") ∈ ext0_three.agent`
+  by fs[SUBSET_DEF, PULL_EXISTS, b3_part_def]
+  \\ `f (b3_where 1 #"1") ∈ ext0_three.agent`
+  by fs[SUBSET_DEF, PULL_EXISTS, b3_part_def]
+  \\ conj_asm1_tac
+  >- (
+    ntac 2 (pop_assum mp_tac)
+    \\ simp[ext0_three_agent_eq]
+    \\ strip_tac \\ simp[]
+    \\ strip_tac \\ simp[])
+  \\ rpt strip_tac
+  \\ SELECT_ELIM_TAC
+  \\ conj_tac
+  >- (
+    mp_tac ext0_three_in_chu_objects
+    \\ simp_tac std_ss [in_chu_objects]
+    \\ simp_tac std_ss [wf_def] \\ strip_tac
+    \\ `1 < 3` by simp[]
+    \\ drule b3_part_partitions
+    \\ dsimp[partitions_thm, EXISTS_UNIQUE_THM]
+    \\ strip_tac \\ metis_tac[])
+  \\ rpt strip_tac
+  \\ qpat_x_assum`_ ∈ x`mp_tac
+  \\ simp[ext0_three_eval]
+  \\ reverse IF_CASES_TAC
+  >- gs[b3_part_def]
+  \\ simp[]
+  \\ qpat_x_assum`e ∈ _`mp_tac
+  \\ simp[ext0_three_env_eq]
+  \\ qpat_x_assum`x ∈ _`mp_tac
+  \\ simp[b3_part_def]
+  \\ ntac 2 strip_tac \\ simp[Once b3_where_def, SimpR``(IN)``]
+QED
+
 val _ = export_theory();

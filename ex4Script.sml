@@ -15,8 +15,8 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib boolSimps Parse
-  pred_setTheory
-  cf0Theory matrixTheory matrixLib cf2Theory cf4Theory
+  pairTheory pred_setTheory categoryTheory
+  cf0Theory matrixTheory matrixLib cf1Theory cf2Theory cf4Theory
 
 val _ = new_theory"ex4";
 
@@ -222,6 +222,115 @@ Proof
   \\ EVAL_TAC
 QED
 
-(* TODO: move_fn as a product *)
+Theorem prime_cf_in_chu_objects[simp]:
+  prime_cf ∈ chu_objects prime_world
+Proof
+  rw[prime_cf_def, in_chu_objects]
+QED
+
+Theorem prime_coarse_product:
+  move_fn (TAKE 2) prime_world_coarse prime_cf ≃
+  cfbot prime_world_coarse {x | HD x = #"P" ∧ x ∈ prime_world_coarse } &&
+  cfbot prime_world_coarse {x | HD x = #"N" ∧ x ∈ prime_world_coarse }
+  -: prime_world_coarse
+Proof
+  rw[homotopy_equiv_def]
+  \\ qmatch_goalsub_abbrev_tac`_ :- pc → c1 && c2 -: _`
+  \\ qexists_tac`mk_chu_morphism pc (c1 && c2)
+       <| map_agent := λa. if HD a = #"A" then encode_pair ("PA", "NA")
+                           else if HD a = #"I" then encode_pair ("PI", "NI")
+                           else if HD a = #"P" then encode_pair ("PA", "NI")
+                           else encode_pair ("PI", "NA");
+          map_env := λe. sum_CASE (decode_sum e) (K"P") (K"N") |>`
+  \\ qmatch_goalsub_abbrev_tac`_ o f -: _`
+  \\ qexists_tac`mk_chu_morphism (c1 && c2) pc
+       <| map_agent := λa.
+            if a = encode_pair ("PA", "NA") then "AH"
+            else if a = encode_pair ("PI", "NI") then "IH"
+            else if a = encode_pair ("PA", "NI") then "PH"
+            else "NH";
+          map_env := λe.
+            encode_sum (if e = "P" then (INL "") else (INR "")) |>`
+  \\ qmatch_goalsub_abbrev_tac`g o f -: _`
+  \\ `FINITE prime_world_coarse` by simp[prime_world_coarse_eq]
+  \\ `pc ∈ chu_objects prime_world_coarse`
+  by (
+    simp[Abbr`pc`]
+    \\ irule move_fn_in_chu_objects
+    \\ simp[]
+    \\ qexists_tac`prime_world`
+    \\ simp[SUBSET_DEF, PULL_EXISTS]
+    \\ rw[prime_world_eq, prime_world_coarse_eq] \\ rw[])
+  \\ `c1 && c2 ∈ chu_objects prime_world_coarse`
+  by (
+    simp[Abbr`c1`, Abbr`c2`]
+    \\ irule prod_in_chu_objects
+    \\ simp[SUBSET_DEF] )
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, GSYM CONJ_ASSOC, Abbr`f`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_asm1_tac
+    >- (
+      simp[prod_def, PULL_EXISTS]
+      \\ simp[Abbr`c1`, Abbr`c2`, PULL_EXISTS, cfbot_def]
+      \\ simp[Abbr`pc`, prime_cf_def, prime_env_def]
+      \\ rw[] \\ rw[] )
+    \\ conj_asm1_tac
+    >- (
+      simp[prod_def, EXISTS_PROD]
+      \\ simp[Abbr`pc`, prime_cf_def, prime_agent_fine_eq]
+      \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def, prime_world_coarse_eq]
+      \\ rw[] \\ rw[])
+    \\ simp[prod_eval]
+    \\ fs[Abbr`pc`]
+    \\ simp[prime_cf_eval]
+    \\ simp[prod_def, PULL_EXISTS]
+    \\ dsimp[sum_eval_def]
+    \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def, cf1_def, mk_cf_def, prime_world_coarse_eq]
+    \\ simp[prime_cf_def, prime_agent_fine_eq]
+    \\ conj_tac \\ rpt strip_tac \\ simp[])
+  \\ conj_asm1_tac
+  >- (
+    simp[maps_to_in_chu, Abbr`g`]
+    \\ simp[is_chu_morphism_def, mk_chu_morphism_def]
+    \\ simp[restrict_def]
+    \\ conj_asm1_tac
+    >- (
+      simp[prod_def, EXISTS_PROD]
+      \\ simp[Abbr`pc`, prime_cf_def, prime_agent_fine_eq]
+      \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def, prime_world_coarse_eq])
+    \\ conj_asm1_tac
+    >- (
+      simp[prod_def, PULL_EXISTS, EXISTS_PROD]
+      \\ simp[Abbr`c1`, Abbr`c2`, PULL_EXISTS, cfbot_def]
+      \\ simp[Abbr`pc`, prime_cf_def, prime_env_def, prime_agent_fine_eq]
+      \\ rw[] \\ rw[] )
+    \\ simp[prod_eval]
+    \\ simp[Abbr`pc`] \\ fs[]
+    \\ simp[prime_cf_eval]
+    \\ simp[prod_def, PULL_EXISTS, EXISTS_PROD]
+    \\ simp[prime_cf_def, prime_env_def]
+    \\ dsimp[sum_eval_def]
+    \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def, cf1_def, mk_cf_def, prime_world_coarse_eq]
+    \\ conj_tac \\ rpt strip_tac \\ gs[])
+  \\ qpat_assum`f :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`g :- _ → _ -: _`o mp_then Any strip_assume_tac)
+  \\ qpat_assum`g :- _ → _ -: _`(mp_then Any mp_tac compose_in_chu)
+  \\ disch_then(qpat_assum`f :- _ → _ -: _`o mp_then Any strip_assume_tac)
+  \\ simp[homotopic_id_map_env_id]
+  \\ simp[restrict_def]
+  \\ fs[Abbr`f`,Abbr`g`,mk_chu_morphism_def]
+  \\ simp[restrict_def]
+  \\ simp[Abbr`pc`]
+  \\ simp[Once prime_cf_def]
+  \\ dsimp[prime_env_def]
+  \\ conj_tac
+  >- ( simp[prod_def] \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def] )
+  \\ dsimp[Once prod_def, PULL_EXISTS]
+  \\ simp[prime_cf_def, prime_env_def]
+  \\ simp[Abbr`c1`, Abbr`c2`, cfbot_def]
+QED
 
 val _ = export_theory();

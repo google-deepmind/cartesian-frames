@@ -161,7 +161,66 @@ Proof
   \\ EVAL_TAC
 QED
 
-(* TODO: observable set in move_fn but not in base *)
+Theorem prime_cf_eval:
+  prime_cf.eval a e =
+  if a ∈ prime_cf.agent ∧ e ∈ prime_cf.env then
+    e ++ (if e = TAKE 1 a then "A" else if TAKE 1 a ∈ {"P"; "N"} then "I"
+          else TAKE 1 a) ++ DROP 1 a
+  else ARB
+Proof
+  rw[prime_cf_def, mk_cf_def]
+QED
+
+Theorem prime_obs_coarse:
+  { x | HD x = #"P" ∧ x ∈ IMAGE (TAKE 2) prime_world } ∈
+  obs (move_fn (TAKE 2) prime_world_coarse prime_cf)
+Proof
+  rw[obs_def]
+  >- rw[prime_world_coarse_def, SUBSET_DEF]
+  \\ rw[ifs_def, PULL_EXISTS]
+  \\ qmatch_goalsub_abbrev_tac`c.eval`
+  \\ qexists_tac`if HD a0 = #"P" ∨ HD a0 = #"A" then
+                   if HD a1 = #"P" ∨ HD a1 = #"I" then
+                     "PH" else "AH"
+                 else
+                   if HD a1 = #"P" ∨ HD a1 = #"I" then
+                     "IH" else "NH"`
+  \\ qmatch_goalsub_abbrev_tac`a ∈ _`
+  \\ conj_asm1_tac
+  >- rw[Abbr`a`, prime_cf_def, prime_agent_fine_eq]
+  \\ simp[Abbr`c`, move_fn_def]
+  \\ simp[prime_cf_eval]
+  \\ pop_assum kall_tac
+  \\ unabbrev_all_tac
+  \\ gs[prime_cf_def]
+  \\ rpt (pop_assum mp_tac)
+  \\ simp[prime_env_def, prime_agent_fine_eq]
+  \\ strip_tac \\ simp[] \\ strip_tac \\ simp[]
+  \\ rpt strip_tac \\ simp[] \\ gvs[]
+  \\ rpt(pop_assum mp_tac)
+  \\ dsimp[prime_world_eq]
+QED
+
+Theorem prime_not_obs_fine:
+  { x | HD x = #"P" ∧ x ∈ prime_world } ∉ obs prime_cf
+Proof
+  rw[obs_def]
+  \\ CCONTR_TAC \\ fs[]
+  \\ pop_assum mp_tac \\ simp[]
+  \\ qexists_tac`"PC"`
+  \\ qexists_tac`"NC"`
+  \\ conj_tac >- rw[prime_cf_def, prime_agent_fine_eq]
+  \\ rw[ifs_def]
+  \\ CCONTR_TAC \\ fs[]
+  \\ pop_assum mp_tac \\ simp[]
+  \\ qexists_tac`if HD a = #"P" then "N" else "P"`
+  \\ conj_asm1_tac >- rw[prime_cf_def, prime_env_def]
+  \\ simp[prime_cf_eval]
+  \\ qpat_x_assum`a ∈ _`mp_tac
+  \\ simp[prime_cf_def, prime_agent_fine_eq]
+  \\ strip_tac \\ simp[]
+  \\ EVAL_TAC
+QED
 
 (* TODO: move_fn as a product *)
 

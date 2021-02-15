@@ -224,8 +224,6 @@ Definition cf_assume_diff_def:
   cf_assume_diff f c = mk_cf (c with env := c.env DIFF f)
 End
 
-(* TODO: example of cf_assume_diff for meteor example *)
-
 Theorem swap_cf_assume:
   swap (cf_assume f c) = cf_commit f (swap c)
 Proof

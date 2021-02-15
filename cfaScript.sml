@@ -3333,7 +3333,7 @@ Proof
       \\ rpt gen_tac \\ strip_tac
       \\ qmatch_goalsub_abbrev_tac`fn_part _ _ _ _ x1`
       \\ qmatch_goalsub_abbrev_tac`_ = _ (fn_part _ _ _ _ x2)`
-      \\ qmatch_goalsub_rename_tac`encode_set (vb y1) = _ (vb y2)`
+      \\ qmatch_goalsub_rename_tac`(vb y1) = (vb y2)`
       \\ `x1 ∈ b.agent ∧ vb y1 = vb x1 ∧ x2 ∈ b.agent ∧ vb y2 = vb x2`
       by (
         map_every qunabbrev_tac [`x1`,`x2`]
@@ -3350,7 +3350,6 @@ Proof
       \\ disch_then(mp_tac o Q.AP_TERM`decode_set`)
       \\ simp[]
       \\ strip_tac
-      \\ AP_TERM_TAC
       \\ `∃e. e ∈ b.env` by metis_tac[internal_equal_parts, MEMBER_NOT_EMPTY]
       \\ `(d (vb x1)).agent = (d (vb x2)).agent` by metis_tac[]
       \\ pop_assum mp_tac

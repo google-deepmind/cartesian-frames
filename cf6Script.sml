@@ -71,8 +71,6 @@ Proof
   rw[tensor_def, mk_cf_def]
 QED
 
-(* TODO: tensor example with J, K, L *)
-
 Definition comm_tensor_env_def:
   comm_tensor_env c d e =
     let m = decode_morphism d (swap c) e in

@@ -340,20 +340,6 @@ Definition is_repfn_def:
   extensional q X ∧ ∀x. x ∈ X ⇒ q x ∈ x
 End
 
-Definition encode_set_def:
-  encode_set = encode_list o SET_TO_LIST
-End
-
-Definition decode_set_def:
-  decode_set = set o decode_list
-End
-
-Theorem decode_encode_set[simp]:
-  FINITE s ⇒ decode_set (encode_set s) = s
-Proof
-  rw[decode_set_def, encode_set_def, SET_TO_LIST_INV]
-QED
-
 Definition repfns_def:
   repfns b =
     { encode_function (IMAGE encode_set b)

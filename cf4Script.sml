@@ -561,6 +561,28 @@ Proof
   \\ fs[encode_pair_def]
 QED
 
+Definition encode_set_def:
+  encode_set = encode_list o SET_TO_LIST
+End
+
+Definition decode_set_def:
+  decode_set = set o decode_list
+End
+
+Theorem decode_encode_set[simp]:
+  FINITE s ⇒ decode_set (encode_set s) = s
+Proof
+  rw[decode_set_def, encode_set_def, SET_TO_LIST_INV]
+QED
+
+Theorem encode_set_inj[simp]:
+  FINITE x ∧ FINITE y  ⇒
+  (encode_set x = encode_set y ⇔ x = y)
+Proof
+  metis_tac[decode_encode_set]
+QED
+
+
 Definition encode_function_def:
   encode_function d f =
   encode_list (MAP (λx. encode_pair (x, f x)) (SET_TO_LIST d))

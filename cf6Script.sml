@@ -1336,8 +1336,6 @@ Proof
   \\ simp[maps_from_null]
 QED
 
-(* TODO: examples re tensor being relative to a coarse world model *)
-
 Definition par_def:
   par c d = mk_cf <| world := c.world ∪ d.world;
     agent := IMAGE encode_morphism (chu c.world | swap c → d |);

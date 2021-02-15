@@ -1002,8 +1002,6 @@ Proof
   \\ rw[SUBSET_DEF]
 QED
 
-(* TODO: example of ¬(commit_diff s c ≅ commit (w DIFF s) c) *)
-
 Definition assume_def:
   assume s c =
     cf_assume { e | e ∈ c.env ∧ ∀a. a ∈ c.agent ⇒ c.eval a e ∈ s } c

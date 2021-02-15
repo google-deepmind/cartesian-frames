@@ -31,4 +31,28 @@ Proof
   \\ rw[]
 QED
 
+Theorem commit_diff_not_iso_commit:
+  ∃w c s.
+    c ∈ chu_objects w ∧ s ⊆ w ∧
+    ¬ (commit_diff s c ≅ commit (w DIFF s) c -: chu w)
+Proof
+  qabbrev_tac`w = {"0";"1"}`
+  \\ qexists_tac`w`
+  \\ qexists_tac`cf1 w w`
+  \\ qexists_tac`{"0"}`
+  \\ conj_tac >- simp[Abbr`w`]
+  \\ conj_tac >- simp[Abbr`w`]
+  \\ simp[iso_objs_thm]
+  \\ CCONTR_TAC \\ fs[]
+  \\ fs[chu_iso_bij]
+  \\ gs[maps_to_in_chu]
+  \\ ntac 2 (pop_assum mp_tac)
+  \\ simp[commit_diff_def, commit_def, cf1_def, mk_cf_def]
+  \\ simp[cf_commit_diff_def, cf_commit_def]
+  \\ dsimp[Abbr`w`]
+  \\ qmatch_goalsub_abbrev_tac`BIJ _ _ s`
+  \\ `s = ∅` by simp[EXTENSION, Abbr`s`]
+  \\ rw[]
+QED
+
 val _ = export_theory();

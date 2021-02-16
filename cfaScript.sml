@@ -1168,8 +1168,6 @@ Proof
   \\ metis_tac[in_chu_objects, wf_def]
 QED
 
-(* TODO: conditional policy example 2.1 *)
-
 Definition obs_part_additive_def:
   obs_part_additive c = { v | partitions v c.world ∧
     let ss = SET_TO_LIST v in

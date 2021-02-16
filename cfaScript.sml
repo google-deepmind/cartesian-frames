@@ -316,6 +316,24 @@ Proof
   \\ fs[]
 QED
 
+Theorem tensor_assoc_upto_equiv[simp]:
+  assoc_upto_equiv tensor
+Proof
+  metis_tac[assoc_upto_iso_equiv, tensor_assoc_upto_iso]
+QED
+
+Theorem tensor_comm_upto_equiv[simp]:
+  comm_upto_equiv tensor
+Proof
+  metis_tac[comm_upto_iso_equiv, tensor_comm_upto_iso]
+QED
+
+Theorem tensor_cong_upto_equiv[simp]:
+  cong_upto_equiv tensor
+Proof
+  metis_tac[cong_upto_equiv_def, homotopy_equiv_tensor]
+QED
+
 Theorem FOLDL_PERM_equiv:
   comm_upto_equiv f ∧ assoc_upto_equiv f ∧ cong_upto_equiv f ∧
   PERM l1 l2 ∧
@@ -2964,7 +2982,28 @@ Proof
   \\ simp[Abbr`aa`, Abbr`ccr`, prod_def, PULL_EXISTS, EXISTS_PROD]
 QED
 
-(* TODO: multiplicative example 4.3 *)
+Theorem obs_part_multiplicative:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_multiplicative c
+Proof
+  strip_tac
+  \\ simp[SET_EQ_SUBSET, obs_part_multiplicative_imp]
+  \\ metis_tac[SUBSET_TRANS, obs_part_imp_assuming,
+               obs_part_assuming_imp_mult_constructive,
+               obs_part_mult_constructive_imp_multiplicative]
+QED
+
+Theorem obs_part_mult_constructive:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_mult_constructive c
+Proof
+  disch_then assume_tac
+  \\ simp[SET_EQ_SUBSET]
+  \\ simp[Once(UNDISCH obs_part_multiplicative),SimpR``(/\)``]
+  \\ simp[obs_part_mult_constructive_imp_multiplicative]
+  \\ metis_tac[obs_part_imp_assuming, SUBSET_TRANS,
+               obs_part_assuming_imp_mult_constructive]
+QED
 
 Definition obs_part_intext_def:
   obs_part_intext c = { v |
@@ -4606,6 +4645,30 @@ Proof
   \\ simp[GSYM swap_internal]
   \\ metis_tac[homotopy_equiv_swap, homotopy_equiv_sym,
                homotopy_equiv_in_chu_objects, swap_swap]
+QED
+
+Theorem obs_part_intext:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_intext c
+Proof
+  disch_then assume_tac
+  \\ simp[UNDISCH obs_part_additive]
+  \\ simp[SET_EQ_SUBSET, UNDISCH obs_part_intext_imp_additive]
+  \\ metis_tac[obs_part_additive_imp_intext_constructive,
+               obs_part_intext_constructive_imp_intext,
+               SUBSET_TRANS]
+QED
+
+Theorem obs_part_intext_constructive:
+  c ∈ chu_objects w ∧ w ≠ ∅ ⇒
+  obs_part c = obs_part_intext_constructive c
+Proof
+  disch_then assume_tac
+  \\ simp[SET_EQ_SUBSET]
+  \\ simp[UNDISCH obs_part_intext, SimpR``(/\)``]
+  \\ simp[obs_part_intext_constructive_imp_intext]
+  \\ simp[UNDISCH obs_part_additive]
+  \\ simp[obs_part_additive_imp_intext_constructive]
 QED
 
 val _ = export_theory();

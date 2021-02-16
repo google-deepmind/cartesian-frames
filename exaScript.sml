@@ -16,7 +16,7 @@ limitations under the License.
 
 open HolKernel boolLib bossLib Parse dep_rewrite
   pred_setTheory listTheory sortingTheory
-  cf0Theory ex0Theory cf1Theory cf2Theory cf9Theory cfaTheory
+  cf0Theory ex0Theory cf1Theory cf2Theory cf6Theory cf9Theory cfaTheory
 
 val _ = new_theory"exa";
 
@@ -157,6 +157,92 @@ Proof
   \\ `{"us";"ns"} ⊆ runs_cf1.world` by EVAL_TAC
   \\ simp[]
   \\ metis_tac[assume_tensor_cf1, iso_homotopy_equiv]
+QED
+
+Theorem runs_cf2_as_tensor:
+  let r = {"ur";"nr"} in
+  let s = {"us";"ns"} in
+  let w = runs_cf1.world in
+  runs_cf2 ≃ tensor (assume r runs_cf2 && cf1 w s)
+                    (assume s runs_cf2 && cf1 w r) -: w
+Proof
+  BasicProvers.LET_ELIM_TAC
+  \\ mp_tac rs_in_obs_part_runs_cf2
+  \\ `runs_cf2 ∈ chu_objects runs_cf1.world` by simp[in_chu_objects]
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ drule obs_part_mult_constructive
+  \\ impl_tac >- EVAL_TAC
+  \\ disch_then SUBST_ALL_TAC
+  \\ simp[obs_part_mult_constructive_def]
+  \\ simp[Once runs_cf2_def]
+  \\ strip_tac
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ qmatch_goalsub_abbrev_tac`FOLDL tensor t (MAP f _)`
+  \\ irule homotopy_equiv_trans
+  \\ rw[rs_def]
+  \\ qexists_tac`FOLDL tensor t (MAP f [r; s])`
+  \\ conj_tac
+  >- (
+    irule FOLDL_PERM_equiv
+    \\ rpt (conj_tac >- simp[])
+    \\ conj_tac >- (
+      simp[EVERY_MAP, Abbr`f`]
+      \\ simp[EVERY_MEM]
+      \\ gen_tac \\ disch_then assume_tac
+      \\ irule prod_in_chu_objects
+      \\ simp[Abbr`w`]
+      \\ irule cf1_in_chu_objects
+      \\ simp[SUBSET_DEF] )
+    \\ conj_tac
+    >- (
+      irule PERM_MAP
+      \\ irule PERM_ALL_DISTINCT
+      \\ simp[]
+      \\ simp[Abbr`r`, Abbr`s`, EXTENSION]
+      \\ qexists_tac`"ur"` \\ simp[])
+    \\ simp[Abbr`t`, Abbr`w`])
+  \\ simp[]
+  \\ irule homotopy_equiv_tensor
+  \\ simp[Abbr`f`, Abbr`t`]
+  \\ `image runs_cf2 = w` by (
+    simp[image_def, EXTENSION, runs_cf2_def, mk_cf_def, Abbr`w`]
+    \\ rw[runs_cf1_def, EQ_IMP_THM]
+    \\ dsimp[])
+  \\ simp[DIFF_INTER]
+  \\ `w DIFF r = s ∧ w DIFF s = r`
+  by ( simp[Abbr`r`,Abbr`s`,Abbr`w`, runs_cf1_def] )
+  \\ `r ⊆ w ∧ s ⊆ w` by fs[rs_def, partitions_thm]
+  \\ rfs[Abbr`w`]
+  \\ irule iso_homotopy_equiv
+  \\ irule (DISCH_ALL(CONJUNCT2(UNDISCH tensor_cf1)))
+  \\ simp[]
+QED
+
+Theorem runs_cf2_as_tensor_of_products:
+  let r = {"ur";"nr"} in
+  let s = {"us";"ns"} in
+  let w = runs_cf1.world in
+  runs_cf2 ≃ tensor (tensor (cf1 w r) runs_cf2 && cf1 w s)
+                    (tensor (cf1 w s) runs_cf2 && cf1 w r)
+          -: w
+Proof
+  BasicProvers.LET_ELIM_TAC
+  \\ mp_tac runs_cf2_as_tensor
+  \\ simp[] \\ strip_tac
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ irule homotopy_equiv_tensor
+  \\ assume_tac partitions_rs \\ rfs[]
+  \\ `r ⊆ w ∧ s ⊆ w` by fs[rs_def, partitions_thm]
+  \\ `FINITE w`  by metis_tac[homotopy_equiv_in_chu_objects,
+                              in_chu_objects_finite_world]
+  \\ `runs_cf2 ∈ chu_objects w` by simp[in_chu_objects]
+  \\ conj_tac
+  \\ irule homotopy_equiv_prod
+  \\ simp[]
+  \\ irule iso_homotopy_equiv
+  \\ simp[assume_tensor_cf1]
 QED
 
 val _ = export_theory();

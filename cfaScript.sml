@@ -1761,8 +1761,6 @@ Proof
             SET_EQ_SUBSET, SUBSET_TRANS]
 QED
 
-(* TODO: additive definitions example *)
-
 Theorem prod_assume_union_obs:
   c ∈ chu_objects w ∧ s1 ∈ obs c ∧ s2 ∈ obs c ∧ DISJOINT s1 s2 ⇒
   assume s1 c && assume s2 c ≃ assume (s1 ∪ s2) c -: w

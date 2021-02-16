@@ -15,8 +15,8 @@ limitations under the License.
 *)
 
 open HolKernel boolLib bossLib Parse dep_rewrite
-  pred_setTheory
-  cf0Theory ex0Theory cf1Theory cf9Theory cfaTheory
+  pred_setTheory listTheory sortingTheory
+  cf0Theory ex0Theory cf1Theory cf2Theory cf9Theory cfaTheory
 
 val _ = new_theory"exa";
 
@@ -100,6 +100,63 @@ Proof
   \\ rw[Abbr`af`]
   \\ rw[Abbr`r`,Abbr`s`]
   \\ strip_tac \\ fs[runs_cf2_def]
+QED
+
+Theorem runs_cf2_as_product:
+  runs_cf2 ≃ assume {"ur";"nr"} runs_cf2 && assume {"us";"ns"} runs_cf2
+  -: runs_cf1.world
+Proof
+  mp_tac rs_in_obs_part_runs_cf2
+  \\ `runs_cf2 ∈ chu_objects runs_cf1.world`
+  by simp[in_chu_objects]
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ drule obs_part_assuming
+  \\ impl_tac >- EVAL_TAC
+  \\ disch_then SUBST_ALL_TAC
+  \\ simp[obs_part_assuming_def]
+  \\ strip_tac
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(first_assum o mp_then Any mp_tac)
+  \\ qmatch_goalsub_abbrev_tac`assume r _ && assume s _`
+  \\ qmatch_goalsub_abbrev_tac`FOLDL prod t (MAP f _)`
+  \\ irule homotopy_equiv_trans
+  \\ rw[rs_def]
+  \\ qexists_tac`FOLDL prod t (MAP f [r; s])`
+  \\ conj_tac
+  >- (
+    irule FOLDL_PERM_equiv
+    \\ rpt (conj_tac >- simp[])
+    \\ conj_tac >- simp[EVERY_MAP, Abbr`f`]
+    \\ conj_tac
+    >- (
+      irule PERM_MAP
+      \\ irule PERM_ALL_DISTINCT
+      \\ simp[]
+      \\ simp[Abbr`r`, Abbr`s`, EXTENSION]
+      \\ qexists_tac`"ur"` \\ simp[])
+    \\ simp[Abbr`t`])
+  \\ simp[]
+  \\ irule homotopy_equiv_prod
+  \\ simp[Abbr`f`, Abbr`t`]
+  \\ irule iso_homotopy_equiv
+  \\ metis_tac[prod_cfT, assume_in_chu_objects]
+QED
+
+Theorem runs_cf2_as_product_of_tensors:
+  let w = runs_cf1.world in
+  runs_cf2 ≃ tensor (cf1 w {"ur";"nr"}) runs_cf2 &&
+             tensor (cf1 w {"us";"ns"}) runs_cf2 -: w
+Proof
+  rw[]
+  \\ irule homotopy_equiv_trans
+  \\ goal_assum(C (mp_then Any mp_tac) runs_cf2_as_product)
+  \\ irule homotopy_equiv_prod
+  \\ `runs_cf2 ∈ chu_objects runs_cf1.world` by simp[in_chu_objects]
+  \\ imp_res_tac in_chu_objects_finite_world
+  \\ `{"ur";"nr"} ⊆ runs_cf1.world` by EVAL_TAC
+  \\ `{"us";"ns"} ⊆ runs_cf1.world` by EVAL_TAC
+  \\ simp[]
+  \\ metis_tac[assume_tensor_cf1, iso_homotopy_equiv]
 QED
 
 val _ = export_theory();

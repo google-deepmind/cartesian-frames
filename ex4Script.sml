@@ -171,11 +171,15 @@ Proof
   rw[prime_cf_def, mk_cf_def]
 QED
 
+Definition prime_outcomes_def:
+  prime_outcomes w = { x | HD x = #"P" ∧ x ∈ w }
+End
+
 Theorem prime_obs_coarse:
-  { x | HD x = #"P" ∧ x ∈ IMAGE (TAKE 2) prime_world } ∈
+  prime_outcomes prime_world_coarse ∈
   obs (move_fn (TAKE 2) prime_world_coarse prime_cf)
 Proof
-  rw[obs_def]
+  rw[obs_def, prime_outcomes_def, Once prime_world_coarse_def]
   >- rw[prime_world_coarse_def, SUBSET_DEF]
   \\ rw[ifs_def, PULL_EXISTS]
   \\ qmatch_goalsub_abbrev_tac`c.eval`
@@ -202,9 +206,9 @@ Proof
 QED
 
 Theorem prime_not_obs_fine:
-  { x | HD x = #"P" ∧ x ∈ prime_world } ∉ obs prime_cf
+  prime_outcomes prime_world ∉ obs prime_cf
 Proof
-  rw[obs_def]
+  rw[obs_def, prime_outcomes_def]
   \\ CCONTR_TAC \\ fs[]
   \\ pop_assum mp_tac \\ simp[]
   \\ qexists_tac`"PC"`

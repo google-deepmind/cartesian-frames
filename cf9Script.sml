@@ -345,38 +345,52 @@ Definition repfns_def:
       | q | is_repfn b q }
 End
 
-Theorem FINITE_repfns[simp]:
-  FINITE b ∧ EVERY_FINITE b ⇒ FINITE (repfns b)
+Theorem FINITE_is_repfn:
+  FINITE b ∧ EVERY_FINITE b ⇒ FINITE { q | is_repfn b q}
 Proof
-  rw[repfns_def]
-  \\ qspec_then`λq. IMAGE (λx. (x, (decode_function q (encode_set x)))) b` irule FINITE_INJ
+  strip_tac
+  \\ qspec_then`λq. IMAGE (λx. (x, q x)) b`irule FINITE_INJ
   \\ qexists_tac`b`
-  \\ qexists_tac`{IMAGE (λx. (x, q x)) b | q | is_repfn b q}`
+  \\ qmatch_goalsub_abbrev_tac`INJ f qs`
+  \\ qexists_tac`IMAGE f qs`
   \\ conj_tac
   >- (
     irule SUBSET_FINITE
     \\ qexists_tac`POW (b × BIGUNION b)`
-    \\ simp[SUBSET_DEF, PULL_EXISTS]
+    \\ simp[SUBSET_DEF, PULL_EXISTS, Abbr`f`, Abbr`qs`]
     \\ simp[IN_POW, SUBSET_DEF, PULL_EXISTS]
     \\ simp[is_repfn_def]
     \\ metis_tac[] )
+  \\ simp[INJ_DEF, PULL_EXISTS, Abbr`qs`]
+  \\ rpt gen_tac \\ simp[is_repfn_def]
+  \\ strip_tac
+  \\ simp[Abbr`f`]
+  \\ simp[Once EXTENSION, PULL_EXISTS]
+  \\ strip_tac
+  \\ simp[FUN_EQ_THM]
+  \\ qx_gen_tac`z`
+  \\ Cases_on`z ∈ b` \\ fs[extensional_def]
+  \\ first_x_assum(qspec_then`(z, x z)`mp_tac)
+  \\ simp[]
+QED
+
+Theorem FINITE_repfns[simp]:
+  FINITE b ∧ EVERY_FINITE b ⇒ FINITE (repfns b)
+Proof
+  rw[repfns_def]
+  \\ qho_match_abbrev_tac`FINITE {f q | is_repfn b q }`
+  \\ qspec_then`λq. restrict (decode_function q o encode_set) b`
+     irule FINITE_INJ
+  \\ qexists_tac`b`
+  \\ qexists_tac`{q | q | is_repfn b q}`
+  \\ simp[FINITE_is_repfn]
   \\ simp[INJ_DEF, PULL_EXISTS]
-  \\ qho_match_abbrev_tac`(∀q. is_repfn b q ⇒ ∃q'. P q q') ∧ _`
-  \\ `∀q. is_repfn b q ⇒ P q q`
+  \\ `∀q. is_repfn b q ⇒ (restrict (decode_function (f q) o encode_set) b) = q`
   by (
-    simp[Abbr`P`]
-    \\ qx_gen_tac`q`
-    \\ strip_tac
-    \\ irule IMAGE_CONG
-    \\ simp[restrict_def, PULL_EXISTS]
-    \\ metis_tac[] )
-  \\ fs[Abbr`P`]
-  \\ conj_tac >- metis_tac[]
-  \\ rw[Once EXTENSION, FORALL_PROD]
-  \\ AP_TERM_TAC
-  \\ simp[restrict_def, PULL_EXISTS, FUN_EQ_THM]
-  \\ rw[] \\ simp[]
-  \\ metis_tac[]
+    rw[is_repfn_def, Abbr`f`, FUN_EQ_THM, extensional_def]
+    \\ Cases_on`x ∈ b` \\ rw[restrict_def]
+    \\ metis_tac[])
+  \\ simp[]
 QED
 
 Theorem repfns_empty[simp]:

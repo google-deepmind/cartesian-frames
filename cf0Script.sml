@@ -205,6 +205,35 @@ Proof
   \\ fs[PSUBSET_SING]
 QED
 
+Theorem union_closure_empty[simp]:
+  union_closure ∅ = {∅}
+Proof
+  rw[union_closure_def]
+  \\ rw[Once EXTENSION]
+QED
+
+Theorem union_closure_insert:
+  union_closure (x INSERT ss) =
+  IMAGE ((UNION) x) (union_closure ss) ∪ union_closure ss
+Proof
+  rw[union_closure_def, Once EXTENSION]
+  \\ rw[EQ_IMP_THM]
+  >- (
+    reverse(Cases_on`x ∈ s` \\ fs[]) >- metis_tac[]
+    \\ disj1_tac
+    \\ simp[PULL_EXISTS]
+    \\ qexists_tac`s DELETE x`
+    \\ fs[SUBSET_DEF]
+    \\ reverse conj_tac >- metis_tac[]
+    \\ simp[Once EXTENSION]
+    \\ metis_tac[])
+  >- (
+    qexists_tac`x INSERT s`
+    \\ simp[] \\ fs[SUBSET_DEF] )
+  \\ qexists_tac`s`
+  \\ fs[SUBSET_DEF]
+QED
+
 (* Initial definition of observables *)
 
 Definition ifs_def:
@@ -283,6 +312,32 @@ Theorem obs_empty:
 Proof
   rw[obs_def, ifs_def]
   \\ qexists_tac`a1` \\ rw[]
+QED
+
+Theorem obs_world:
+  wf c ⇒ c.world ∈ obs c
+Proof
+  rw[obs_def, ifs_def, wf_def]
+  \\ metis_tac[]
+QED
+
+Theorem union_closure_SUBSET_obs:
+  FINITE s ⇒
+  (union_closure s ⊆ obs c ⇔ s ⊆ obs c)
+Proof
+  rw[EQ_IMP_THM]
+  >- (
+    fs[union_closure_def, Once SUBSET_DEF, PULL_EXISTS]
+    \\ rw[]
+    \\ first_x_assum(qspec_then`{x}`mp_tac)
+    \\ simp[SUBSET_DEF] )
+  \\ rpt (pop_assum mp_tac)
+  \\ qid_spec_tac`s`
+  \\ ho_match_mp_tac FINITE_INDUCT
+  \\ rw[obs_empty]
+  \\ simp[union_closure_insert]
+  \\ fs[SUBSET_DEF, PULL_EXISTS]
+  \\ metis_tac[obs_union]
 QED
 
 Definition env_for_def:

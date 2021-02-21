@@ -126,7 +126,7 @@ Proof
 QED
 
 Theorem b3_part_partitions:
-  (i < 3) ⇒ partitions (b3_part i) b3
+  (i < 3) ⇒ b3_part i partitions b3
 Proof
   reverse(rw[partitions_thm, b3_part_def, GSYM MEMBER_NOT_EMPTY, SUBSET_DEF])
   >- (
@@ -334,9 +334,9 @@ Proof
          let d1 = evcn (SND(decode_pair p)) d0 in
          [d0; d1] |>`
   \\ qmatch_goalsub_abbrev_tac`homotopic _ (g o h -: _) _`
-  \\ `partitions (b3_part 0) b3` by simp[b3_part_partitions]
+  \\ `b3_part 0 partitions b3` by simp[b3_part_partitions]
   \\ qmatch_asmsub_abbrev_tac`LET _ fp`
-  \\ `partitions fp three.agent`
+  \\ `fp partitions three.agent`
   by(
     qunabbrev_tac`fp`
     \\ irule partitions_fn_partition

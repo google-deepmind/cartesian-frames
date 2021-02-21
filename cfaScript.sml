@@ -845,7 +845,7 @@ Proof
 QED
 
 Theorem FOLDL_sum_image_subset_fn_part:
-  partitions v w ∧
+  v partitions w ∧
   c = FOLDL sum zr cs ∧
   LIST_REL (λc s. image c ⊆ s) cs vs ∧
   EVERY (λs. s ∈ v) vs ∧ ALL_DISTINCT vs ∧ zr.agent = ∅ ∧
@@ -994,7 +994,7 @@ QED
 (* -- *)
 
 Definition obs_part_def:
-  obs_part c = { v | partitions v c.world ∧ ∀s. s ∈ v ⇒ s ∈ obs c }
+  obs_part c = { v | v partitions c.world ∧ ∀s. s ∈ v ⇒ s ∈ obs c }
 End
 
 Theorem obs_obs_part:
@@ -1023,7 +1023,7 @@ QED
 Theorem obs_part_conditional_policies:
   c ∈ chu_objects w ∧ w ≠ ∅ ⇒
   (v ∈ obs_part c ⇔
-   partitions v w ∧
+   v partitions w ∧
    ∀f. extensional f v ∧ IMAGE f v ⊆ c.agent ⇒
      ∃a. a ∈ c.agent ∧
        ∀e. e ∈ c.env ⇒
@@ -1033,7 +1033,7 @@ Proof
   \\ simp[obs_part_def]
   \\ `c.world = w` by fs[in_chu_objects]
   \\ simp[]
-  \\ Cases_on`partitions v w` \\ simp[]
+  \\ Cases_on`v partitions w` \\ simp[]
   \\ imp_res_tac in_chu_objects_finite_world
   \\ `FINITE v ∧ EVERY_FINITE v` by metis_tac[partitions_FINITE]
   \\ Induct_on`CARD v`
@@ -1088,7 +1088,7 @@ Proof
     \\ rpt strip_tac
     \\ gs[EXISTS_UNIQUE_ALT]
     \\ metis_tac[IN_UNION] )
-  \\ qmatch_assum_abbrev_tac`partitions v1 w`
+  \\ qmatch_assum_abbrev_tac`v1 partitions w`
   \\ impl_keep_tac >- metis_tac[partitions_FINITE]
   \\ impl_keep_tac >- metis_tac[partitions_FINITE]
   \\ strip_tac
@@ -1187,7 +1187,7 @@ Proof
 QED
 
 Definition obs_part_additive_def:
-  obs_part_additive c = { v | partitions v c.world ∧
+  obs_part_additive c = { v | v partitions c.world ∧
     let ss = SET_TO_LIST v in
     ∃f.
     EVERY (λs. f s ◁ cfbot c.world s -: c.world) ss ∧
@@ -1195,7 +1195,7 @@ Definition obs_part_additive_def:
 End
 
 Definition obs_part_assuming_def:
-  obs_part_assuming c = { v | partitions v c.world ∧
+  obs_part_assuming c = { v | v partitions c.world ∧
     c ≃ FOLDL prod (cfT c.world)
           (MAP (flip assume c) (SET_TO_LIST v)) -: c.world }
 End
@@ -1218,8 +1218,8 @@ Theorem obs_part_additive_imp[local]:
   obs_part_additive c ⊆ obs_part c
 Proof
   rw[SUBSET_DEF, obs_part_additive_def, obs_part_def]
-  \\ qmatch_assum_abbrev_tac`partitions _ w`
-  \\ qmatch_assum_rename_tac`partitions v w`
+  \\ qmatch_assum_abbrev_tac`_ partitions w`
+  \\ qmatch_assum_rename_tac`v partitions w`
   \\ `c ∈ chu_objects w` by imp_res_tac homotopy_equiv_in_chu_objects
   \\ imp_res_tac in_chu_objects_finite_world
   \\ drule partitions_FINITE
@@ -1674,7 +1674,7 @@ Proof
       \\ SELECT_ELIM_TAC
       \\ conj_tac >- metis_tac[]
       \\ rpt strip_tac
-      \\ qhdtm_x_assum`partitions`mp_tac
+      \\ qhdtm_x_assum`$partitions`mp_tac
       \\ simp[partitions_thm, EXISTS_UNIQUE_ALT]
       \\ metis_tac[wf_def, in_chu_objects] )
     \\ `∀a. a ∈ c.agent ⇒ c.eval a e ∈ s`
@@ -1842,7 +1842,7 @@ Proof
     \\ rw[] )
   \\ simp[assume_change_world]
   \\ qmatch_goalsub_abbrev_tac`assume _ cs`
-  \\ `partitions {s1; s2} (s1 ∪ s2)`
+  \\ `{s1; s2} partitions (s1 ∪ s2)`
   by (
     rw[partitions_thm] \\ rw[EXISTS_UNIQUE_THM]
     \\ metis_tac[IN_DISJOINT])
@@ -2003,7 +2003,7 @@ QED
 Definition obs_part_multiplicative_def:
   obs_part_multiplicative c = { v |
     let w = c.world in
-      partitions v w ∧
+      v partitions w ∧
       (c.agent = ∅ ∨
        ∃cs.
          LIST_REL (λc s. c ∈ chu_objects w ∧ powerless_outside c s)
@@ -2014,7 +2014,7 @@ End
 Definition obs_part_mult_constructive_def:
   obs_part_mult_constructive c = { v |
     let w = c.world in
-      partitions v w ∧
+      v partitions w ∧
       (c.agent = ∅ ∨
        c ≃ FOLDL tensor (cf1 w w)
          (MAP (λs. assume s c && cf1 w ((w DIFF s) INTER image c))
@@ -2198,7 +2198,7 @@ Proof
   \\ qx_gen_tac`v` \\ strip_tac
   \\ `v ∈ obs_part c` by metis_tac[obs_part_assuming_imp_additive, obs_part_additive_imp, SUBSET_DEF]
   \\ fs[obs_part_assuming_def, obs_part_mult_constructive_def]
-  \\ qmatch_assum_abbrev_tac`partitions v w`
+  \\ qmatch_assum_abbrev_tac`v partitions w`
   \\ Cases_on`c.agent = ∅` \\ simp[]
   \\ irule homotopy_equiv_trans
   \\ goal_assum(first_assum o mp_then Any mp_tac)
@@ -3008,7 +3008,7 @@ QED
 Definition obs_part_intext_def:
   obs_part_intext c = { v |
     let w = c.world in
-    partitions v w ∧
+    v partitions w ∧
     (c.agent = ∅ ∨
      ∃c'. c' ∈ IMAGE (external v o internal v) (chu_objects w) ∧
           c ≃ c' -: w) }
@@ -3017,7 +3017,7 @@ End
 Definition obs_part_intext_constructive_def:
   obs_part_intext_constructive c = { v |
     let w = c.world in
-    partitions v w ∧
+    v partitions w ∧
     (c.agent = ∅ ∨ c ≃ (external v (internal v c)) -: w) }
 End
 
@@ -3548,7 +3548,7 @@ Proof
     \\ simp[]
     \\ simp[restrict_def]
     \\ simp[SUBSET_DEF, PULL_EXISTS, GSYM CONJ_ASSOC]
-    \\ `partitions (fn_partition ba be bv v) ba`
+    \\ `(fn_partition ba be bv v) partitions ba`
     by (
       irule partitions_fn_partition
       \\ qexists_tac`w` \\ simp[]
@@ -3681,7 +3681,7 @@ Proof
 QED
 
 Theorem internal_FOLDL_prod_equiv_sum[local]:
-  partitions v w ∧ FINITE w ∧
+  v partitions w ∧ FINITE w ∧
   EVERY (λs. s ∈ v ∧ (f s).env ≠ ∅) vs ∧
   ALL_DISTINCT vs ∧
   (FOLDL prod (cfT w) (MAP f vs)).agent ≠ ∅ ∧
@@ -4506,8 +4506,8 @@ Proof
   rw[SUBSET_DEF, obs_part_additive_def]
   \\ simp[obs_part_intext_constructive_def]
   \\ Cases_on`c.agent = ∅` \\ simp[]
-  \\ qmatch_assum_abbrev_tac`partitions x w`
-  \\ qmatch_assum_rename_tac`partitions v w`
+  \\ qmatch_assum_abbrev_tac`x partitions w`
+  \\ qmatch_assum_rename_tac`v partitions w`
   \\ irule homotopy_equiv_trans
   \\ goal_assum(first_assum o mp_then Any mp_tac)
   \\ qmatch_assum_abbrev_tac`c ≃ b -: _`

@@ -25,7 +25,7 @@ Definition rs_def:
 End
 
 Theorem partitions_rs:
-  partitions rs runs_cf1.world
+  rs partitions runs_cf1.world
 Proof
   rw[partitions_thm, rs_def, runs_cf1_def]
   \\ rw[SUBSET_DEF, EXISTS_UNIQUE_THM]

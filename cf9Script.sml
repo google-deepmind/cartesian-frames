@@ -269,13 +269,15 @@ Proof
 QED
 
 Definition partitions_def:
-  partitions X Y ⇔ ∃R. R equiv_on Y ∧ X = partition R Y
+  partitions X Y = ?R. R equiv_on Y /\ X = partition R Y
 End
 
+val _ = set_fixity "partitions" (Infix(NONASSOC, 425))
+
 Theorem partitions_thm:
-  partitions X Y ⇔
-  ((∀x. x ∈ X ⇒ x ≠ ∅ ∧ x ⊆ Y) ∧
-   (∀y. y ∈ Y ⇒ ∃!x. x ∈ X ∧ y ∈ x))
+  X partitions Y <=>
+  ((!x. x IN X ==> x <> {} /\ x SUBSET Y) /\
+   (!y. y IN Y ==> ?!x. x IN X /\ y IN x))
 Proof
   simp[partitions_def]
   \\ eq_tac \\ strip_tac
@@ -296,28 +298,28 @@ Proof
   \\ fs[EXISTS_UNIQUE_ALT]
   \\ fs[Once (GSYM RIGHT_EXISTS_IMP_THM)]
   \\ fs[SKOLEM_THM]
-  \\ qexists_tac`λy z. f y = f z`
+  \\ qexists_tac`\y z. f y = f z`
   \\ simp[equiv_on_def]
   \\ conj_tac >- metis_tac[]
   \\ simp[partition_def, Once EXTENSION]
   \\ rw[EQ_IMP_THM]
   >- (
-    `∃a. a ∈ x ∧ a ∈ Y` by metis_tac[MEMBER_NOT_EMPTY, SUBSET_DEF]
+    `?a. a IN x /\ a IN Y` by metis_tac[MEMBER_NOT_EMPTY, SUBSET_DEF]
     \\ qexists_tac`a` \\ simp[]
     \\ `f a = x` by metis_tac[]
     \\ simp[EXTENSION]
     \\ metis_tac[SUBSET_DEF] )
-  \\ `f y ∈ X ∧ y ∈ f y` by metis_tac[]
-  \\ qmatch_goalsub_abbrev_tac`z ∈ X`
+  \\ `f y IN X /\ y IN f y` by metis_tac[]
+  \\ qmatch_goalsub_abbrev_tac`z IN X`
   \\ `z = f y` suffices_by rw[]
   \\ rw[Abbr`z`, EXTENSION]
-  \\ reverse(Cases_on`x ∈ Y`) \\ simp[]
+  \\ reverse(Cases_on`x IN Y`) \\ simp[]
   >- metis_tac[SUBSET_DEF]
   \\ metis_tac[]
 QED
 
 Theorem partitions_FINITE:
-  partitions X Y ∧ FINITE Y ⇒
+  X partitions Y ∧ FINITE Y ⇒
   FINITE X ∧ EVERY_FINITE X
 Proof
   rw[partitions_def]
@@ -325,7 +327,7 @@ Proof
 QED
 
 Theorem partitions_DISJOINT:
-  partitions v w ∧ s1 ∈ v ∧ s2 ∈ v ∧ s1 ≠ s2 ⇒
+  v partitions w /\ s1 IN v /\ s2 IN v /\ s1 <> s2 ==>
   DISJOINT s1 s2
 Proof
   rw[partitions_thm, IN_DISJOINT]
@@ -422,7 +424,7 @@ Definition cf_external_mod_def:
 End
 
 Theorem cf_external_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  c ∈ chu_objects w ∧ b partitions c.agent ⇒
   cf_external b c ∈ chu_objects w
 Proof
   simp[in_chu_objects, cf_external_def]
@@ -439,7 +441,7 @@ Proof
 QED
 
 Theorem cf_external_mod_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  c ∈ chu_objects w ∧ b partitions c.agent ⇒
   cf_external_mod b c ∈ chu_objects w
 Proof
   simp[in_chu_objects, cf_external_mod_def]
@@ -456,7 +458,7 @@ Proof
 QED
 
 Theorem is_sister_cf_external_mod:
-  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  c ∈ chu_objects w ∧ b partitions c.agent ⇒
   is_sister c (cf_external b c) (cf_external_mod b c)
 Proof
   rw[is_sister_def]
@@ -888,14 +890,14 @@ Proof
 QED
 
 Theorem cf_external_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  c ∈ chu_objects w ∧ b partitions c.agent ⇒
   multiplicative_subagent (cf_external b c) c
 Proof
   metis_tac[multiplicative_subagent_sister, is_sister_cf_external_mod]
 QED
 
 Theorem cf_external_mod_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions b c.agent ⇒
+  c ∈ chu_objects w ∧ b partitions c.agent ⇒
   multiplicative_subagent (cf_external_mod b c) c
 Proof
   metis_tac[multiplicative_subagent_sister,
@@ -945,7 +947,7 @@ Proof
 QED
 
 Theorem cf_internal_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions f c.env ⇒
+  c ∈ chu_objects w ∧ f partitions c.env ⇒
   multiplicative_subagent c (cf_internal f c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
@@ -956,7 +958,7 @@ Proof
 QED
 
 Theorem cf_internal_mod_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions f c.env ⇒
+  c ∈ chu_objects w ∧ f partitions c.env ⇒
   multiplicative_subagent c (cf_internal_mod f c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
@@ -1146,8 +1148,8 @@ Definition fn_partition_def:
 End
 
 Theorem partitions_fn_partition:
-  partitions v w ∧ (∀x y. x ∈ s ∧ y ∈ t ⇒ f x y ∈ w) ⇒
-  partitions (fn_partition s t f v) s
+  v partitions w ∧ (∀x y. x ∈ s ∧ y ∈ t ⇒ f x y ∈ w) ⇒
+  (fn_partition s t f v) partitions s
 Proof
   rw[partitions_thm, PULL_EXISTS]
   >- (
@@ -1205,7 +1207,7 @@ Proof
 QED
 
 Theorem fn_part_image_subset_eq_agent:
-  partitions v w ∧
+  v partitions w ∧
   image c ⊆ s ∧ s ∈ v ∧ a ∈ c.agent
   ⇒
   fn_part c.agent c.env c.eval v a = c.agent
@@ -1226,7 +1228,7 @@ Definition external_mod_def:
 End
 
 Theorem is_sister_external_mod:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   is_sister c (external v c) (external_mod v c)
 Proof
   rw[external_def, external_mod_def]
@@ -1238,21 +1240,21 @@ Proof
 QED
 
 Theorem external_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   multiplicative_subagent (external v c) c
 Proof
   metis_tac[is_sister_external_mod, multiplicative_subagent_sister]
 QED
 
 Theorem external_mod_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   multiplicative_subagent (external_mod v c) c
 Proof
   metis_tac[is_sister_external_mod, multiplicative_subagent_sister, is_sister_comm]
 QED
 
 Theorem external_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions v w ⇒ external v c ∈ chu_objects w
+  c ∈ chu_objects w ∧ v partitions w ⇒ external v c ∈ chu_objects w
 Proof
   rw[external_def]
   \\ irule cf_external_in_chu_objects
@@ -1263,7 +1265,7 @@ Proof
 QED
 
 Theorem external_mod_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions v w ⇒ external_mod v c ∈ chu_objects w
+  c ∈ chu_objects w ∧ v partitions w ⇒ external_mod v c ∈ chu_objects w
 Proof
   rw[external_mod_def]
   \\ irule cf_external_mod_in_chu_objects
@@ -1308,20 +1310,20 @@ Proof
 QED
 
 Theorem internal_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions v w ⇒ internal v c ∈ chu_objects w
+  c ∈ chu_objects w ∧ v partitions w ⇒ internal v c ∈ chu_objects w
 Proof
   metis_tac[swap_internal, swap_swap, swap_in_chu_objects, external_in_chu_objects]
 QED
 
 Theorem internal_mod_in_chu_objects[simp]:
-  c ∈ chu_objects w ∧ partitions v w ⇒ internal_mod v c ∈ chu_objects w
+  c ∈ chu_objects w ∧ v partitions w ⇒ internal_mod v c ∈ chu_objects w
 Proof
   metis_tac[swap_internal_mod, swap_swap,
             swap_in_chu_objects, external_mod_in_chu_objects]
 QED
 
 Theorem internal_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   multiplicative_subagent c (internal v c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
@@ -1332,7 +1334,7 @@ Proof
 QED
 
 Theorem internal_mod_multiplicative_subagent:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   multiplicative_subagent c (internal_mod v c)
 Proof
   rw[GSYM multiplicative_subenvironment_subagent]
@@ -1363,12 +1365,12 @@ Proof
 QED
 
 Theorem external_nonempty_agent:
-  partitions v w ∧
+  v partitions w ∧
   c ∈ chu_objects w ⇒
   (external v c).agent ≠ ∅
 Proof
   strip_tac
-  \\ `partitions (fn_partition c.agent c.env c.eval v) c.agent`
+  \\ `(fn_partition c.agent c.env c.eval v) partitions c.agent`
   by (
     irule partitions_fn_partition
     \\ metis_tac[in_chu_objects, wf_def] )
@@ -1521,7 +1523,7 @@ Proof
 QED
 
 Theorem homotopy_equiv_external_mod_both[local]:
-  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  c1 ≃ c2 -: w ∧ v partitions w ⇒
   external v c1 ≃ external v c2 -: w ∧
   external_mod v c1 ≃ external_mod v c2 -: w
 Proof
@@ -1996,21 +1998,21 @@ Proof
 QED
 
 Theorem homotopy_equiv_external:
-  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  c1 ≃ c2 -: w ∧ v partitions w ⇒
   external v c1 ≃ external v c2 -: w
 Proof
   metis_tac[homotopy_equiv_external_mod_both]
 QED
 
 Theorem homotopy_equiv_external_mod:
-  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  c1 ≃ c2 -: w ∧ v partitions w ⇒
   external_mod v c1 ≃ external_mod v c2 -: w
 Proof
   metis_tac[homotopy_equiv_external_mod_both]
 QED
 
 Theorem homotopy_equiv_internal:
-  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  c1 ≃ c2 -: w ∧ v partitions w ⇒
   internal v c1 ≃ internal v c2 -: w
 Proof
   strip_tac
@@ -2022,7 +2024,7 @@ Proof
 QED
 
 Theorem homotopy_equiv_internal_mod:
-  c1 ≃ c2 -: w ∧ partitions v w ⇒
+  c1 ≃ c2 -: w ∧ v partitions w ⇒
   internal_mod v c1 ≃ internal_mod v c2 -: w
 Proof
   strip_tac
@@ -2241,7 +2243,7 @@ Proof
 QED
 
 Theorem external_equal_parts:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   (external v c).agent ≠ ∅ ∧
   (∀a1 a2 e.
     a1 ∈ (external v c).agent ∧
@@ -2291,7 +2293,7 @@ Proof
 QED
 
 Theorem equal_parts_external_iso:
-  c ∈ chu_objects w ∧ partitions v w ∧
+  c ∈ chu_objects w ∧ v partitions w ∧
   c.agent ≠ ∅ ∧
   (∀a1 a2 e.
     a1 ∈ c.agent ∧ a2 ∈ c.agent ∧ e ∈ c.env ⇒
@@ -2316,7 +2318,7 @@ Proof
       \\ qx_gen_tac`a2`
       \\ Cases_on`a2 ∈ c.agent` \\ simp[] )
     \\ metis_tac[] )
-  \\ `partitions b c.agent`
+  \\ `b partitions c.agent`
   by (
     simp[partitions_thm, EXISTS_UNIQUE_ALT]
     \\ metis_tac[] )
@@ -2348,7 +2350,7 @@ Proof
 QED
 
 Theorem external_idem:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   external v (external v c) ≅ external v c -: chu w
 Proof
   strip_tac
@@ -2359,7 +2361,7 @@ Proof
 QED
 
 Theorem external_mod_unequal_parts:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   (∀a1 a2.
     a1 ∈ (external_mod v c).agent ∧
     a2 ∈ (external_mod v c).agent ∧
@@ -2419,7 +2421,7 @@ Proof
 QED
 
 Theorem unequal_parts_external_mod_iso:
-  c ∈ chu_objects w ∧ partitions v w ∧
+  c ∈ chu_objects w ∧ v partitions w ∧
   (∀a1 a2. a1 ∈ c.agent ∧ a2 ∈ c.agent ∧ a1 ≠ a2 ⇒
      ∃e. e ∈ c.env ∧ (@w. w ∈ v ∧ c.eval a1 e ∈ w) ≠
                      (@w. w ∈ v ∧ c.eval a2 e ∈ w))
@@ -2450,7 +2452,7 @@ Proof
     \\ gs[extensional_def, SING_DEF] \\ rw[]
     \\ res_tac \\ gs[]
     \\ metis_tac[IN_SING] )
-  \\ `partitions b c.agent`
+  \\ `b partitions c.agent`
   by (
     simp[Abbr`b`]
     \\ irule partitions_fn_partition
@@ -2513,7 +2515,7 @@ Proof
 QED
 
 Theorem external_mod_idem:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   external_mod v (external_mod v c) ≅ external_mod v c -: chu w
 Proof
   strip_tac
@@ -2524,7 +2526,7 @@ Proof
 QED
 
 Theorem internal_equal_parts:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   (internal v c).env ≠ ∅ ∧
   (∀a e1 e2.
     e1 ∈ (internal v c).env ∧
@@ -2542,7 +2544,7 @@ Proof
 QED
 
 Theorem equal_parts_internal_iso:
-  c ∈ chu_objects w ∧ partitions v w ∧
+  c ∈ chu_objects w ∧ v partitions w ∧
   c.env ≠ ∅ ∧
   (∀e1 e2 a.
     e1 ∈ c.env ∧ e2 ∈ c.env ∧ a ∈ c.agent ⇒
@@ -2558,7 +2560,7 @@ Proof
 QED
 
 Theorem internal_idem:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   internal v (internal v c) ≅ internal v c -: chu w
 Proof
   strip_tac
@@ -2569,7 +2571,7 @@ Proof
 QED
 
 Theorem internal_mod_unequal_parts:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   (∀e1 e2.
     e1 ∈ (internal_mod v c).env ∧
     e2 ∈ (internal_mod v c).env ∧
@@ -2586,7 +2588,7 @@ Proof
 QED
 
 Theorem unequal_parts_internal_mod_iso:
-  c ∈ chu_objects w ∧ partitions v w ∧
+  c ∈ chu_objects w ∧ v partitions w ∧
   (∀e1 e2. e1 ∈ c.env ∧ e2 ∈ c.env ∧ e1 ≠ e2 ⇒
      ∃a. a ∈ c.agent ∧ (@w. w ∈ v ∧ c.eval a e1 ∈ w) ≠
                        (@w. w ∈ v ∧ c.eval a e2 ∈ w))
@@ -2601,7 +2603,7 @@ Proof
 QED
 
 Theorem internal_mod_idem:
-  c ∈ chu_objects w ∧ partitions v w ⇒
+  c ∈ chu_objects w ∧ v partitions w ⇒
   internal_mod v (internal_mod v c) ≅ internal_mod v c -: chu w
 Proof
   strip_tac

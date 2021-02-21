@@ -29,18 +29,20 @@ Definition refines_def:
   ∀s1. s1 ∈ v1 ⇒ ∃s2. s2 ∈ v2 ∧ s1 ⊆ s2
 End
 
+val _ = set_fixity "refines" (Infix(NONASSOC, 425))
+
 Definition nested_partitions_def:
   nested_partitions w ts ⇔
   ts ≠ [] ∧
   HD ts = {w} ∧
   LAST ts = IMAGE (flip $INSERT EMPTY) w ∧
-  EVERY (flip partitions w) ts ∧
+  EVERY (flip $partitions w) ts ∧
   ∀n. (SUC n < LENGTH ts) ⇒
-    refines (EL (SUC n) ts) (EL n ts)
+    (EL (SUC n) ts) refines (EL n ts)
 End
 
 Theorem refines_fn_part_eq:
-  partitions v w ∧ partitions u w ∧ refines u v ∧
+  v partitions w ∧ u partitions w ∧ u refines v ∧
   (∀a e. a ∈ s ∧ e ∈ t ⇒ f a e ∈ w) ∧ a ∈ s ∧ b ∈ s ∧
   fn_part s t f u a = fn_part s t f u b
   ⇒
@@ -72,7 +74,7 @@ Proof
 QED
 
 Theorem refines_fn_part_SUBSET:
-  refines u v ∧ partitions v w ∧ partitions u w ∧ a ∈ s ∧
+  u refines v ∧ v partitions w ∧ u partitions w ∧ a ∈ s ∧
   (∀a e. a ∈ s ∧ e ∈ t ⇒ f a e ∈ w)
   ⇒
   fn_part s t f u a ⊆ fn_part s t f v a
@@ -95,7 +97,7 @@ QED
 
 Theorem refines_multiplicative_subagent:
   c ∈ chu_objects w ∧
-  partitions v w ∧ partitions u w ∧ refines u v
+  v partitions w ∧ u partitions w ∧ u refines v
   ⇒
   multiplicative_subagent (external u c) (external v c)
 Proof
@@ -417,7 +419,7 @@ Proof
         fs[Abbr`b`, fn_partition_def]
         \\ rfs[Abbr`fp`, fn_part_def] )
       \\ `fp v (q x) = fp v (q x2)` by metis_tac[]
-      \\ `partitions (b v) c.agent`
+      \\ `(b v) partitions c.agent`
       by (
         qunabbrev_tac`b`
         \\ irule partitions_fn_partition
@@ -471,7 +473,7 @@ Proof
         \\ pop_assum mp_tac
         \\ simp[fn_part_def])
       \\ `x ≠ ∅` suffices_by metis_tac[CHOICE_DEF]
-      \\ `partitions (b u) c.agent`
+      \\ `(b u) partitions c.agent`
       by (
         qunabbrev_tac`b`
         \\ irule partitions_fn_partition
@@ -504,7 +506,7 @@ Proof
     \\ rpt strip_tac
     \\ simp[]
     \\ qmatch_assum_rename_tac`x ∈ b v`
-    \\ `partitions (b v) c.agent`
+    \\ `(b v) partitions c.agent`
     by (
       qunabbrev_tac`b`
       \\ irule partitions_fn_partition
@@ -519,7 +521,7 @@ Proof
       simp_tac(srw_ss())[Abbr`fp`, fn_part_def]
       \\ metis_tac[] )
     \\ `fp v (q x) ∈ b v` by metis_tac[]
-    \\ qhdtm_x_assum`partitions`mp_tac
+    \\ qhdtm_x_assum`$partitions`mp_tac
     \\ simp[partitions_thm]
     \\ strip_tac
     \\ metis_tac[EXISTS_UNIQUE_ALT])
@@ -638,7 +640,7 @@ QED
 
 Theorem refines_ctrl_external_SUBSET:
   c ∈ chu_objects w ∧
-  partitions u w ∧ partitions v w ∧ refines u v
+  u partitions w ∧ v partitions w ∧ u refines v
   ⇒
   ctrl (external u c) ⊆ ctrl (external v c)
 Proof
@@ -656,7 +658,7 @@ QED
 
 Theorem refines_obs_external_SUBSET:
   c ∈ chu_objects w ∧
-  partitions u w ∧ partitions v w ∧ refines u v
+  u partitions w ∧ v partitions w ∧ u refines v
   ⇒
   obs (external v c) ⊆ obs (external u c)
 Proof

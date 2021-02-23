@@ -21,32 +21,6 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 
 val _ = new_theory"exb";
 
-(* these could be used elsewhere *)
-
-Definition encode_repfn_def:
-  encode_repfn b q = encode_function (IMAGE encode_set b)
-    (restrict (q o decode_set) (IMAGE encode_set b))
-End
-
-Theorem encode_repfn_in_repfns:
-  FINITE b ∧ EVERY_FINITE b ∧ extensional q b ⇒
-  (encode_repfn b q ∈ repfns b ⇔ is_repfn b q)
-Proof
-  rw[repfns_def, encode_repfn_def]
-  \\ reverse EQ_TAC >- metis_tac[]
-  \\ strip_tac
-  \\ fs[is_repfn_def]
-  \\ rpt strip_tac
-  \\ `q x = q' x` suffices_by rw[]
-  \\ first_x_assum(mp_tac o Q.AP_TERM`decode_function`)
-  \\ disch_then(mp_tac o C Q.AP_THM `encode_set x`)
-  \\ simp[]
-  \\ rw[restrict_def]
-  \\ metis_tac[]
-QED
-
-(* -- *)
-
 Definition b3_def:
   b3 = let d = {"0";"1"} in
     IMAGE (UNCURRY STRCAT o pair$## I (UNCURRY STRCAT))

@@ -406,6 +406,32 @@ Proof
   \\ AP_TERM_TAC \\ rw[FUN_EQ_THM]
 QED
 
+(* TODO: these could be used more *)
+
+Definition encode_repfn_def:
+  encode_repfn b q = encode_function (IMAGE encode_set b)
+    (restrict (q o decode_set) (IMAGE encode_set b))
+End
+
+Theorem encode_repfn_in_repfns:
+  FINITE b ∧ EVERY_FINITE b ∧ extensional q b ⇒
+  (encode_repfn b q ∈ repfns b ⇔ is_repfn b q)
+Proof
+  rw[repfns_def, encode_repfn_def]
+  \\ reverse EQ_TAC >- metis_tac[]
+  \\ strip_tac
+  \\ fs[is_repfn_def]
+  \\ rpt strip_tac
+  \\ `q x = q' x` suffices_by rw[]
+  \\ first_x_assum(mp_tac o Q.AP_TERM`decode_function`)
+  \\ disch_then(mp_tac o C Q.AP_THM `encode_set x`)
+  \\ simp[]
+  \\ rw[restrict_def]
+  \\ metis_tac[]
+QED
+
+(* -- *)
+
 Definition cf_external_def:
   cf_external b c = mk_cf <| world := c.world;
     agent := repfns b;
@@ -904,6 +930,43 @@ Proof
             is_sister_cf_external_mod, is_sister_comm]
 QED
 
+Theorem image_cf_external:
+  FINITE c.agent ∧ b partitions c.agent ⇒
+  image (cf_external b c) = image c
+Proof
+  strip_tac
+  \\ imp_res_tac partitions_FINITE
+  \\ rw[image_def, cf_external_def, mk_cf_def, PULL_EXISTS, EXISTS_PROD,
+        SET_EQ_SUBSET, SUBSET_DEF]
+  >- (
+    reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac
+    \\ fs[repfns_def]
+    \\ simp[restrict_def]
+    \\ reverse IF_CASES_TAC >- metis_tac[] \\ pop_assum kall_tac
+    \\ fs[is_repfn_def]
+    \\ fs[partitions_thm, SUBSET_DEF]
+    \\ metis_tac[] )
+  \\ qexists_tac`encode_repfn b (restrict (λs. if a ∈ s then a else CHOICE s) b)`
+  \\ simp[encode_repfn_in_repfns]
+  \\ qexistsl_tac[`e`,`@s. s ∈ b ∧ a ∈ s`]
+  \\ SELECT_ELIM_TAC
+  \\ conj_tac >- (fs[partitions_thm] \\ metis_tac[EXISTS_UNIQUE_ALT])
+  \\ rpt gen_tac \\ strip_tac
+  \\ simp[]
+  \\ conj_asm1_tac
+  >- (
+    simp[is_repfn_def, restrict_def]
+    \\ rw[]
+    \\ fs[partitions_thm]
+    \\ metis_tac[CHOICE_DEF])
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ pop_assum kall_tac
+  \\ simp[encode_repfn_def]
+  \\ simp[restrict_def]
+  \\ reverse IF_CASES_TAC >- metis_tac[]
+  \\ rw[]
+QED
+
 Definition cf_internal_def:
   cf_internal f c = mk_cf <| world := c.world;
     agent := IMAGE encode_pair (IMAGE encode_set f × c.agent);
@@ -1273,6 +1336,15 @@ Proof
   \\ irule partitions_fn_partition
   \\ fs[in_chu_objects, wf_def]
   \\ metis_tac[]
+QED
+
+Theorem image_external:
+  c ∈ chu_objects w ∧ v partitions w ⇒
+  image (external v c) = image c
+Proof
+  rw[external_def]
+  \\ irule image_cf_external
+  \\ metis_tac[partitions_fn_partition, in_chu_objects, wf_def, finite_cf_def]
 QED
 
 Definition internal_def:

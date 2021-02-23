@@ -335,6 +335,80 @@ Proof
   \\ metis_tac[]
 QED
 
+Theorem partitions_empty:
+  v partitions {} <=> v = {}
+Proof
+  rw[partitions_thm, EQ_IMP_THM]
+  \\ CCONTR_TAC
+  \\ fs[GSYM MEMBER_NOT_EMPTY]
+  \\ res_tac \\ fs[]
+QED
+
+Theorem partitions_INSERT:
+  x NOTIN w ==>
+  (v partitions (x INSERT w) <=>
+   (?u s. u partitions w /\ v = (x INSERT s) INSERT (u DELETE s) /\
+    (s <> {} ==> s IN u)))
+Proof
+  rw[partitions_thm]
+  \\ EQ_TAC \\ strip_tac
+  >- (
+    pop_assum mp_tac \\ dsimp[]
+    \\ strip_tac
+    \\ fs[EXISTS_UNIQUE_ALT]
+    \\ qmatch_asmsub_rename_tac`_ <=> s = _`
+    \\ `x IN s /\ s IN v` by metis_tac[]
+    \\ qexists_tac`if SING s then v DELETE s
+    else (s DELETE x) INSERT (v DELETE s)`
+    \\ qexists_tac`s DELETE x`
+    \\ IF_CASES_TAC \\ fs[SING_DEF]
+    \\ dsimp[] \\ gs[]
+    >- (
+      fs[SUBSET_DEF, PULL_EXISTS]
+      \\ rw[]
+      \\ TRY (`y NOTIN {x}` by (strip_tac \\ fs[]))
+      \\ simp[Once EXTENSION]
+      \\ metis_tac[])
+    \\ fs[SUBSET_DEF, PULL_EXISTS, GSYM CONJ_ASSOC]
+    \\ conj_tac >- metis_tac[]
+    \\ conj_tac >- metis_tac[]
+    \\ conj_tac >- metis_tac[]
+  \\ reverse conj_tac
+  >- (
+    dsimp[Once EXTENSION]
+    \\ rw[EQ_IMP_THM] \\ rw[]
+    \\ CCONTR_TAC \\ gs[]
+    \\ pop_assum mp_tac
+    \\ fsrw_tac[boolSimps.DNF_ss][Once EQ_IMP_THM]
+    \\ `?z. z IN s DELETE x` by metis_tac[MEMBER_NOT_EMPTY]
+    \\ `z <> x` by fs[]
+    \\ `z IN w` by metis_tac[]
+    \\ first_x_assum drule
+    \\ strip_tac
+    \\ `z IN s` by fs[]
+    \\ metis_tac[])
+  \\ rw[]
+  \\ first_x_assum drule
+  \\ disch_then(qx_choose_then`z`strip_assume_tac)
+  \\ dsimp[EQ_IMP_THM]
+  \\ `y <> x` by metis_tac[] \\ fs[]
+  \\ Cases_on`y IN s` \\ fs[]
+  >- ( disj1_tac \\ rw[] \\ metis_tac[] )
+  \\ qexists_tac`z`
+  \\ metis_tac[])
+  \\ dsimp[]
+  \\ fs[SUBSET_DEF, GSYM CONJ_ASSOC]
+  \\ conj_tac >- metis_tac[NOT_IN_EMPTY]
+  \\ conj_tac >- metis_tac[]
+  \\ fs[EXISTS_UNIQUE_THM, GSYM CONJ_ASSOC]
+  \\ conj_tac >- dsimp[]
+  \\ conj_tac >- (
+      rw[] \\ gs[GSYM MEMBER_NOT_EMPTY, PULL_EXISTS]
+      \\ metis_tac[] )
+  \\ rw[] \\ dsimp[] \\ gs[GSYM MEMBER_NOT_EMPTY, PULL_EXISTS]
+  \\ metis_tac[]
+QED
+
 Definition is_repfn_def:
   is_repfn X q ⇔
   extensional q X ∧ ∀x. x ∈ X ⇒ q x ∈ x

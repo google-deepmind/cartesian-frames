@@ -20,7 +20,7 @@ open HolKernel boolLib bossLib Parse dep_rewrite
 
 val _ = new_theory"ex9";
 
-Theorem runs3_assume_no_meteor:
+Theorem runs3_cf_assume_no_meteor:
   cf_assume_diff {"m"} runs_cf3
   = runs_cf2 with world := runs_cf3.world
 Proof
@@ -29,6 +29,18 @@ Proof
   \\ rw[mk_cf_def]
   \\ rw[FUN_EQ_THM]
   \\ rw[]
+QED
+
+Theorem runs3_assume_no_meteor:
+  assume_diff {"m"} runs_cf3
+  = runs_cf2 with world := runs_cf3.world
+Proof
+  rw[assume_diff_def, GSYM runs3_cf_assume_no_meteor]
+  \\ AP_THM_TAC \\ AP_TERM_TAC
+  \\ dsimp[runs_cf3_def, SET_EQ_SUBSET, SUBSET_DEF]
+  \\ dsimp[EVAL``runs_cf2.env``]
+  \\ dsimp[EVAL``runs_cf2.agent``]
+  \\ EVAL_TAC
 QED
 
 Theorem commit_diff_not_iso_commit:

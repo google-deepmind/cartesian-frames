@@ -232,6 +232,19 @@ Proof
   rw[prime_cf_def, in_chu_objects]
 QED
 
+Theorem image_prime_cf:
+  image prime_cf = prime_world
+Proof
+  `prime_cf.world = prime_world` by rw[prime_cf_def]
+  \\ rw[image_def, SET_EQ_SUBSET, SUBSET_DEF]
+  >- metis_tac[wf_prime_cf, wf_def]
+  \\ simp[prime_cf_eval]
+  \\ pop_assum mp_tac
+  \\ EVAL_TAC \\ simp[]
+  \\ strip_tac
+  \\ csimp[] \\ dsimp[]
+QED
+
 Theorem prime_coarse_product:
   move_fn (TAKE 2) prime_world_coarse prime_cf ≃
   cfbot prime_world_coarse {x | HD x = #"P" ∧ x ∈ prime_world_coarse } &&

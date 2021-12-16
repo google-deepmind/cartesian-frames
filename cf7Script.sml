@@ -1316,7 +1316,7 @@ Proof
     \\ simp[wf_def]
     \\ simp[finite_cf_def]
     \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
-    \\ rw[] \\ gs[]
+    \\ rw[] \\ rfs[] \\ fs[]
     \\ first_x_assum irule
     \\ rw[]
     \\ simp[Abbr`d'`,sum_def] )
@@ -1949,7 +1949,7 @@ Proof
     \\ simp[wf_def]
     \\ simp[finite_cf_def]
     \\ simp[image_def, SUBSET_DEF, PULL_EXISTS]
-    \\ rw[] \\ gs[]
+    \\ rw[] \\ rfs[] \\ fs[]
     \\ first_x_assum irule
     \\ rw[Abbr`d'`]
     \\ simp[tensor_def] )

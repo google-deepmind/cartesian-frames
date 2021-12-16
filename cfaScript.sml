@@ -1084,7 +1084,7 @@ Proof
   >- (
     fs[partitions_thm]
     \\ conj_tac
-    >- (rpt strip_tac \\ gs[])
+    >- ( rw[] \\ gs[] )
     \\ rpt strip_tac
     \\ gs[EXISTS_UNIQUE_ALT]
     \\ metis_tac[IN_UNION] )

@@ -2,7 +2,8 @@
 
 This repository contains a formalisation in [HOL](https://hol-theorem-prover.org) of the results in the [Cartesian Frames sequence](https://www.alignmentforum.org/s/2A7rrZ4ySx6R8mfoT).
 
-The proofs have been checked to build with the [Kananaskis-14 release](https://github.com/HOL-Theorem-Prover/HOL/releases/tag/kananaskis-14) of HOL4.
+The proofs have been checked to build with [this commit](https://github.com/HOL-Theorem-Prover/HOL/tree/c51de550191d516cb9dfe47c6a1e866b232f2c96) of the HOL theorem prover.
+They may also work in other versions, but beware that proof scripts can be fragile to changes in the underlying prover libraries.
 
 # Contents
 

@@ -24,13 +24,6 @@ Definition obs_part_after_def:
   obs_part_after c t v ⇔ v ∈ obs_part (external t c)
 End
 
-Definition refines_def:
-  refines v1 v2 ⇔
-  ∀s1. s1 ∈ v1 ⇒ ∃s2. s2 ∈ v2 ∧ s1 ⊆ s2
-End
-
-val _ = set_fixity "refines" (Infix(NONASSOC, 425))
-
 Definition nested_partitions_def:
   nested_partitions w ts ⇔
   ts ≠ [] ∧

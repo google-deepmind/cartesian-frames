@@ -20,72 +20,10 @@ open HolKernel boolLib bossLib boolSimps Parse dep_rewrite
 val _ = new_theory"matrix";
 
 (* TODO: move *)
-Theorem GENLIST_EQ_NIL[simp]:
+Theorem GENLIST_EQ_NIL[simp]: (* already in helper_listTheory *)
   !n. GENLIST f n = [] <=> n = 0
 Proof
   Cases \\ rw[GENLIST]
-QED
-
-Theorem nub_GENLIST:
-  nub (GENLIST f n) =
-    MAP f (FILTER (\i. !j. (i < j) /\ (j < n) ==> f i <> f j) (COUNT_LIST n))
-Proof
-  simp[rich_listTheory.COUNT_LIST_GENLIST]
-  \\ qid_spec_tac`f`
-  \\ Induct_on`n` \\ simp[]
-  \\ simp[GENLIST_CONS]
-  \\ simp[nub_def]
-  \\ gen_tac
-  \\ simp[MEM_GENLIST]
-  \\ qmatch_goalsub_abbrev_tac`COND b1`
-  \\ qmatch_goalsub_abbrev_tac`MAP f (COND b2 _ _)`
-  \\ qmatch_goalsub_abbrev_tac`f 0 :: r1`
-  \\ qmatch_goalsub_abbrev_tac`0 :: r2`
-  \\ `b2 = ~b1`
-  by (
-    rw[Abbr`b1`, Abbr`b2`, EQ_IMP_THM]
-    >- (
-      CCONTR_TAC \\ fs[]
-      \\ first_x_assum(qspec_then`SUC m`mp_tac)
-      \\ simp[] )
-    \\ first_x_assum(qspec_then`PRE j`mp_tac)
-    \\ simp[]
-    \\ metis_tac[arithmeticTheory.SUC_PRE] )
-  \\ `r1 = MAP f r2`
-  by (
-    simp[Abbr`r1`, Abbr`r2`]
-    \\ qmatch_goalsub_abbrev_tac`FILTER f2`
-    \\ `f2 = (\i. !j. i <= j /\ (j < n) ==> f i <> f (SUC j)) o SUC`
-    by (
-      simp[Abbr`f2`, FUN_EQ_THM]
-      \\ simp[arithmeticTheory.LESS_EQ] )
-    \\ simp[GSYM MAP_MAP_o, GSYM rich_listTheory.FILTER_MAP]
-    \\ simp[MAP_GENLIST]
-    \\ rpt (AP_TERM_TAC ORELSE AP_THM_TAC)
-    \\ simp[FUN_EQ_THM]
-    \\ gen_tac
-    \\ CONV_TAC(RAND_CONV(Ho_Rewrite.ONCE_REWRITE_CONV[arithmeticTheory.FORALL_NUM]))
-    \\ simp[arithmeticTheory.LESS_EQ] )
-  \\ rw[]
-QED
-
-Theorem nub_MAP_INJ:
-  INJ f (set ls) UNIV ==>
-  nub (MAP f ls) = MAP f (nub ls)
-Proof
-  Induct_on`ls`
-  \\ rw[]
-  \\ simp[nub_def]
-  \\ simp[Once COND_RAND, SimpRHS]
-  \\ `INJ f (set ls) UNIV`
-  by (
-    irule INJ_SUBSET
-    \\ goal_assum(first_assum o mp_then Any mp_tac)
-    \\ simp[SUBSET_DEF] )
-  \\ fs[]
-  \\ simp[MEM_MAP]
-  \\ fs[INJ_DEF]
-  \\ metis_tac[]
 QED
 
 Theorem set_MAP_nub[simp]:
